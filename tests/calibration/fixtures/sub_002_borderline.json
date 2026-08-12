@@ -1,0 +1,33 @@
+{
+  "submission_id": "sub_002",
+  "submission_summary": "Handwritten exam with uneven ink pressure and one smeared page. Core procedures start correctly, but the multi-step rearrangement in Q3 is abandoned midway, the Q4 sketch omits its scale, and the Q5 model is only partially assembled.",
+  "criterion_ids": ["ALG.1", "GEO.2", "MODEL.3"],
+  "max_scores": [4.0, 4.0, 2.0],
+  "expected": [
+    {
+      "criterion_id": "ALG.1",
+      "score": 2.0,
+      "comment": "Two of four manipulations carried through; frequent sign slips in Q3.",
+      "confidence": 0.62,
+      "evidence": [
+        {
+          "page": 1,
+          "quote": "-b/2a then stopped",
+          "rationale": "Correct entry point but the rearrangement is unfinished."
+        }
+      ]
+    },
+    {
+      "criterion_id": "GEO.2",
+      "score": 2.0,
+      "comment": "Sketch shape is right but axes lack scale and one label is missing.",
+      "confidence": 0.58
+    },
+    {
+      "criterion_id": "MODEL.3",
+      "score": 1.0,
+      "comment": "Variables are defined but the constraint equation is never written.",
+      "confidence": 0.55
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "submission_id": "sub_001",
+  "submission_summary": "Handwritten algebra exam, two scanned pages, legible cursive. Quadratic factoring in Q1-Q3 is complete and error-free, the Q4 graph transformation is sketched precisely with labeled axes, and the Q5 constraint model states its domain explicitly.",
+  "criterion_ids": ["ALG.1", "GEO.2", "MODEL.3"],
+  "max_scores": [4.0, 4.0, 2.0],
+  "expected": [
+    {
+      "criterion_id": "ALG.1",
+      "score": 4.0,
+      "comment": "All four algebraic manipulations executed without sign errors.",
+      "confidence": 0.95,
+      "evidence": [
+        {
+          "page": 1,
+          "quote": "(x+3)(x-2) = x^2 + x - 6",
+          "rationale": "Factoring verified line by line against the answer key."
+        }
+      ]
+    },
+    {
+      "criterion_id": "GEO.2",
+      "score": 3.5,
+      "comment": "Transformation sketch correct; axis labels swapped once and self-corrected.",
+      "confidence": 0.9,
+      "evidence": [
+        {
+          "page": 2,
+          "quote": "shift left 2, reflect over x-axis",
+          "rationale": "Sketch matches the required transformation with minor labeling slip."
+        }
+      ]
+    },
+    {
+      "criterion_id": "MODEL.3",
+      "score": 2.0,
+      "comment": "Constraint-based model is complete and declares the feasible domain.",
+      "confidence": 0.92
+    }
+  ]
+}

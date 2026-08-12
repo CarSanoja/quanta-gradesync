@@ -1,0 +1,33 @@
+{
+  "submission_id": "sub_004",
+  "submission_summary": "Handwritten exam, two scanned pages, tidy print. Factoring in Q1-Q2 is correct, Q3 drops a negative sign in the final line, the Q4 sketch is accurate with a missing arrow convention, and the Q5 model is built with one constraint inverted.",
+  "criterion_ids": ["ALG.1", "GEO.2", "MODEL.3"],
+  "max_scores": [4.0, 4.0, 2.0],
+  "expected": [
+    {
+      "criterion_id": "ALG.1",
+      "score": 3.0,
+      "comment": "Three of four manipulations correct; final-line sign error in Q3.",
+      "confidence": 0.88,
+      "evidence": [
+        {
+          "page": 1,
+          "quote": "= -6 instead of +6",
+          "rationale": "Method sound, arithmetic slip at the last step."
+        }
+      ]
+    },
+    {
+      "criterion_id": "GEO.2",
+      "score": 3.0,
+      "comment": "Accurate sketch with scale; misses the required arrow convention.",
+      "confidence": 0.9
+    },
+    {
+      "criterion_id": "MODEL.3",
+      "score": 1.5,
+      "comment": "Both constraints written but one inequality direction is inverted.",
+      "confidence": 0.7
+    }
+  ]
+}

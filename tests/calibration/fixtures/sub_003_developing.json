@@ -1,0 +1,33 @@
+{
+  "submission_id": "sub_003",
+  "submission_summary": "Handwritten exam, three scanned pages with heavy eraser marks. Only Q1 is attempted seriously; the student substitutes numbers into the wrong formula in Q2, leaves Q4 blank, and writes a single sentence for Q5.",
+  "criterion_ids": ["ALG.1", "GEO.2", "MODEL.3"],
+  "max_scores": [4.0, 4.0, 2.0],
+  "expected": [
+    {
+      "criterion_id": "ALG.1",
+      "score": 1.0,
+      "comment": "One manipulation partially correct; formula recall is unreliable.",
+      "confidence": 0.85,
+      "evidence": [
+        {
+          "page": 1,
+          "quote": "x^2 + x - 6 = (x-2)(x-2)",
+          "rationale": "Recognizes factoring intent but repeats the wrong factor."
+        }
+      ]
+    },
+    {
+      "criterion_id": "GEO.2",
+      "score": 0.5,
+      "comment": "Single unlabeled scribble; no transformation reasoning visible.",
+      "confidence": 0.8
+    },
+    {
+      "criterion_id": "MODEL.3",
+      "score": 0.0,
+      "comment": "One descriptive sentence with no variables, constraints, or domain.",
+      "confidence": 0.9
+    }
+  ]
+}
