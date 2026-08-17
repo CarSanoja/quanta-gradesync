@@ -1,0 +1,13 @@
+{
+  "evaluator": "local-lexical-evaluator",
+  "variant": "grading-v1",
+  "mae": 0.920833,
+  "quadratic_weighted_kappa": -0.297297,
+  "bias": -0.165833,
+  "tolerance": {
+    "mae_increase_max": 0.05,
+    "qwk_drop_max": 0.05,
+    "bias_abs_growth_max": 0.05
+  },
+  "note": "CI anti-regression baseline. Absolute production thresholds (QWK >= 0.85, MAE <= 0.4, |bias| < 0.1) are enforced at runtime by the objective gate against the real evaluator in GCP mode; the local evaluator is a deterministic lexical proxy, so CI pins no-regression instead of absolute values."
+}
