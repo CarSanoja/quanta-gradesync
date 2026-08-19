@@ -32,13 +32,14 @@ def build_structured_agent(
     if not model.strip():
         raise ValueError("model must not be blank")
     from google.adk.agents import LlmAgent
+    from google.genai import types as genai_types
 
     return LlmAgent(
         name=name,
         model=model,
         instruction=instruction,
         output_schema=output_schema,
-        temperature=temperature,
+        generate_content_config=genai_types.GenerateContentConfig(temperature=temperature),
     )
 
 
