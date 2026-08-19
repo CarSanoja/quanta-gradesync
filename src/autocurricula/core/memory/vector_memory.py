@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import math
 import re
 from collections import Counter
@@ -9,6 +10,8 @@ from autocurricula.config.clients import get_firestore_client
 from autocurricula.config.settings import Settings
 from autocurricula.core.memory.embeddings import HashingEmbedder, build_embedder
 from autocurricula.schemas.memory import RetrievedChunk
+
+logger = logging.getLogger(__name__)
 
 VectorDoc = tuple[str, str, dict[str, Any]]
 
@@ -118,13 +121,15 @@ class FirestoreVectorMemory:
 
     async def upsert(self, docs: list[VectorDoc]) -> None:
         def _write() -> None:
+            from google.cloud.firestore_v1.vector import Vector
+
             collection = self._client.collection(self._collection)
             for doc_id, text, metadata in docs:
                 collection.document(doc_id).set(
                     {
                         "text": text,
                         "metadata": metadata,
-                        _VECTOR_FIELD: self._embedder(text),
+                        _VECTOR_FIELD: Vector(self._embedder(text)),
                     }
                 )
 
@@ -162,7 +167,17 @@ class FirestoreVectorMemory:
                 )
             return chunks
 
-        return await asyncio.to_thread(_search)
+        from google.api_core.exceptions import GoogleAPICallError
+
+        try:
+            return await asyncio.to_thread(_search)
+        except GoogleAPICallError as error:
+            logger.warning(
+                "firestore vector search on %s degraded to empty context: %s",
+                self._collection,
+                error,
+            )
+            return []
 
 
 def build_vector_memory(
