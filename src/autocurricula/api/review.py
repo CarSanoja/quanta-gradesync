@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from fastapi.responses import FileResponse
 from pydantic import Field
 
@@ -6,6 +6,7 @@ from autocurricula.api.dependencies import AppContainer, get_container
 from autocurricula.api.media import (
     DocumentAccessError,
     DocumentMissingError,
+    load_remote_document,
     media_type_for,
     resolve_document,
 )
@@ -78,7 +79,7 @@ async def review_page_image(
     request: Request,
     index: int = Query(default=0, ge=0),
     container: AppContainer = Depends(get_container),
-) -> FileResponse:
+) -> Response:
     require_push_token(request, container.settings.pubsub_push_token)
     item = await container.review_service.store.get(review_id)
     if item is None:
@@ -90,8 +91,14 @@ async def review_page_image(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"review item {review_id!r} has no document at index {index}",
         )
+    reference = item.document_paths[index]
     try:
-        path = resolve_document(container.settings, item.document_paths[index])
+        if not container.settings.local_mode:
+            payload, media_type = await load_remote_document(
+                container.settings, reference
+            )
+            return Response(content=payload, media_type=media_type)
+        path = resolve_document(container.settings, reference)
     except DocumentAccessError as error:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail=str(error)

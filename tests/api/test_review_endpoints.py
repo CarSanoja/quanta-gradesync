@@ -123,3 +123,75 @@ async def test_dismiss_closes_without_sis_write(
     assert response.status_code == 200
     assert response.json()["status"] == "dismissed"
     assert "stu-2" not in sis_students(container)
+
+
+class FakeBlob:
+    def __init__(self, payload: bytes) -> None:
+        self._payload = payload
+
+    def download_as_bytes(self) -> bytes:
+        return self._payload
+
+
+class FakeBucket:
+    def __init__(self, payload: bytes) -> None:
+        self._payload = payload
+        self.requested: list[str] = []
+
+    def blob(self, blob_name: str) -> FakeBlob:
+        self.requested.append(blob_name)
+        return FakeBlob(self._payload)
+
+
+class FakeStorageClient:
+    def __init__(self, payload: bytes) -> None:
+        self.buckets: dict[str, FakeBucket] = {}
+        self._payload = payload
+
+    def bucket(self, name: str) -> FakeBucket:
+        return self.buckets.setdefault(name, FakeBucket(self._payload))
+
+
+async def test_page_image_streams_gcs_object_in_gcp_mode(
+    client: httpx.AsyncClient,
+    container: AppContainer,
+    auth_headers: dict[str, str],
+    monkeypatch,
+) -> None:
+    from autocurricula.api import media
+
+    item = make_item("job-900:stu-900", "stu-900", "job-900")
+    await container.review_service.store.put(item)
+    container.settings = container.settings.model_copy(
+        update={"local_mode": False, "gcp_project_id": "p", "gcs_bucket": "exams"}
+    )
+    storage = FakeStorageClient(b"page-bytes")
+    monkeypatch.setattr(media, "get_storage_client", lambda: storage)
+
+    response = await client.get(
+        "/review/job-900:stu-900/page-image", headers=auth_headers
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/jpeg"
+    assert response.content == b"page-bytes"
+    assert storage.buckets["exams"].requested == ["batches/x/stu-900.jpg"]
+
+
+async def test_page_image_rejects_document_outside_configured_bucket(
+    client: httpx.AsyncClient,
+    container: AppContainer,
+    auth_headers: dict[str, str],
+) -> None:
+    item = make_item("job-901:stu-901", "stu-901", "job-901")
+    await container.review_service.store.put(item)
+    container.settings = container.settings.model_copy(
+        update={"local_mode": False, "gcp_project_id": "p", "gcs_bucket": "other"}
+    )
+
+    response = await client.get(
+        "/review/job-901:stu-901/page-image", headers=auth_headers
+    )
+
+    assert response.status_code == 403
+    assert "outside the configured exam bucket" in response.json()["detail"]

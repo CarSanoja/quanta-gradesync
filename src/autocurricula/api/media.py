@@ -1,5 +1,8 @@
+import asyncio
 from pathlib import Path
+from typing import Any
 
+from autocurricula.config.clients import get_storage_client
 from autocurricula.config.settings import Settings
 from autocurricula.tools.gcs_fetcher import FetchError, split_gcs_uri
 
@@ -66,3 +69,42 @@ def resolve_document(settings: Settings, reference: str) -> Path:
     if not resolved.is_file():
         raise DocumentMissingError(f"no staged document at {resolved}")
     return resolved
+
+
+def _remote_location(settings: Settings, reference: str) -> tuple[str, str]:
+    if not reference.startswith(GCS_SCHEME):
+        raise DocumentAccessError("remote document reference must be a gs:// uri")
+    try:
+        bucket, blob_name = split_gcs_uri(reference)
+    except FetchError as error:
+        raise DocumentAccessError(str(error)) from error
+    if settings.gcs_bucket and bucket != settings.gcs_bucket:
+        raise DocumentAccessError(
+            f"document bucket {bucket!r} is outside the configured exam bucket"
+        )
+    return bucket, blob_name
+
+
+async def load_remote_document(
+    settings: Settings, reference: str, storage_client: Any | None = None
+) -> tuple[bytes, str]:
+    if not reference.strip():
+        raise DocumentMissingError("document reference is empty")
+    bucket, blob_name = _remote_location(settings, reference)
+    media_type = media_type_for(Path(blob_name))
+    client = storage_client if storage_client is not None else get_storage_client()
+    if client is None:
+        raise DocumentAccessError("remote document serving requires a storage client")
+
+    def _download() -> bytes:
+        return client.bucket(bucket).blob(blob_name).download_as_bytes()
+
+    from google.cloud.exceptions import NotFound
+
+    try:
+        payload = await asyncio.to_thread(_download)
+    except NotFound as error:
+        raise DocumentMissingError(f"no object at {reference}") from error
+    except Exception as error:
+        raise DocumentAccessError(f"failed to download {reference}: {error}") from error
+    return payload, media_type
