@@ -17,6 +17,7 @@ from autocurricula.schemas.events import (
     PubSubEnvelope,
     PubSubJobEvent,
     PubSubMessage,
+    decode_message_payload,
     parse_push_body,
 )
 from autocurricula.schemas.exam import ExamBatch, ExamFile, ExamSubmission
@@ -104,6 +105,7 @@ __all__ = [
     "TzAwareDatetime",
     "VerificationReport",
     "build_review_id",
+    "decode_message_payload",
     "parse_push_body",
     "utc_now",
 ]

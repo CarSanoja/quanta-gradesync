@@ -24,7 +24,7 @@ class PubSubJobEvent(FrozenStrictModel):
 
 
 class PubSubMessage(FrozenStrictModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
 
     data: str = ""
     attributes: dict[str, str] = Field(default_factory=dict)
@@ -33,12 +33,15 @@ class PubSubMessage(FrozenStrictModel):
 
 
 class PubSubEnvelope(FrozenStrictModel):
+    model_config = ConfigDict(extra="ignore")
+
     message: PubSubMessage
     subscription: str = Field(min_length=1)
 
 
-def parse_push_body(body: dict[str, Any]) -> PubSubJobEvent:
-    envelope = PubSubEnvelope.model_validate(body)
+def decode_message_payload(envelope: PubSubEnvelope) -> dict[str, Any]:
+    if not envelope.message.data:
+        return {}
     try:
         decoded = base64.b64decode(envelope.message.data, validate=True).decode("utf-8")
     except (binascii.Error, UnicodeDecodeError) as error:
@@ -47,4 +50,11 @@ def parse_push_body(body: dict[str, Any]) -> PubSubJobEvent:
         payload = json.loads(decoded)
     except json.JSONDecodeError as error:
         raise ValueError("pubsub message data is not valid json") from error
-    return PubSubJobEvent.model_validate(payload)
+    if not isinstance(payload, dict):
+        raise ValueError("pubsub message data must decode to a json object")
+    return payload
+
+
+def parse_push_body(body: dict[str, Any]) -> PubSubJobEvent:
+    envelope = PubSubEnvelope.model_validate(body)
+    return PubSubJobEvent.model_validate(decode_message_payload(envelope))
