@@ -147,15 +147,15 @@ class FirestoreDeadLetterStore:
         await asyncio.to_thread(_write)
 
     async def _list(self, job_id: str) -> list[DeadLetterEntry]:
+        from google.cloud.firestore_v1.base_query import FieldFilter
+
         def _read() -> list[dict[str, Any]]:
             return [
                 document.to_dict()
                 for document in self._client.collection(self._collection)
-                .where(filter=FieldFilter.field("job_id").equal(job_id))
+                .where(filter=FieldFilter("job_id", "==", job_id))
                 .stream()
             ]
-
-        from google.cloud.firestore_v1.base_query import FieldFilter
 
         return [DeadLetterEntry.model_validate(payload) for payload in await asyncio.to_thread(_read)]
 

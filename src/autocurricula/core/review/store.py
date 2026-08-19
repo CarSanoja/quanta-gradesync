@@ -92,7 +92,7 @@ class FirestoreReviewStore:
         def _query() -> list[Any]:
             return (
                 self._client.collection(self._collection)
-                .where(filter=FieldFilter.field("status").equal(ReviewStatus.PENDING.value))
+                .where(filter=FieldFilter("status", "==", ReviewStatus.PENDING.value))
                 .stream()
             )
 
