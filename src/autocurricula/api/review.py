@@ -1,7 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.responses import FileResponse
 from pydantic import Field
 
 from autocurricula.api.dependencies import AppContainer, get_container
+from autocurricula.api.media import (
+    DocumentAccessError,
+    DocumentMissingError,
+    media_type_for,
+    resolve_document,
+)
 from autocurricula.api.webhooks import require_push_token
 from autocurricula.core.review.service import (
     ReviewApprovalError,
@@ -63,3 +70,34 @@ async def dismiss_review(
         return await container.review_service.dismiss(review_id)
     except (ReviewNotFoundError, ReviewStateError) as error:
         raise _review_error(error) from error
+
+
+@review_router.get("/review/{review_id}/page-image")
+async def review_page_image(
+    review_id: str,
+    request: Request,
+    index: int = Query(default=0, ge=0),
+    container: AppContainer = Depends(get_container),
+) -> FileResponse:
+    require_push_token(request, container.settings.pubsub_push_token)
+    item = await container.review_service.store.get(review_id)
+    if item is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"no review item {review_id!r}"
+        )
+    if index >= len(item.document_paths):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"review item {review_id!r} has no document at index {index}",
+        )
+    try:
+        path = resolve_document(container.settings, item.document_paths[index])
+    except DocumentAccessError as error:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail=str(error)
+        ) from error
+    except DocumentMissingError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(error)
+        ) from error
+    return FileResponse(path, media_type=media_type_for(path))
