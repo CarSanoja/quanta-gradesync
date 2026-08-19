@@ -1,33 +1,65 @@
-# Bitácora — Implementación 003: cierre agéntico (verificación de meta + convergencia)
+# Dev log — Implementation 003: agentic closure (goal verification + convergence)
 
-**Fecha:** 2026-08-15
-**Dominio:** Implementación
-**Ejecuta:** Plan 003 (gaps 1–3 de la Auditoría 002)
-**Verificación:** `.venv/bin/pytest -q` → **107 passed / 0 failed** (antes: 99; +8 tests). `compileall` limpio. Sin comentarios. Archivos ≤ 200 líneas. Suite 100% offline.
+**Date:** 2026-08-15
+**Domain:** Implementation
+**Executes:** Plan 003 (gaps 1–3 of Audit 002)
+**Verification:** `.venv/bin/pytest -q` → **107 passed / 0 failed** (was 99;
++8 tests). Clean `compileall`. No comments. Files ≤ 200 lines. Suite 100%
+offline.
 
-## Verificador de meta con re-trabajo acotado (hecho)
+## Goal verifier with bounded rework (done)
 
-- Nueva etapa **VERIFY** entre SYNC y OPTIMIZE (`JobStage.VERIFIED`, reanudable por checkpoint como toda etapa).
-- `core/orchestration/goal_checks.py`: 5 checks deterministas — `submissions_graded`, `audits_complete`, `risk_complete`, `sis_auto_synced`, `quarantine_accounted` (los ítems PENDING del job deben igualar los registros en cuarentena).
-- `core/orchestration/verifier.py`: el loop agéntico acotado — **mientras** haya cuarentenas sin reintentar, iteración ≤ `verify_max_iterations` y la iteración anterior recuperó algo: re-grade con **segunda opinión** (`agents/rework_evaluator.py`: GCP → Gemini Flash en vez de Pro; local → `None`, verificación sin re-trabajo, documentado) → gate de confianza → si pasa, **actualiza el `ReviewItem`** con el nuevo record, razones y `rework_notes` — **sigue PENDING**: la aprobación de 1 clic sigue siendo del docente (gobernanza del feedback 001 innegociable). Sin progresos → el loop corta.
-- `VerificationReport` distingue explícitamente `pending_human_approval` (recuperados esperando clic) de `unresolved_submission_ids` (siguen requiriendo ojos humanos). `passed = checks ∧ unresolved = ∅`. Persistido en el checkpoint del job.
+- New **VERIFY** stage between SYNC and OPTIMIZE (`JobStage.VERIFIED`,
+  checkpoint-resumable like every stage).
+- `core/orchestration/goal_checks.py`: five deterministic checks —
+  `submissions_graded`, `audits_complete`, `risk_complete`,
+  `sis_auto_synced`, `quarantine_accounted` (the job's PENDING items must
+  match the quarantined records).
+- `core/orchestration/verifier.py`: the bounded agentic loop — **while**
+  there are unattempted quarantines, iteration ≤
+  `verify_max_iterations` and the previous iteration recovered something:
+  re-grade with a **second opinion** (`agents/rework_evaluator.py`: GCP →
+  Gemini Flash instead of Pro; local → `None`, verification without rework,
+  documented) → confidence gate → if it passes, **update the `ReviewItem`**
+  with the new record, reasons and `rework_notes` — **still PENDING**: the
+  one-click approval remains the teacher's. Without progress, the loop
+  stops.
+- The `VerificationReport` explicitly separates `pending_human_approval`
+  from `unresolved_submission_ids`. `passed = checks ∧ unresolved = ∅`.
+  Persisted in the job checkpoint.
 
-## Convergencia del optimizador (hecho)
+## Optimizer convergence (done)
 
-- `MetaOptimizerAgent.run_until_convergence()`: torneos en loop — para cuando un ciclo no acepta nada (nada que aprender), la mejora marginal < ε (convergió) o se agota `max_cycles` (presupuesto).
-- La etapa OPTIMIZE usa el loop; `OptimizeOutputs.reports` acumula los ganadores de todos los ciclos.
-- Settings: `GRADESYNC_OPTIMIZER_MAX_CYCLES=3`, `GRADESYNC_OPTIMIZER_CONVERGENCE_MIN_IMPROVEMENT=0.01`, `GRADESYNC_VERIFY_MAX_ITERATIONS=2`.
+- `MetaOptimizerAgent.run_until_convergence()`: loops tournaments — stops
+  when a cycle accepts nothing, when the marginal improvement drops below ε,
+  or when the `max_cycles` budget runs out.
+- The OPTIMIZE stage uses the loop; `OptimizeOutputs.reports` accumulates
+  every cycle's winner.
+- Settings: `GRADESYNC_OPTIMIZER_MAX_CYCLES=3`,
+  `GRADESYNC_OPTIMIZER_CONVERGENCE_MIN_IMPROVEMENT=0.01`,
+  `GRADESYNC_VERIFY_MAX_ITERATIONS=2`.
 
-## Planner por job — diferido (decisión documentada)
+## Per-job planner — deferred (documented decision)
 
-El DAG fijo sigue siendo la postura auditable correcta para corrección K-12; registrado en la Auditoría 002 como decisión, no deuda.
+The fixed DAG remains the correct auditable stance for K-12 grading;
+recorded in Audit 002 as a decision, not debt.
 
-## Pruebas nuevas (8)
+## New tests (8)
 
-- `tests/orchestration/test_verifier.py` (5) + `verifier_fixtures.py`: job limpio pasa los 5 checks; re-trabajo recupera cuarentena **pero el ítem sigue PENDING** con `rework_notes` y record al 90% (aprobación humana intacta); re-trabajo que no recupera → unresolved y `passed=False`; sin evaluador de re-trabajo → cuarentena unresolved (comportamiento local); presupuesto de iteraciones acota el loop (1 iteración deja unresolved, 2 converge).
-- `tests/calibration/test_convergence.py` (3): para por mejora marginal < ε (2 ganadores, 3 versiones); para al no aceptar nada (0 ganadores, sin promoción); respeta `max_cycles=2` con mejoras constantes.
+- `tests/orchestration/test_verifier.py` (5) + `verifier_fixtures.py`: a
+  clean job passes the five checks; rework recovers a quarantine **but the
+  item stays PENDING** with `rework_notes` and the record at 90% (human
+  approval intact); rework that fails → unresolved and `passed=False`;
+  without a rework evaluator the quarantine is unresolved (local behavior);
+  the iteration budget bounds the loop.
+- `tests/calibration/test_convergence.py` (3): stops on marginal improvement
+  below ε (2 winners, 3 versions); stops when nothing is accepted (0 winners,
+  no promotion); respects `max_cycles=2` with steady improvements.
 
-## Hallazgos durante verificación
+## Findings during verification
 
-1. Test de convergencia detectó interacción real: con `optimizer_candidates=3` el torneo consume varias mutaciones por ciclo — el test ahora aísla la convergencia con 1 candidata por ciclo (documentado implícitamente en el propio test).
-2. Split por responsabilidad para mantener ≤200: `goal_checks.py` fuera de `verifier.py`, `verifier_fixtures.py` fuera del test.
+1. The convergence test exposed a real interaction: with
+   `optimizer_candidates=3` the tournament consumes several mutations per
+   cycle — the test now isolates convergence with 1 candidate per cycle.
+2. Responsibility splits to stay ≤ 200 lines: `goal_checks.py` out of
+   `verifier.py`, `verifier_fixtures.py` out of the test.

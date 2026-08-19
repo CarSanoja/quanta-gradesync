@@ -1,76 +1,111 @@
-# Bitácora — Arquitectura y flujo: corrida en frío
+# Dev log — Architecture and flow: a cold run
 
-**Fecha:** 2026-08-12
-**Dominio:** Arquitectura técnica
-**Estado:** Implementado y verificado (53/53 tests)
+**Date:** 2026-08-12
+**Domain:** Technical architecture
+**Status:** Implemented and verified (53/53 tests at the time; superseded by later cycles)
 
-## La idea en una frase
+## The idea in one sentence
 
-No es un chat: es una **cinta transportadora tipada**. Un evento externo (subida de exámenes) empuja un "job" por seis etapas, cada etapa habla con la siguiente **solo a través de contratos Pydantic estrictos**, y en paralelo corre un segundo plano lento que mejora los prompts del sistema sin poder hacer trampa.
+It is not a chat: it is a **typed conveyor belt**. An external event (an exam
+upload) pushes a "job" through six stages, each stage talks to the next **only
+through strict Pydantic contracts**, and a slower second plane runs in parallel,
+improving the system's prompts without being able to cheat.
 
-## Diagrama de los dos planos
+## Two-plane diagram
 
 ```text
-          ┌──────────── PLANO CALIENTE (por job, segundos/minutos) ────────────┐
-Docente ─► GCS ─► Pub/Sub ─► POST /webhooks/pubsub ─► JobRunner
-sube PDFs                          (token + idempotencia)      │
-                                                             ▼
-            FETCH ─► GRADE ─► AUDIT ─► RISK ─► SYNC ─► OPTIMIZE ─► COMPLETED
-              │        │         │       │       │        │
-           staging  Gemini    Gemini   stats   SIS API  (dispara
-           files    3.5 Pro   Flash    puras   + L3     el plano
-                    + L2      + L2     + L3    write     frío)
-          └──────────────────────────────────────────┬─────────┘
-                                                      ▼
-          ┌────────── PLANO FRÍO (periódico, autoevolución) ──────────┐
-          CalibrationSet (ground truth humano) ─► MAE/QWK/bias ──────┐
-          Proposer LLM propone nuevo prompt ─────────────────────────┤
-          Candidato se re-evalúa ─► AntiGamingValidator ─► ¿aceptar? │
-          └───────────────────────────────────────────────────────────┘
+          ┌──────────── HOT PLANE (per job, seconds/minutes) ────────────┐
+Teacher ─► GCS ─► Pub/Sub ─► POST /webhooks/pubsub ─► JobRunner
+uploads                            (token + idempotency)     │
+scans                                                        ▼
+          FETCH ─► GRADE ─► AUDIT ─► RISK ─► SYNC ─► OPTIMIZE ─► COMPLETED
+            │        │         │       │      │        │
+          staging  Gemini    Gemini   pure   gate +  goal      convergence
+          files    3.5 Pro   3.5      stats  SIS/L3  checks +   tournaments
+                             + L3     + L3   write    bounded    (cold plane
+                             history         rework     trigger)
+          └──────────────────────────────┬─────────────────┴──────────┘
+                                         ▼
+          ┌────────── COLD PLANE (periodic, self-improvement) ──────────┐
+          CalibrationSet (human ground truth) ─► MAE/QWK/bias ─────────┐
+          Proposer LLM proposes a new prompt ──────────────────────────┤
+          Candidate is re-evaluated ─► AntiGamingValidator ─► accept?  │
+          └─────────────────────────────────────────────────────────────┘
 ```
 
-## Arranque en frío del servicio (una vez)
+## Service cold start (once)
 
-El `lifespan` de FastAPI construye el `AppContainer` (`src/autocurricula/api/dependencies.py`): lee `Settings` y elige implementación por costura según `local_mode`:
+The FastAPI lifespan builds the `AppContainer`
+(`src/autocurricula/api/dependencies.py`): it reads `Settings` and picks an
+implementation per seam based on `local_mode`:
 
-| Costura | Local (sin credenciales) | GCP |
+| Seam | Local (no credentials) | GCP |
 |---|---|---|
-| Archivos de examen | `LocalStagingFetcher` | `GcsFetcher` |
-| Memoria vectorial L2 | `LocalVectorMemory` (TF-IDF) | `FirestoreVectorMemory` |
-| Memoria persistente L3 | `LocalPersistentStore` (JSON) | `FirestorePersistentStore` |
-| Escritura SIS | `LocalSISConnector` (jsonl) | `HttpSISConnector` |
+| Exam files | `LocalStagingFetcher` | `GcsFetcher` |
+| L2 vector memory | `LocalVectorMemory` (TF-IDF) | `FirestoreVectorMemory` |
+| L3 persistent memory | `LocalPersistentStore` (JSON) | `FirestorePersistentStore` |
+| SIS writes | `LocalSISConnector` (jsonl) | `HttpSISConnector` |
 | Checkpoints | `LocalCheckpointStore` | `FirestoreCheckpointStore` |
 
-La lógica de negocio es idéntica en ambos modos; solo cambian los transportes.
+Business logic is identical in both modes; only the transports change.
 
-## Etapas de la corrida
+## Run stages
 
-1. **Disparador.** Subida al bucket → Pub/Sub → push a `POST /webhooks/pubsub` (`webhooks.py:61`). Valida bearer token en tiempo constante, decodifica el envelope a `PubSubJobEvent` estricto, verifica idempotencia contra el checkpoint store (`duplicate` → 200 sin reprocesar), lanza `runner.process()` en background y responde `accepted` de inmediato.
-2. **FETCH.** `JobCatalog.load_manifest(event)` carga manifiesto del lote (archivos, rúbrica, estándar curricular); el fetcher materializa archivos. Salida tipada: `ExamBatch` + `Rubric` + `CurriculumStandard`.
-3. **GRADE.** La rúbrica se sube a L2 y se recupera contexto top-5; `asyncio.gather` califica todas las entregas concurrentemente con `AdkGradingEvaluator` (Gemini 3.5 Pro multimodal, output schema `GradingResult`, cada puntaje cita `EvidenceSpan`; retry de reparación si no parsea).
-4. **AUDIT.** Query con las competencias del ministerio → L2 → Gemini Flash mapea criterios a códigos de competencia: `covered_codes` vs `missing_codes`.
-5. **RISK.** Sin LLM: carga perfiles episódicos de L3 y corre z-scores, tendencia, colapso de confianza y tasa de faltantes → `RiskAssessment` explicable.
-6. **SYNC.** `SISGradeRecord` → conector SIS; `persist_outcomes` escribe de vuelta a L3 (`TermSnapshot` por estudiante, `ClassCompetencySnapshot` por competencia).
-7. **OPTIMIZE.** Dispara un ciclo del meta-optimizer y marca `COMPLETED`.
+1. **Trigger.** Upload to the bucket → Pub/Sub → push to
+   `POST /webhooks/pubsub` (`webhooks.py`). Validates the bearer token in
+   constant time, decodes the envelope into a strict `PubSubJobEvent`, checks
+   idempotency against the checkpoint store (`duplicate` → 200 without
+   reprocessing), launches `runner.process()` in the background and answers
+   `accepted` immediately.
+2. **FETCH.** `JobCatalog.load_manifest(event)` loads the batch manifest
+   (files, rubric, curriculum standard); the fetcher materializes files. Typed
+   output: `ExamBatch` + `Rubric` + `CurriculumStandard`.
+3. **GRADE.** The rubric is upserted into L2 and context is retrieved
+   (top-5); `asyncio.gather` grades every submission concurrently with
+   `AdkGradingEvaluator` (Gemini 3.5 Pro multimodal, output schema
+   `GradingResult`, every score cites an `EvidenceSpan`; repair retry if it
+   fails to parse).
+4. **AUDIT.** Query with the ministry competencies → L2 → Gemini Flash maps
+   criteria to competency codes: `covered_codes` vs `missing_codes`.
+5. **RISK.** No LLM: loads episodic profiles from L3 and computes z-scores,
+   trend, confidence collapse and missing-work rate → explainable
+   `RiskAssessment`.
+6. **SYNC.** `SISGradeRecord` → SIS connector; `persist_outcomes` writes back
+   to L3 (`TermSnapshot` per student, `ClassCompetencySnapshot` per
+   competency).
+7. **OPTIMIZE.** Triggers a meta-optimizer cycle and marks `COMPLETED`.
 
-Tras cada etapa: checkpoint de sesión + record. Muerte de instancia → Pub/Sub reintenta → el runner restaura la sesión, salta etapas `SUCCEEDED` y continúa (`runner.py:71-74`).
+After every stage: session + record checkpoint. Instance death → Pub/Sub
+redelivers → the runner restores the session, skips `SUCCEEDED` stages and
+continues (`runner.py`).
 
-## Plano frío: autoevolución con candado
+## Cold plane: self-evolution with a lock
 
-`MetaOptimizerEngine.run_iteration` (`optimizer_engine.py:52`):
+`MetaOptimizerEngine.run_iteration`:
 
-1. Evalúa el variante actual contra `CalibrationSet` (ground truth humano) → `CalibrationMetrics` (MAE, QWK, bias).
-2. Proposer (Gemini Flash, `ProposalSchema` estricto) propone mutación con justificación.
-3. El candidato se re-evalúa sobre el mismo ground truth.
-4. `AntiGamingValidator`: rechaza colapso de varianza, salidas constantes, mejoras sin contacto con ground truth.
-5. Solo si pasa: `PromptRegistry.register` promueve con version bump (con rollback disponible).
+1. Evaluates the current variant against the `CalibrationSet` (human ground
+   truth) → `CalibrationMetrics` (MAE, QWK, bias).
+2. Proposer (Gemini Flash, strict `ProposalSchema`) proposes a mutation with
+   justification.
+3. The candidate is re-evaluated on the same ground truth.
+4. `AntiGamingValidator`: rejects variance collapse, constant outputs and
+   improvements without ground-truth contact.
+5. Only if it passes: `PromptRegistry.register` promotes with a version bump
+   (rollback available).
 
-Semántica: el optimizador optimiza acuerdo con humanos, no estética de la distribución.
+Semantics: the optimizer optimizes agreement with humans, not distribution
+cosmetics.
 
-## Semántica de las tres memorias
+## Semantics of the three memories
 
-- **L1 — SessionMemory:** mesa de trabajo efímera del job, serializable a checkpoint.
-- **L2 — VectorMemory:** "¿qué es relevante ahora?" — rúbricas y competencias por significado.
-- **L3 — PersistentStore:** "¿qué recuerdo del estudiante en el tiempo?" — perfiles episódicos y snapshots de clase; convierte RISK en detección de trayectoria.
+- **L1 — SessionMemory:** ephemeral per-job worktable, serializable to
+  checkpoint.
+- **L2 — VectorMemory:** "what is relevant now?" — rubrics and competencies by
+  meaning.
+- **L3 — PersistentStore:** "what do we remember about this student over
+  time?" — episodic profiles and class snapshots; turns RISK into trajectory
+  detection.
 
-Principio rector: **cada flecha del diagrama es un modelo Pydantic con `extra=forbid`**. Ningún agente inventa campos; la basura explota ruidosamente, nunca se propaga silenciosamente.
+Governing principle: **every arrow in the diagram is a Pydantic model with
+`extra=forbid`**. No agent invents fields; garbage explodes loudly, never
+propagates silently.

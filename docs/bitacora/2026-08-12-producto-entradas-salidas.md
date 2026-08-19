@@ -1,54 +1,62 @@
-# Bitácora — El GradeSync como producto: qué entra y qué sale
+# Dev log — GradeSync as a product: what goes in, what comes out
 
-**Fecha:** 2026-08-12
-**Dominio:** Producto / valor
-**Estado:** Vigente (revisado por feedback 001 — ver entrada de feedback)
+**Date:** 2026-08-12
+**Domain:** Product / value
+**Status:** Current (revised by feedback 001 — see the feedback entry)
 
 ## Elevator pitch
 
-**Entra un paquete de exámenes escaneados; salen notas escritas en el sistema del colegio, alertas de riesgo y un mapa de competencias de la clase.** El docente no "usa" una app: sube archivos y desaparece del flujo. Es backoffice puro — cero chat, cero interfaces que aprender.
+**In goes a package of scanned exams; out come grades written into the
+school's system, risk alerts and a class competency map.** The teacher does
+not "use" an app: they upload files and disappear from the flow. Pure
+backoffice — zero chat, zero interfaces to learn.
 
-## Qué entra
+## What goes in
 
-| Entrada | Quién la provee | Frecuencia |
+| Input | Who provides it | Frequency |
 |---|---|---|
-| Lote de exámenes escaneados (PDFs/imágenes, manuscritos) | Docente o secretaría académica | Cada evaluación |
-| Manifiesto del lote — clase, asignatura, rúbrica, estándar curricular | El colegio (plantilla) | Cada evaluación |
-| Rúbricas vigentes y estándar de competencias del ministerio | Coordinación académica | Una vez por periodo |
-| Muestras de calibración — exámenes calificados por humanos (ground truth) | Los docentes | Ocasional |
-| Credenciales y endpoints — SIS, bucket, topic Pub/Sub | TI del colegio | Una vez (setup) |
+| Batch of scanned exams (PDFs/images, handwritten) | Teacher or academic office | Every assessment |
+| Batch manifest — class, subject, rubric, curriculum standard | The school (template) | Every assessment |
+| Current rubrics and ministry competency standard | Academic coordination | Once per term |
+| Calibration samples — human-graded exams (ground truth) | Teachers | Occasional |
+| Credentials and endpoints — SIS, bucket, Pub/Sub topic | School IT | Once (setup) |
 
-## Qué sale
+## What comes out
 
-**Para el docente:**
-- Nota por criterio con evidencia citada (página + cita textual del manuscrito)
-- Feedback redactado por entrega
-- Turnaround de minutos, no horas
+**For the teacher:**
+- Grades per criterion with cited evidence (page + verbatim quote from the
+  manuscript)
+- Written feedback per submission
+- Minutes of turnaround instead of hours
 
-**Para coordinación académica:**
-- Conciliación curricular automática (competencias cubiertas vs huérfanas)
-- Alertas tempranas de deserción con drivers explicables e intervenciones sugeridas
-- Mapa de dominio de la clase por competencia
+**For academic coordination:**
+- Automatic curriculum reconciliation (covered vs orphaned competencies)
+- Early dropout alerts with explainable drivers and suggested interventions
+- Class mastery map per competency
 
-**Para el SIS / backoffice:**
-- Registros de notas ya escritos, con códigos de competencia — cero transcripción
+**For the SIS / backoffice:**
+- Grade records already written, with competency codes — zero transcription
 
-**Para el propio motor:**
-- Reportes de calibración: versión de prompt activa, MAE/QWK/bias contra humanos, mutaciones rechazadas y por qué
+**For the engine itself:**
+- Calibration reports: active prompt version, MAE/QWK/bias against humans,
+  rejected mutations and why
 
-## Garantías de producto
+## Product guarantees
 
-1. Nunca duplica una nota (idempotencia de job).
-2. Nunca pierde un lote a medias (reanudación por checkpoint).
-3. Toda nota es defendible (cita evidencia del propio trabajo).
-4. El riesgo no es caja negra (estadística determinista).
-5. Mejora pero no hace trampa (gate anti-gaming del optimizador).
-6. Nada se degrada silenciosamente (contratos estrictos).
+1. Never duplicates a grade (job idempotency).
+2. Never loses a half-processed batch (checkpoint resume).
+3. Every grade is defensible (cites evidence from the student's own work).
+4. Risk is not a black box (deterministic statistics).
+5. It improves but does not cheat (optimizer anti-gaming gate).
+6. Nothing degrades silently (strict contracts).
 
-## Límites honestos
+## Honest limits
 
-- Calidad de salida = función de la calidad de rúbricas y escaneos.
-- El loop de mejora requiere ground truth humano.
-- Ilegibilidad genuina → fallo explícito y marcado; el producto no inventa lectura.
+- Output quality is a function of rubric and scan quality.
+- The improvement loop requires human ground truth.
+- Genuine illegibility → explicit, flagged failure; the product never invents
+  a reading.
 
-**En una línea:** convierte horas de calificación manual + transcripción + cruce curricular + detección a ojo de riesgo en **un upload**, con recibo auditable de cada decisión.
+**In one line:** it turns hours of manual grading + transcription + curriculum
+cross-referencing + eyeball risk detection into **one upload**, with an
+auditable receipt for every decision.

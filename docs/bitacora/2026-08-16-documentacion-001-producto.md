@@ -1,36 +1,37 @@
-# Bitácora — Documentación 001: directorio de producto
+# Dev log — Documentation 001: product docs directory
 
-**Fecha:** 2026-08-16
-**Dominio:** Documentación de producto
-**Estado:** Publicado
+**Date:** 2026-08-16
+**Domain:** Product documentation
+**Status:** Published
 
-## Qué se creó
+## What was created
 
-`docs/product/` con dos documentos en inglés (estándar de documentación open source:
-encabezado de estado/audiencia/fecha, tabla de contenidos, referencias cruzadas,
-límites honestos):
+`docs/product/` with two English documents (open-source documentation
+standards: status/audience/date header, table of contents, cross-references,
+honest limits):
 
-1. **`how-it-works.md`** — "How the GradeSync Engine Works — A Cold Run": explicación
-   detallada y **actualizada al estado actual** (Implementación 003): dos planos,
-   arranque en frío con tabla de costuras local/GCP, trigger Pub/Sub, intake sin
-   formularios (manifiesto explícito o convención + `catalog-defaults.json`), las
-   **siete etapas** (incluye VERIFY con re-trabajo acotado y OPTIMIZE con torneos de
-   convergencia), jerarquía de memoria L1/L2/L3, motor de autoevolución con
-   anti-gaming, API de revisión humana, semántica de fallas/idempotencia, filosofía
-   de tipado estricto y mapa de archivos.
-2. **`product-overview.md`** — "The GradeSync Engine as a Product": pitch, personas,
-   matriz de entradas/salidas, 6 garantías fundamentales, ROI, un día en la vida,
-   modos de despliegue, límites honestos y roadmap.
-3. **`README.md`** del directorio con la **política de actualización**: son artefactos
-   de release — cada ciclo de implementación DEBE actualizarlos; la historia vive en
-   la bitácora (append-only); toda afirmación debe estar respaldada por la suite.
+1. **`how-it-works.md`** — "How the GradeSync Engine Works — A Cold Run": a
+   detailed, **current-state** explanation (Implementation 003 at the time):
+   two planes, cold start with the local/GCP seam table, Pub/Sub trigger,
+   zero-form intake (explicit manifest or convention +
+   `catalog-defaults.json`), the **seven stages** (including VERIFY with
+   bounded rework and OPTIMIZE with convergence tournaments), the L1/L2/L3
+   memory hierarchy, the self-evolution engine with anti-gaming, the human
+   review API, failure/idempotency semantics, the strict-typing philosophy
+   and the file map.
+2. **`product-overview.md`** — "The GradeSync Engine as a Product": pitch,
+   personas, inputs/outputs matrix, six fundamental guarantees, ROI, a day in
+   the life, deployment modes, honest limits and roadmap.
+3. **`README.md`** for the directory with the **update policy**: they are
+   release artifacts — every implementation cycle MUST update them; history
+   lives in the append-only dev log; every claim must be backed by the suite.
 
-## Ajustes de consistencia
+## Consistency fixes
 
-- README raíz: enlaza `docs/product/`; corregida una inexactitud (el webhook responde
-  `200` accepted/duplicate, no `204` como decía la nota de Pub/Sub).
+- Root README: links `docs/product/`; fixed an inaccuracy (the webhook
+  answers `200` accepted/duplicate, not `204` as the Pub/Sub note claimed).
 
-## Regla operativa nueva
+## New operating rule
 
-A partir de este ciclo, todo plan de implementación incluye la actualización de
-`docs/product/` como paso obligatorio del ciclo.
+From this cycle on, every implementation plan includes updating
+`docs/product/` as a mandatory step of the cycle.

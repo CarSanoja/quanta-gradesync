@@ -1,30 +1,49 @@
-# Bitácora — Auditoría 002: ¿es un sistema agéntico?
+# Dev log — Audit 002: is it an agentic system?
 
-**Fecha:** 2026-08-15
-**Dominio:** Auditoría conceptual
-**Pregunta:** ¿puede pensar, ejecutar acciones, verificar si se cumplió la meta y seguir en un loop hasta terminar de la mejor forma posible?
+**Date:** 2026-08-15
+**Domain:** Conceptual audit
+**Question:** can it think, execute actions, check whether the goal was met,
+and keep looping until it finishes in the best possible way?
 
-## Conclusión
+## Conclusion
 
-**Híbrido: workflow determinista con islas agénticas.** El loop agéntico completo existe hoy en el plano frío (auto-mejora); en el plano caliente la ejecución es un DAG fijo con gates de verificación distribuidos pero sin verificador de meta ni re-trabajo.
+**Hybrid: a deterministic workflow with agentic islands.** The full agentic
+loop exists today in the cold plane (self-improvement); in the hot plane,
+execution is a fixed DAG with distributed verification gates but no goal
+verifier and no rework.
 
-## Lo que existe
+## What exists
 
-1. **Loop de herramientas (micro-agencia)**: agentes ADK eligen tools (fetch, vector search), observan y deciden el siguiente paso.
-2. **Loop de reparación**: salida LLM que viola el contrato → retry con instrucción de corrección.
-3. **Loop de auto-mejora (plenamente agéntico)**: estado (linaje de prompts en L3) → meta (MAE/QWK vs humanos) → acción (torneo de N mutaciones) → verificación (mejora + anti-gaming) → aprendizaje persistido. El sistema dirige su propia mejora.
-4. **Loop de resiliencia**: checkpoints + reintento Pub/Sub + resume — itera hasta terminar, por infraestructura.
+1. **Tool loop (micro-agency)**: ADK agents pick tools (fetch, vector
+   search), observe and decide the next step.
+2. **Repair loop**: an LLM output that violates the contract → retry with a
+   corrective instruction.
+3. **Self-improvement loop (fully agentic)**: state (prompt lineage in L3) →
+   goal (MAE/QWK vs humans) → action (tournament of N mutations) →
+   verification (improvement + anti-gaming) → persisted learning. The system
+   directs its own improvement.
+4. **Resilience loop**: checkpoints + Pub/Sub redelivery + resume — it
+   iterates to completion through infrastructure.
 
-## Lo que falta en el plano caliente
+## What was missing in the hot plane
 
-1. **Verificador de meta**: nadie evalúa tras SYNC si el job logró su misión.
-2. **Re-trabajo dirigido**: baja confianza masiva no dispara re-intento con otra estrategia.
-3. **Convergencia autónoma**: el optimizador corre un torneo por disparo; no itera hasta converger.
+1. **Goal verifier**: nobody evaluates after SYNC whether the job achieved
+   its mission.
+2. **Directed rework**: massive low confidence does not trigger a retry with
+   another strategy.
+3. **Autonomous convergence**: the optimizer runs one tournament per trigger;
+   it does not iterate until converging.
 
-## Por qué es (en parte) una decisión de diseño
+## Why that is (partly) a design decision
 
-En corrección K-12 el camino caliente debe ser reproducible, auditable y de costo predecible; la agencia se concentra donde suma (juicio multimodal, auto-mejora) y se acota con gates (schemas, anti-gaming, umbral de confianza). Un agente libre en el pipeline principal sería un pasivo legal, no una feature.
+In K-12 grading the hot path must be reproducible, auditable and
+cost-predictable; agency is concentrated where it adds value (multimodal
+judgment, self-improvement) and bounded by gates (schemas, anti-gaming,
+confidence threshold). A free-roaming agent in the main pipeline would be a
+legal liability, not a feature.
 
-## Resolución
+## Resolution
 
-Plan 003 cierra los gaps 1–3 **sin romper la tesis**: verificación y re-trabajo acotado y trazable; convergencia con presupuesto. El planner por job queda diferido: el DAG fijo es la postura auditable correcta para este dominio.
+Plan 003 closes gaps 1–3 **without breaking the thesis**: bounded, traceable
+verification and rework; convergence with a budget. The per-job planner stays
+deferred: the fixed DAG is the correct auditable stance for this domain.

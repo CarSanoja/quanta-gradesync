@@ -1,46 +1,70 @@
-# Bitácora — Feedback 001: fricción operativa, gobernanza y ROI
+# Dev log — Feedback 001: operational friction, governance and ROI
 
-**Fecha:** 2026-08-13
-**Dominio:** Feedback de producto
-**Fuente:** Stakeholder (revisión de la entrada "producto: entradas y salidas")
-**Estado:** Aceptado — planificado en `2026-08-17-plan-001`
+**Date:** 2026-08-13
+**Domain:** Product feedback
+**Source:** Stakeholder (review of the "product: inputs and outputs" entry)
+**Status:** Accepted — planned in `2026-08-13-plan-001`
 
-## 1. El punto ciego de la fricción operativa: ¿quién llena el manifiesto?
+## 1. The operational-friction blind spot: who fills the manifest?
 
-**Problema:** si el docente tiene que crear un JSON o llenar un formulario por cada lote, se rompe la promesa de "el docente sube archivos y desaparece".
+**Problem:** if the teacher must create a JSON or fill a form per batch, the
+promise "the teacher uploads files and disappears" breaks.
 
-**Mejora pedida:** el manifiesto debe poder **inferirse automáticamente** por convención de nombres de archivo/carpetas en el bucket (ej. `2026_Matematicas_10A_Parcial1.pdf`) o mediante carátula preimpresa con código QR/OCR leída en la etapa FETCH.
+**Requested improvement:** the manifest must be **inferrable automatically**
+from file/folder naming conventions in the bucket (e.g.
+`2026_Matematicas_10A_Parcial1.pdf`) or via a pre-printed cover page with a
+QR/OCR code read at the FETCH stage.
 
-## 2. La garantía de gobernanza: cuarentena por confianza (confidence-gated quarantine)
+## 2. The governance guarantee: confidence-gated quarantine
 
-**Problema:** en K-12 formal, escribir el 100% de las notas directo al SIS sin validación previa genera rechazo institucional (miedo a litigios o reclamos de apoderados).
+**Problem:** in formal K-12, writing 100% of grades straight to the SIS
+without prior validation triggers institutional rejection (fear of litigation
+or parent complaints).
 
-**Mejora pedida:** garantía explícita — "si la confianza de extracción multimodal o la nitidez de la evidencia cae por debajo del **85%**, la nota no se sincroniza directo: queda en estado `REQUIRES_HUMAN_REVIEW` con la página y el recorte visual exacto pre-resaltado para que el docente la apruebe con 1 clic".
+**Requested improvement:** an explicit guarantee — "if the multimodal
+extraction confidence or the evidence sharpness falls below **85%**, the grade
+is not synced directly: it stays in `REQUIRES_HUMAN_REVIEW` with the page and
+the exact visual excerpt pre-highlighted so the teacher can approve it with
+one click."
 
-## 3. Métricas de ROI cuantitativo
+## 3. Quantitative ROI metrics
 
-- **Ahorro de tiempo docente:** de ~12 horas semanales de corrección manual a cero transcripción y solo ~10 minutos de revisión de excepciones.
-- **Time-to-feedback:** reducción del ciclo de retroalimentación de 14 días a menos de 10 minutos tras subir el escaneo.
+- **Teacher time saved:** from ~12 weekly hours of manual grading to zero
+  transcription and ~10 minutes of exception review.
+- **Time-to-feedback:** feedback cycle reduced from 14 days to under 10
+  minutes after the scan is uploaded.
 
-## 4. Versión optimizada del pitch (para README)
+## 4. Optimized pitch version (for the README)
 
-**Elevator pitch:** "Entra un lote de exámenes escaneados; salen calificaciones auditadas en el SIS, mapas de cobertura curricular y alertas tempranas de deserción. El docente no usa una app ni aprende interfaces: deposita archivos y recupera sus tardes. Es infraestructura de backoffice puro."
+**Elevator pitch:** "In goes a batch of scanned exams; out come audited grades
+in the SIS, curriculum coverage maps and early dropout alerts. The teacher
+does not use an app or learn interfaces: they drop files and get their
+evenings back. Pure backoffice infrastructure."
 
-**Matriz de flujos de entrada (nueva):**
+**New input-flow matrix:**
 
-| Entrada | Origen | Frecuencia |
+| Input | Source | Frequency |
 |---|---|---|
-| Lote de exámenes escaneados (PDFs/imágenes manuscritas) | Docente o secretaría | Por evaluación |
-| Metadatos del lote (materia, grado, rúbrica activa) | **Auto-inferido por convención de ruta o código de lote** | Automático por evento |
-| Rúbricas y estándar curricular nacional | Coordinación pedagógica | 1 vez por periodo |
-| Muestras de calibración (ground-truth humano) | Evaluaciones históricas validadas | Periódico (alimenta auto-mejora) |
-| Credenciales y conectores SIS/LMS | TI / Administración | Setup inicial único |
+| Batch of scanned exams (handwritten PDFs/images) | Teacher or front office | Per assessment |
+| Batch metadata (subject, grade, active rubric) | **Auto-inferred from the path or lot-code convention** | Automatic per event |
+| Rubrics and national curriculum standard | Pedagogical coordination | Once per term |
+| Calibration samples (human ground truth) | Validated historical assessments | Periodic (feeds self-improvement) |
+| SIS/LMS credentials and connectors | IT / administration | One-time setup |
 
-**Garantías fundamentales (nueva formulación):**
+**Fundamental guarantees (new formulation):**
 
-1. **Idempotencia transaccional:** aunque Pub/Sub entregue el mensaje múltiples veces, un examen jamás se duplica ni se computa dos veces en el SIS.
-2. **Defendibilidad absoluta:** toda calificación incluye un `EvidenceSpan` con cita textual y número de página; los reclamos se responden con evidencia del propio manuscrito.
-3. **Escalación por umbral de confianza:** respuestas ambiguas o con caligrafía ilegible no se adivinan: entran en cuarentena para validación rápida del docente.
-4. **Riesgo determinista y explicable:** alertas basadas en tendencias matemáticas (z-scores, pendientes longitudinales en L3), no en opiniones libres de un LLM.
-5. **Auto-mejora anti-gaming:** el optimizador solo promueve variantes que mejoren el acuerdo humano (QWK/MAE), bloqueando colapso de varianza o notas promedio artificiales.
-6. **Tolerancia a fallos de larga duración:** checkpoints persistentes por etapa; el flujo se reanuda exactamente en la etapa pendiente sin recomputar trabajo previo.
+1. **Transactional idempotency:** even if Pub/Sub delivers the message
+   multiple times, an exam is never duplicated or computed twice in the SIS.
+2. **Absolute defensibility:** every grade includes an `EvidenceSpan` with a
+   verbatim quote and page number; complaints are answered with evidence from
+   the student's own manuscript.
+3. **Confidence-threshold escalation:** ambiguous answers or illegible
+   handwriting are never guessed: they go to quarantine for quick teacher
+   validation.
+4. **Deterministic, explainable risk:** alerts are based on mathematical
+   trends (z-scores, longitudinal slopes over L3), not free-form LLM opinion.
+5. **Anti-gaming self-improvement:** the optimizer only promotes variants that
+   improve human agreement (QWK/MAE), actively blocking variance collapse or
+   artificial average-to-middle grades.
+6. **Long-running fault tolerance:** persistent per-stage checkpoints; the
+   flow resumes exactly at the pending stage without recomputing prior work.
