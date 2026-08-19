@@ -21,3 +21,5 @@ htmlcov/
 .staging/
 
 .DS_Store
+
+.claude/
