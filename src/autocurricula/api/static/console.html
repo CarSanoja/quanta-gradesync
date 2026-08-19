@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GradeSync Operations Console</title>
+<link rel="stylesheet" href="/console/assets/console.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">GS</span>
+    <span class="brand-text">
+      <strong>AutoCurricula &amp; GradeSync</strong>
+      <small>Operations console</small>
+    </span>
+  </div>
+  <div class="topbar-meta">
+    <span class="chip" id="mode-chip" data-tone="neutral">backend: checking</span>
+    <span class="chip" id="queue-chip" data-tone="neutral">queue: &mdash;</span>
+    <button class="ghost" id="token-button" type="button">Session token</button>
+    <button class="primary" id="refresh-button" type="button">Refresh</button>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="rail" id="rail">
+    <button type="button" class="rail-item is-active" data-view="jobs">
+      <span class="rail-label">Jobs timeline</span>
+      <span class="rail-hint">pipeline checkpoints</span>
+    </button>
+    <button type="button" class="rail-item" data-view="review">
+      <span class="rail-label">Review queue</span>
+      <span class="rail-hint">one-click approval</span>
+    </button>
+    <button type="button" class="rail-item" data-view="optimizer">
+      <span class="rail-label">Optimizer</span>
+      <span class="rail-hint">prompt evolution</span>
+    </button>
+    <p class="rail-note">
+      Grades below the confidence threshold, or scored without cited evidence, are
+      never written to the SIS. They wait here.
+    </p>
+  </nav>
+
+  <main class="stage">
+    <section class="view is-active" id="view-jobs">
+      <header class="view-head">
+        <h2>Jobs timeline</h2>
+        <p>Every batch, stage by stage, replayed from the persistent checkpoint store.</p>
+      </header>
+      <div class="split">
+        <div class="panel" id="jobs-list-panel">
+          <div class="panel-head"><h3>Batches</h3><span class="counter" id="jobs-count"></span></div>
+          <div class="panel-body" id="jobs-list"></div>
+        </div>
+        <div class="panel" id="job-detail-panel">
+          <div class="panel-head"><h3>Batch detail</h3></div>
+          <div class="panel-body" id="job-detail"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-review">
+      <header class="view-head">
+        <h2>Review queue</h2>
+        <p>Quarantined records with their reasons, cited evidence and the scanned page.</p>
+      </header>
+      <div class="split">
+        <div class="panel" id="review-list-panel">
+          <div class="panel-head"><h3>Pending</h3><span class="counter" id="review-count"></span></div>
+          <div class="panel-body" id="review-list"></div>
+        </div>
+        <div class="panel" id="review-detail-panel">
+          <div class="panel-head"><h3>Item detail</h3></div>
+          <div class="panel-body" id="review-detail"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-optimizer">
+      <header class="view-head">
+        <h2>Optimizer report</h2>
+        <p>Active prompt variants and the calibration metrics that promoted them.</p>
+      </header>
+      <div class="panel">
+        <div class="panel-head"><h3>Active variants</h3></div>
+        <div class="panel-body" id="optimizer-variants"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>Tournament cycles</h3><span class="counter" id="cycles-count"></span></div>
+        <div class="panel-body" id="optimizer-cycles"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="gate" id="token-gate" hidden>
+  <form class="gate-card" id="token-form">
+    <h3>Operations token</h3>
+    <p>The console calls the same authenticated API as Pub/Sub. Paste the deployment
+      bearer token; it stays in this browser tab only.</p>
+    <input type="password" id="token-input" placeholder="GRADESYNC_PUBSUB_PUSH_TOKEN" autocomplete="off">
+    <div class="gate-actions">
+      <button type="button" class="ghost" id="token-cancel">Cancel</button>
+      <button type="submit" class="primary">Use token</button>
+    </div>
+    <p class="gate-error" id="token-error" hidden></p>
+  </form>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script type="module" src="/console/assets/console.js"></script>
+</body>
+</html>

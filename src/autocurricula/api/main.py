@@ -17,6 +17,9 @@ from autocurricula.api.readiness import (
     ping_backend,
     settings_issues,
 )
+from autocurricula.api.console import console_router
+from autocurricula.api.jobs import jobs_router
+from autocurricula.api.optimizer import optimizer_router
 from autocurricula.api.responses import HealthResponse, ReadinessResponse
 from autocurricula.api.review import review_router
 from autocurricula.api.webhooks import pubsub_router
@@ -74,6 +77,9 @@ def create_app() -> FastAPI:
     application.include_router(health_router)
     application.include_router(pubsub_router)
     application.include_router(review_router)
+    application.include_router(jobs_router)
+    application.include_router(optimizer_router)
+    application.include_router(console_router)
     return application
 
 
