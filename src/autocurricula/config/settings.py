@@ -5,6 +5,15 @@ from typing import Any
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+GCP_SETTLE_INTERVAL_SECONDS = 5.0
+FALSE_TOKENS = frozenset({"false", "0", "no", "off"})
+
+
+def _is_local(value: Any) -> bool:
+    if isinstance(value, str):
+        return value.strip().lower() not in FALSE_TOKENS
+    return bool(value)
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -61,6 +70,9 @@ class Settings(BaseSettings):
     sis_base_url: str = ""
     sis_api_token: str = ""
 
+    batch_settle_interval_seconds: float = Field(default=0.0, ge=0.0, le=120.0)
+    batch_settle_max_rounds: int = Field(default=6, ge=1, le=60)
+
     local_mode: bool = True
     local_data_dir: Path = Path(".local_data")
 
@@ -70,8 +82,14 @@ class Settings(BaseSettings):
     @model_validator(mode="before")
     @classmethod
     def _default_local_mode(cls, values: Any) -> Any:
-        if isinstance(values, dict) and "local_mode" not in values:
+        if not isinstance(values, dict):
+            return values
+        if "local_mode" not in values:
             values["local_mode"] = not bool(values.get("gcp_project_id"))
+        if _is_local(values.get("local_mode")):
+            return values
+        if "batch_settle_interval_seconds" not in values:
+            values["batch_settle_interval_seconds"] = GCP_SETTLE_INTERVAL_SECONDS
         return values
 
     @property
