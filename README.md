@@ -338,6 +338,17 @@ never silently replaced by inference — it fails with the validation error. A
 pre-printed cover page with a QR/OCR lot code is a planned third mode over the
 same seam.
 
+## Operations console and demo batch
+
+- `GET /console` serves the human review operations console: jobs timeline with
+  per-stage status, the quarantine queue with the scanned page and cited
+  evidence overlaid, one-click approve/dismiss, and the prompt-evolution report.
+  Point a browser at the running service and paste the push token once.
+- `scripts/generate_sample_batch.py` fabricates a deterministic 8-exam demo
+  batch (solid, wrong-math, illegible and prompt-injection cases) that the
+  pipeline ingests without hand-editing. The full case matrix and expected
+  behavior per image are documented in [`scripts/README.md`](scripts/README.md).
+
 ## Human review API (the one-click approval)
 
 All endpoints require the same `Authorization: Bearer $GRADESYNC_PUBSUB_PUSH_TOKEN`.
