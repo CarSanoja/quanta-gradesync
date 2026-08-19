@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -8,6 +9,8 @@ import httpx
 from autocurricula.config import Settings
 from autocurricula.schemas.common import utc_now
 from autocurricula.schemas.sis_sync import SISWriteRequest, SISWriteResult
+
+logger = logging.getLogger(__name__)
 
 SUCCESS_STATUSES = frozenset({"ok", "success", "written", "accepted"})
 MAX_ATTEMPTS = 3
@@ -125,5 +128,12 @@ class LocalSISConnector:
 
 def build_sis_connector(settings: Settings) -> SISConnector:
     if settings.local_mode:
+        return LocalSISConnector(data_dir=settings.local_data_dir)
+    if not settings.sis_base_url:
+        logger.warning(
+            "sis_base_url is empty in gcp mode; grade writes fall back to the local "
+            "jsonl sink at %s/sis_writes.jsonl",
+            settings.local_data_dir,
+        )
         return LocalSISConnector(data_dir=settings.local_data_dir)
     return HttpSISConnector(settings=settings)

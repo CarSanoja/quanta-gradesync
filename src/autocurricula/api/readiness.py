@@ -20,8 +20,6 @@ def settings_issues(settings: Settings) -> list[str]:
         issues.append("gcp_project_id is required when local_mode is disabled")
     if not settings.pubsub_push_token:
         issues.append("pubsub_push_token is required when local_mode is disabled")
-    if not settings.sis_base_url:
-        issues.append("sis_base_url is required when local_mode is disabled")
     return issues
 
 
