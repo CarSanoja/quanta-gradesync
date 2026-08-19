@@ -20,6 +20,7 @@ from autocurricula.api.readiness import (
 from autocurricula.api.responses import HealthResponse, ReadinessResponse
 from autocurricula.api.review import review_router
 from autocurricula.api.webhooks import pubsub_router
+from autocurricula.config.genai_env import configure_genai_env
 
 APP_TITLE = "AutoCurricula & GradeSync Engine"
 
@@ -29,6 +30,7 @@ health_router = APIRouter(tags=["health"])
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     container = build_container()
+    configure_genai_env(container.settings)
     set_container(app, container)
     try:
         yield
