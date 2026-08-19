@@ -5,12 +5,13 @@ substitutions:
   _SERVICE_ACCOUNT: autocurricula-runner@${PROJECT_ID}.iam.gserviceaccount.com
   _GCS_BUCKET: your-exam-uploads-bucket
   _PUBSUB_TOPIC: projects/${PROJECT_ID}/topics/exam-batch-ingest
-  _PUBSUB_PUSH_TOKEN: change-me-random-push-verification-token
+  _PUSH_TOKEN_SECRET: gradesync-push-token
   _GEMINI_PRO_MODEL: gemini-3.5-flash
   _GEMINI_FLASH_MODEL: gemini-3.5-flash-lite
   _GEMINI_LOCATION: global
-  _SIS_BASE_URL: https://sis.example.edu/api/v1
-  _SIS_API_TOKEN: change-me-sis-bearer-token
+  _SIS_BASE_URL: ""
+  _MIN_INSTANCES: "0"
+  _MAX_INSTANCES: "2"
 
 steps:
   - name: gcr.io/cloud-builders/docker
@@ -34,11 +35,14 @@ steps:
       - --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE_NAME}:${SHORT_SHA}
       - --region=${_REGION}
       - --project=${PROJECT_ID}
-      - --min-instances=1
+      - --min-instances=${_MIN_INSTANCES}
+      - --max-instances=${_MAX_INSTANCES}
       - --timeout=900
+      - --memory=1Gi
       - --service-account=${_SERVICE_ACCOUNT}
       - --allow-unauthenticated
-      - --set-env-vars=^^^GRADESYNC_GCP_PROJECT_ID=${PROJECT_ID}^^^,^^^GRADESYNC_GCP_REGION=${_REGION}^^^,^^^GRADESYNC_GEMINI_PRO_MODEL=${_GEMINI_PRO_MODEL}^^^,^^^GRADESYNC_GEMINI_FLASH_MODEL=${_GEMINI_FLASH_MODEL}^^^,^^^GRADESYNC_GEMINI_LOCATION=${_GEMINI_LOCATION}^^^,^^^GRADESYNC_PUBSUB_TOPIC=${_PUBSUB_TOPIC}^^^,^^^GRADESYNC_PUBSUB_PUSH_TOKEN=${_PUBSUB_PUSH_TOKEN}^^^,^^^GRADESYNC_GCS_BUCKET=${_GCS_BUCKET}^^^,^^^GRADESYNC_GCS_LOCAL_STAGING_DIR=/tmp/autocurricula/staging^^^,^^^GRADESYNC_FIRESTORE_JOBS_COLLECTION=jobs^^^,^^^GRADESYNC_FIRESTORE_CHECKPOINTS_COLLECTION=checkpoints^^^,^^^GRADESYNC_FIRESTORE_PROFILES_COLLECTION=profiles^^^,^^^GRADESYNC_FIRESTORE_COMPETENCIES_COLLECTION=competencies^^^,^^^GRADESYNC_FIRESTORE_PROMPTS_COLLECTION=prompts^^^,^^^GRADESYNC_SIS_BASE_URL=${_SIS_BASE_URL}^^^,^^^GRADESYNC_SIS_API_TOKEN=${_SIS_API_TOKEN}^^^,^^^GRADESYNC_LOCAL_MODE=false^^^,^^^GRADESYNC_LOCAL_DATA_DIR=/tmp/autocurricula/data
+      - --set-secrets=GRADESYNC_PUBSUB_PUSH_TOKEN=${_PUSH_TOKEN_SECRET}:latest
+      - --set-env-vars=^^^GRADESYNC_GCP_PROJECT_ID=${PROJECT_ID}^^^,^^^GRADESYNC_GCP_REGION=${_REGION}^^^,^^^GRADESYNC_GEMINI_PRO_MODEL=${_GEMINI_PRO_MODEL}^^^,^^^GRADESYNC_GEMINI_FLASH_MODEL=${_GEMINI_FLASH_MODEL}^^^,^^^GRADESYNC_GEMINI_LOCATION=${_GEMINI_LOCATION}^^^,^^^GRADESYNC_PUBSUB_TOPIC=${_PUBSUB_TOPIC}^^^,^^^GRADESYNC_GCS_BUCKET=${_GCS_BUCKET}^^^,^^^GRADESYNC_GCS_LOCAL_STAGING_DIR=/tmp/autocurricula/staging^^^,^^^GRADESYNC_SIS_BASE_URL=${_SIS_BASE_URL}^^^,^^^GRADESYNC_LOCAL_MODE=false^^^,^^^GRADESYNC_LOCAL_DATA_DIR=/tmp/autocurricula/data
 
 images:
   - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE_NAME}:${SHORT_SHA}
