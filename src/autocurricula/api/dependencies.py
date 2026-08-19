@@ -15,6 +15,7 @@ from autocurricula.agents.rework_evaluator import build_rework_evaluator
 from autocurricula.agents.risk_detector import RiskDetector
 from autocurricula.config.settings import Settings, get_settings
 from autocurricula.core.memory.manager import MemoryManager
+from autocurricula.core.orchestration.batch_settle import BatchSettler, build_batch_settler
 from autocurricula.core.orchestration.catalog import JobCatalog, build_job_catalog
 from autocurricula.core.orchestration.job_state import (
     CheckpointStore,
@@ -49,7 +50,9 @@ class AppContainer:
     optimizers: list[MetaOptimizerAgent]
     catalog: JobCatalog
     review_service: ReviewService
+    batch_settler: BatchSettler | None = None
     in_flight: set[asyncio.Task[JobRecord]] = field(default_factory=set)
+    claimed_jobs: set[str] = field(default_factory=set)
 
 
 def build_container(settings: Settings | None = None) -> AppContainer:
@@ -111,6 +114,7 @@ def build_container(settings: Settings | None = None) -> AppContainer:
         optimizers=optimizers,
         catalog=catalog,
         review_service=review_service,
+        batch_settler=build_batch_settler(resolved),
     )
 
 

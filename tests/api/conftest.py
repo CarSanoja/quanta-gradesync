@@ -65,6 +65,47 @@ def make_push_body():
 
 
 @pytest.fixture
+def make_notification_body():
+    def _make(
+        object_name: str,
+        bucket: str = "quanta-gradesync-exams",
+        event_type: str = "OBJECT_FINALIZE",
+        message_id: str = "gcs-message-001",
+        with_data: bool = True,
+    ) -> dict[str, Any]:
+        message: dict[str, Any] = {
+            "messageId": message_id,
+            "publishTime": "2026-08-19T22:29:58.000Z",
+            "attributes": {
+                "bucketId": bucket,
+                "eventType": event_type,
+                "objectId": object_name,
+                "payloadFormat": "JSON_API_V1",
+                "notificationConfig": "projects/_/buckets/exams/notificationConfigs/1",
+            },
+        }
+        if with_data:
+            resource = {
+                "kind": "storage#object",
+                "bucket": bucket,
+                "name": object_name,
+                "contentType": "image/jpeg",
+                "size": "54242",
+            }
+            message["data"] = base64.b64encode(
+                json.dumps(resource).encode("utf-8")
+            ).decode("ascii")
+        return {
+            "message": message,
+            "subscription": (
+                "projects/quanta-gradesync/subscriptions/exam-batch-ingest-push"
+            ),
+        }
+
+    return _make
+
+
+@pytest.fixture
 def api_settings(tmp_path: Path) -> Settings:
     return Settings(
         local_mode=True,
@@ -72,6 +113,7 @@ def api_settings(tmp_path: Path) -> Settings:
         pubsub_push_token=PUSH_TOKEN,
         local_data_dir=tmp_path / "local_data",
         gcs_local_staging_dir=tmp_path / "staging",
+        batch_settle_interval_seconds=0.0,
     )
 
 

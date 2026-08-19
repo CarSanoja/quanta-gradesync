@@ -15,4 +15,5 @@ class ReadinessResponse(StrictBaseModel):
 
 class WebhookAccepted(StrictBaseModel):
     job_id: str
-    status: Literal["accepted", "duplicate"]
+    status: Literal["accepted", "duplicate", "ignored"]
+    reason: str | None = None
