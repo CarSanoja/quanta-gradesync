@@ -11,6 +11,7 @@ from autocurricula.agents.base import (
     text_part,
 )
 from autocurricula.agents.evaluator import GradingEvaluator, GradingValidationError
+from autocurricula.agents.grading_tools import build_grading_tools
 from autocurricula.agents.prompts.grading_prompts import (
     build_grading_prompt_variant,
     grading_repair_instruction,
@@ -21,9 +22,6 @@ from autocurricula.schemas.exam import ExamSubmission
 from autocurricula.schemas.grading import GradingResult
 from autocurricula.schemas.memory import RetrievedContext
 from autocurricula.schemas.rubric import Rubric
-from autocurricula.tools.base import as_function_tool
-from autocurricula.tools.gcs_fetcher import fetch_exam_files
-from autocurricula.tools.vector_search import search_rubrics
 
 GRADING_AGENT_NAME = "grading_agent"
 GRADING_APP_NAME = "gradesync_grading"
@@ -44,7 +42,7 @@ def _validation_error(message: str, raw: str, cause: Exception) -> GradingValida
     return GradingValidationError(message, raw=raw, cause=cause)
 
 
-def _build_agent(*, model: str, instruction: str) -> Any:
+def _build_agent(*, model: str, instruction: str, tools: list[Any]) -> Any:
     from google.adk.agents import LlmAgent
 
     return LlmAgent(
@@ -52,7 +50,7 @@ def _build_agent(*, model: str, instruction: str) -> Any:
         model=model,
         instruction=instruction,
         description="Multimodal rubric-grounded exam grading specialist",
-        tools=[as_function_tool(fetch_exam_files), as_function_tool(search_rubrics)],
+        tools=tools,
         output_schema=GradingResult,
         disallow_transfer_to_parent=True,
         disallow_transfer_to_peers=True,
@@ -123,7 +121,9 @@ class AdkGradingEvaluator(GradingEvaluator):
             runner_factory if runner_factory is not None else _default_runner_factory
         )
         self._agent = _build_agent(
-            model=self._model, instruction=compose_system_instruction(self._variant)
+            model=self._model,
+            instruction=compose_system_instruction(self._variant),
+            tools=build_grading_tools(settings),
         )
 
     @property
