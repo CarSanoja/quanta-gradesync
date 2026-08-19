@@ -3,14 +3,7 @@ import logging
 
 from autocurricula.agents.curriculum_auditor import CurriculumAuditor
 from autocurricula.agents.evaluator import GradingEvaluator
-from autocurricula.core.harness import (
-    DEFAULT_MAX_CALLS_PER_ITEM,
-    ItemBudget,
-    SidecarTextProvider,
-    enforce_result,
-    guard_item,
-    sidecar_texts_from_batch,
-)
+from autocurricula.core.harness import DEFAULT_MAX_CALLS_PER_ITEM
 from autocurricula.core.memory.manager import MemoryManager
 from autocurricula.core.orchestration.catalog import JobCatalog
 from autocurricula.core.orchestration.context import (
@@ -23,6 +16,12 @@ from autocurricula.core.orchestration.context import (
     StageCallable,
     StageExecutionError,
 )
+from autocurricula.core.orchestration.grade_guard import build_grade_guard
+from autocurricula.core.resilience import (
+    DeadLetterStore,
+    SchemaRepairAgent,
+)
+from autocurricula.core.telemetry import Recorder
 from autocurricula.schemas.common import utc_now
 from autocurricula.schemas.grading import GradingBatchResult, GradingResult
 from autocurricula.tools.gcs_fetcher import Fetcher
@@ -30,6 +29,9 @@ from autocurricula.tools.gcs_fetcher import Fetcher
 logger = logging.getLogger(__name__)
 
 SCRIPTED_MODEL_ID = "scripted-grading-evaluator"
+
+DEFAULT_FALLBACK_LATENCY_SECONDS = 15.0
+DEFAULT_FALLBACK_CONFIDENCE_FACTOR = 0.9
 
 
 def _resolve_model_id(
@@ -64,43 +66,40 @@ def build_grade_step(
     grading_evaluator: GradingEvaluator,
     model_id: str | None = None,
     *,
-    max_calls_per_item: int = DEFAULT_MAX_CALLS_PER_ITEM,
     faithfulness_enabled: bool = True,
+    fallback_evaluator: GradingEvaluator | None = None,
+    fallback_latency_seconds: float = DEFAULT_FALLBACK_LATENCY_SECONDS,
+    fallback_confidence_factor: float = DEFAULT_FALLBACK_CONFIDENCE_FACTOR,
+    repair_agent: SchemaRepairAgent | None = None,
+    dead_letter: DeadLetterStore | None = None,
+    dead_letter_max_attempts: int = 3,
 ) -> StageCallable:
     async def run(context: JobContext) -> JobContext:
         outputs = context.fetch_outputs
         retrieved = await memory_manager.retrieve_rubric_context(
             outputs.rubric, context.event.subject
         )
-        provider = (
-            SidecarTextProvider(sidecar_texts_from_batch(outputs.batch))
-            if faithfulness_enabled
-            else None
+        recorder: Recorder = context.recorder
+        guard = build_grade_guard(
+            job_id=context.job_id,
+            evaluator=grading_evaluator,
+            fallback=fallback_evaluator,
+            latency_seconds=fallback_latency_seconds,
+            confidence_factor=fallback_confidence_factor,
+            repair_agent=repair_agent,
+            dead_letter=dead_letter,
+            dead_letter_max_attempts=dead_letter_max_attempts,
+            model_id=_resolve_model_id(grading_evaluator, model_id),
+            recorder=recorder,
+            faithfulness_enabled=faithfulness_enabled,
+            batch=outputs.batch,
         )
 
-        async def graded(submission) -> GradingResult | None:
-            budget = ItemBudget(max_calls=max_calls_per_item)
-            try:
-                result = await guard_item(
-                    lambda: grading_evaluator.grade(
-                        submission, outputs.rubric, retrieved
-                    ),
-                    budget,
-                )
-            except Exception as error:
-                logger.warning(
-                    "harness isolated submission %s: %s: %s",
-                    submission.submission_id,
-                    type(error).__name__,
-                    error,
-                )
-                return None
-            if provider is not None:
-                result = enforce_result(result, provider)
-            return result
-
         graded_results = await asyncio.gather(
-            *(graded(submission) for submission in outputs.batch.submissions)
+            *(
+                guard.grade(submission, outputs.rubric, retrieved)
+                for submission in outputs.batch.submissions
+            )
         )
         results = [result for result in graded_results if result is not None]
         if not results:

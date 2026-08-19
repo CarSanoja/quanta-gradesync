@@ -34,10 +34,8 @@ from autocurricula.core.orchestration.verifier import (
     build_verify_step,
 )
 from autocurricula.core.evolution.prompt_mutator import PromptVariant
-from autocurricula.core.harness import (
-    DEFAULT_MAX_CALLS_PER_ITEM,
-    BatchAnomalyBreaker,
-)
+from autocurricula.core.harness import BatchAnomalyBreaker
+from autocurricula.core.resilience import DeadLetterStore, SchemaRepairAgent
 from autocurricula.core.review import DEFAULT_CONFIDENCE_THRESHOLD, ReviewStore
 from autocurricula.tools.gcs_fetcher import Fetcher
 from autocurricula.tools.sis_connector import SISConnector
@@ -61,15 +59,25 @@ def build_pipeline(
     verify_max_iterations: int = DEFAULT_VERIFY_MAX_ITERATIONS,
     sis_breaker: BatchAnomalyBreaker | None = None,
     prompt_variant: PromptVariant | None = None,
-    max_calls_per_item: int = DEFAULT_MAX_CALLS_PER_ITEM,
     faithfulness_enabled: bool = True,
+    fallback_evaluator: GradingEvaluator | None = None,
+    fallback_latency_seconds: float = 15.0,
+    fallback_confidence_factor: float = 0.9,
+    repair_agent: SchemaRepairAgent | None = None,
+    dead_letter: DeadLetterStore | None = None,
+    dead_letter_max_attempts: int = 3,
 ) -> list[StageStep]:
     grade_step: StageCallable = build_grade_step(
         memory_manager,
         grading_evaluator,
         grading_model_id,
-        max_calls_per_item=max_calls_per_item,
         faithfulness_enabled=faithfulness_enabled,
+        fallback_evaluator=fallback_evaluator,
+        fallback_latency_seconds=fallback_latency_seconds,
+        fallback_confidence_factor=fallback_confidence_factor,
+        repair_agent=repair_agent,
+        dead_letter=dead_letter,
+        dead_letter_max_attempts=dead_letter_max_attempts,
     )
     return [
         StageStep(name=STAGE_FETCH, callable=build_fetch_step(catalog, fetcher)),
@@ -86,6 +94,8 @@ def build_pipeline(
                 confidence_threshold=confidence_threshold,
                 breaker=sis_breaker,
                 prompt_variant=prompt_variant,
+                dead_letter=dead_letter,
+                dead_letter_max_attempts=dead_letter_max_attempts,
             ),
         ),
         StageStep(

@@ -23,7 +23,12 @@ from autocurricula.core.orchestration.job_state import (
 )
 from autocurricula.core.orchestration.runner import JobRunner
 from autocurricula.core.harness import BatchAnomalyBreaker
+from autocurricula.core.resilience import (
+    SchemaRepairAgent,
+    build_dead_letter_store,
+)
 from autocurricula.core.review import ReviewService, ReviewStore, build_review_store
+from autocurricula.core.telemetry import build_audit_logger
 from autocurricula.tools.gcs_fetcher import Fetcher, build_fetcher
 from autocurricula.tools.sis_connector import SISConnector, build_sis_connector
 
@@ -81,7 +86,17 @@ def build_container(settings: Settings | None = None) -> AppContainer:
         verify_max_iterations=resolved.verify_max_iterations,
         sis_breaker=BatchAnomalyBreaker(resolved.batch_anomaly_threshold),
         prompt_variant=prompt_variant,
-        max_calls_per_item=resolved.harness_max_calls_per_item,
+        fallback_evaluator=build_rework_evaluator(resolved),
+        fallback_latency_seconds=resolved.model_fallback_latency_seconds,
+        fallback_confidence_factor=resolved.model_fallback_confidence_factor,
+        repair_agent=SchemaRepairAgent(resolved.schema_repair_attempts),
+        dead_letter=build_dead_letter_store(resolved),
+        dead_letter_max_attempts=resolved.dead_letter_max_attempts,
+        audit_logger=(
+            build_audit_logger(resolved)
+            if resolved.telemetry_audit_enabled
+            else None
+        ),
     )
     return AppContainer(
         settings=resolved,

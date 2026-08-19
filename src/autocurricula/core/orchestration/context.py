@@ -76,6 +76,7 @@ class StageStep:
 class JobContext:
     event: PubSubJobEvent
     session: SessionMemory
+    recorder: Any = None
 
     @property
     def job_id(self) -> str:

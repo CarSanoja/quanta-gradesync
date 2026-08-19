@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Sequence
 
 from autocurricula.agents.curriculum_auditor import CurriculumAuditor
@@ -18,11 +19,11 @@ from autocurricula.core.orchestration.job_state import (
 from autocurricula.core.orchestration.stages_outcome import TermResolver, default_term
 from autocurricula.core.orchestration.verifier import DEFAULT_VERIFY_MAX_ITERATIONS
 from autocurricula.core.evolution.prompt_mutator import PromptVariant
-from autocurricula.core.harness import (
-    DEFAULT_MAX_CALLS_PER_ITEM,
-    BatchAnomalyBreaker,
-)
+from autocurricula.core.harness import BatchAnomalyBreaker
+from autocurricula.core.resilience import DeadLetterStore, SchemaRepairAgent
 from autocurricula.core.review import DEFAULT_CONFIDENCE_THRESHOLD, ReviewStore, build_review_store
+from autocurricula.core.telemetry import AuditLogger, Recorder, collect_metrics
+from autocurricula.schemas.telemetry import ATTR_AGENT_STAGE
 from autocurricula.schemas.common import utc_now
 from autocurricula.schemas.events import PubSubJobEvent
 from autocurricula.tools.gcs_fetcher import Fetcher
@@ -50,8 +51,14 @@ class JobRunner:
         verify_max_iterations: int = DEFAULT_VERIFY_MAX_ITERATIONS,
         sis_breaker: BatchAnomalyBreaker | None = None,
         prompt_variant: PromptVariant | None = None,
-        max_calls_per_item: int = DEFAULT_MAX_CALLS_PER_ITEM,
         faithfulness_enabled: bool = True,
+        fallback_evaluator: GradingEvaluator | None = None,
+        fallback_latency_seconds: float = 15.0,
+        fallback_confidence_factor: float = 0.9,
+        repair_agent: SchemaRepairAgent | None = None,
+        dead_letter: DeadLetterStore | None = None,
+        dead_letter_max_attempts: int = 3,
+        audit_logger: AuditLogger | None = None,
     ) -> None:
         self._memory_manager = memory_manager
         self._checkpoint_store = checkpoint_store
@@ -77,9 +84,15 @@ class JobRunner:
             verify_max_iterations=verify_max_iterations,
             sis_breaker=sis_breaker,
             prompt_variant=prompt_variant,
-            max_calls_per_item=max_calls_per_item,
             faithfulness_enabled=faithfulness_enabled,
+            fallback_evaluator=fallback_evaluator,
+            fallback_latency_seconds=fallback_latency_seconds,
+            fallback_confidence_factor=fallback_confidence_factor,
+            repair_agent=repair_agent,
+            dead_letter=dead_letter,
+            dead_letter_max_attempts=dead_letter_max_attempts,
         )
+        self._audit_logger = audit_logger
 
     @property
     def pipeline(self) -> list[StageStep]:
@@ -95,15 +108,23 @@ class JobRunner:
             await self._restore_session(session, existing)
         record.stage_statuses = dict(session.state.stage_statuses)
         await self._checkpoint_store.save(record)
-        context = JobContext(event=event, session=session)
+        recorder = Recorder(event.trace_id)
+        context = JobContext(event=event, session=session, recorder=recorder)
         for step in self._pipeline:
             if context.stage_done(step.name):
                 continue
             session.mark_stage(step.name, StageStatus.RUNNING)
             try:
-                context = await step.callable(context)
+                with recorder.span(
+                    f"Stage_{step.name}",
+                    stage=step.name.upper(),
+                    attributes={ATTR_AGENT_STAGE: step.name.upper()},
+                ):
+                    context = await step.callable(context)
             except Exception as error:
-                return await self._fail(record, session, step.name, error)
+                record = await self._fail(record, session, step.name, error)
+                await self._audit(recorder, record)
+                return record
             session.mark_stage(step.name, StageStatus.SUCCEEDED)
             self._advance(record, session, step.name)
             await self._checkpoint_store.save_state(event.job_id, session.state)
@@ -113,7 +134,27 @@ class JobRunner:
         record.updated_at = utc_now()
         await self._checkpoint_store.save_state(event.job_id, session.state)
         await self._checkpoint_store.save(record)
+        await self._audit(recorder, record)
         return record
+
+    async def _audit(self, recorder: Recorder, record: JobRecord) -> None:
+        if self._audit_logger is None:
+            return
+        try:
+            await self._audit_logger.append(
+                record.job_id,
+                recorder.trace_id,
+                recorder.spans,
+                {
+                    "stage": record.stage.value,
+                    "error": record.error,
+                    "metrics": collect_metrics(recorder.spans).model_dump(),
+                },
+            )
+        except Exception as error:
+            logging.getLogger(__name__).warning(
+                "audit trail append failed for job %s: %s", record.job_id, error
+            )
 
     async def _restore_session(
         self, session: SessionMemory, existing: JobRecord

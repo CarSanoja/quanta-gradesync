@@ -20,19 +20,25 @@ from autocurricula.core.orchestration.sync_io import (
     SisSyncError,
     enqueue_reviews,
     persist_synced_outcomes,
-    write_auto_records,
+)
+from autocurricula.core.resilience import (
+    DeadLetterStore,
+    SyncPartialError,
+    write_with_rollback,
 )
 from autocurricula.core.review import (
     DEFAULT_CONFIDENCE_THRESHOLD,
     ConfidenceGate,
     ReviewStore,
 )
-from autocurricula.schemas.sis_sync import SISGradeRecord
+from autocurricula.schemas.sis_sync import SISGradeRecord, SISWriteResult
 from autocurricula.tools.sis_connector import SISConnector
 
 logger = logging.getLogger(__name__)
 
 __all__ = ["SisSyncError", "build_sync_step"]
+
+DEFAULT_DEAD_LETTER_MAX_ATTEMPTS = 3
 
 
 def build_sync_step(
@@ -43,6 +49,8 @@ def build_sync_step(
     confidence_threshold: float = DEFAULT_CONFIDENCE_THRESHOLD,
     breaker: BatchAnomalyBreaker | None = None,
     prompt_variant: PromptVariant | None = None,
+    dead_letter: DeadLetterStore | None = None,
+    dead_letter_max_attempts: int = DEFAULT_DEAD_LETTER_MAX_ATTEMPTS,
 ) -> StageCallable:
     gate = ConfidenceGate(confidence_threshold)
 
@@ -100,11 +108,13 @@ def build_sync_step(
             evidence,
             documents,
         )
-        sis_result = await write_auto_records(
-            context.job_id,
+        sis_result = await _write_with_state_rollback(
+            context,
             sis_connector,
             [stamped[record.student_id] for record in auto_records],
             len(quarantined_records),
+            dead_letter,
+            dead_letter_max_attempts,
         )
         await persist_synced_outcomes(
             memory_manager,
@@ -119,6 +129,40 @@ def build_sync_step(
         return context
 
     return run
+
+
+async def _write_with_state_rollback(
+    context,
+    sis_connector: SISConnector,
+    auto_records: list[SISGradeRecord],
+    quarantined_count: int,
+    dead_letter: DeadLetterStore | None,
+    dead_letter_max_attempts: int,
+) -> SISWriteResult:
+    previous = None
+    try:
+        previous = context.session.get_stage_result(STAGE_SYNC, SISWriteResult)
+    except Exception:
+        previous = None
+    if dead_letter is None:
+        from autocurricula.core.orchestration.sync_io import write_auto_records
+
+        return await write_auto_records(
+            context.job_id, sis_connector, auto_records, quarantined_count
+        )
+    try:
+        return await write_with_rollback(
+            job_id=context.job_id,
+            sis_connector=sis_connector,
+            records=auto_records,
+            quarantined_count=quarantined_count,
+            dead_letter=dead_letter,
+            previous=previous if isinstance(previous, SISWriteResult) else None,
+            max_attempts=dead_letter_max_attempts,
+        )
+    except SyncPartialError as partial:
+        context.session.set_stage_result(STAGE_SYNC, partial.merged)
+        raise
 
 
 def _apply_breaker(
