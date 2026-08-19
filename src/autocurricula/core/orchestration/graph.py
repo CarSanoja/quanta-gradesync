@@ -61,7 +61,7 @@ def build_pipeline(
     prompt_variant: PromptVariant | None = None,
     faithfulness_enabled: bool = True,
     fallback_evaluator: GradingEvaluator | None = None,
-    fallback_latency_seconds: float = 15.0,
+    fallback_latency_seconds: float = 90.0,
     fallback_confidence_factor: float = 0.9,
     repair_agent: SchemaRepairAgent | None = None,
     dead_letter: DeadLetterStore | None = None,
