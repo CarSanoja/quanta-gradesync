@@ -7,8 +7,8 @@ replaces manual student exam grading, curricular standard reconciliation, and ea
 dropout detection.
 
 Built on Google Cloud Run + Pub/Sub + Firestore, using the Google Agent Development
-Kit (ADK) with Gemini 3.5 Pro (deep multimodal reasoning) and Gemini 3.5 Flash
-(high-speed structured extraction). Every LLM call and every inter-component message
+Kit (ADK) with Gemini 3.5 Flash (deep multimodal reasoning, thinking enabled) and
+Gemini 3.5 Flash-Lite (high-speed structured extraction). Every LLM call and every inter-component message
 uses strict Pydantic v2 structured-output schemas — zero loose strings.
 
 ## Elevator pitch
@@ -55,9 +55,9 @@ transcription and ~10 minutes of exception review. **Time-to-feedback:** from a
 
 1. **Ingest** — A school uploads a batch of scanned handwritten exams / PDFs to a GCS
    bucket. GCS notifies Pub/Sub; Pub/Sub pushes the event to the Cloud Run service.
-2. **Grade** — The grading agent (Gemini 3.5 Pro) performs multimodal OCR and rubric
+2. **Grade** — The grading agent (Gemini 3.5 Flash) performs multimodal OCR and rubric
    semantic assessment, producing criterion-level scores with cited evidence spans.
-3. **Audit** — The curriculum auditor (Gemini 3.5 Flash) cross-references results
+3. **Audit** — The curriculum auditor (Gemini 3.5 Flash-Lite) cross-references results
    against ministry curriculum competencies.
 4. **Detect risk** — The risk detector scores anomalies and retention early-warning
    signals from episodic student history.
@@ -110,9 +110,9 @@ transcription and ~10 minutes of exception review. **Time-to-feedback:** from a
          v                    v                    v                     v                 v
   +---------------+  +-----------------+  +-----------------+  +----------------+  +---------------+
   | GCS Fetcher   |  | Grading Agent   |  | Curriculum      |  | Risk Detector  |  | SIS Connector |
-  | (tools/)      |  | Gemini 3.5 Pro  |  | Auditor         |  | Gemini 3.5     |  | (tools/, httpx)|
-  | stage objects |  | multimodal OCR  |  | Gemini 3.5      |  | Flash anomaly  |  | grade writes  |
-  | to local disk |  | + rubric        |  | Flash ministry  |  | + retention    |  | to SIS API    |
+  | (tools/)      |  | Gemini 3.5      |  | Auditor         |  | Gemini 3.5     |  | (tools/, httpx)|
+  | stage objects |  | Flash multimodal|  | Gemini 3.5      |  | Flash-Lite     |  | grade writes  |
+  | to local disk |  | OCR + rubric    |  | Flash-Lite      |  | anomaly +      |  | to SIS API    |
   +---------------+  | semantics       |  | cross-reference |  | early warning |  +---------------+
                      +-----------------+  +-----------------+  +----------------+
          |                    |                    |                     |                 |
@@ -176,9 +176,10 @@ All variables use the `GRADESYNC_` prefix and are read from the environment or a
 |----------|---------|-------------|
 | `GRADESYNC_GCP_PROJECT_ID` | *(empty)* | GCP project id; unset implies local mode |
 | `GRADESYNC_GCP_REGION` | `us-central1` | GCP region for Cloud Run / Vertex AI |
-| `GRADESYNC_GEMINI_PRO_MODEL` | `gemini-3.5-pro` | Deep multimodal reasoning model |
-| `GRADESYNC_GEMINI_FLASH_MODEL` | `gemini-3.5-flash` | High-speed structured extraction model |
+| `GRADESYNC_GEMINI_PRO_MODEL` | `gemini-3.5-flash` | Deep multimodal reasoning model (thinking enabled) |
+| `GRADESYNC_GEMINI_FLASH_MODEL` | `gemini-3.5-flash-lite` | High-speed structured extraction model |
 | `GRADESYNC_EMBEDDING_MODEL` | `text-embedding-005` | Vertex embedding model for L2 semantic retrieval (GCP mode) |
+| `GRADESYNC_GEMINI_LOCATION` | `global` | Vertex AI location serving the Gemini 3.x models |
 | `GRADESYNC_PUBSUB_TOPIC` | *(empty)* | Ingest topic, e.g. `projects/<pid>/topics/exam-batch-ingest` |
 | `GRADESYNC_PUBSUB_PUSH_TOKEN` | *(empty)* | Shared token verified on every push delivery |
 | `GRADESYNC_GCS_BUCKET` | *(empty)* | Bucket receiving exam batch uploads |

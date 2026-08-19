@@ -18,9 +18,10 @@ class Settings(BaseSettings):
     gcp_project_id: str = ""
     gcp_region: str = "us-central1"
 
-    gemini_pro_model: str = "gemini-3.5-pro"
-    gemini_flash_model: str = "gemini-3.5-flash"
+    gemini_pro_model: str = "gemini-3.5-flash"
+    gemini_flash_model: str = "gemini-3.5-flash-lite"
     embedding_model: str = "text-embedding-005"
+    gemini_location: str = "global"
 
     pubsub_topic: str = ""
     pubsub_push_token: str = ""
