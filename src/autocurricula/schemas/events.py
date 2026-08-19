@@ -1,11 +1,16 @@
 import base64
 import binascii
 import json
+import secrets
 from typing import Any
 
 from pydantic import ConfigDict, Field
 
 from autocurricula.schemas.common import ClassId, FrozenStrictModel, JobId, TzAwareDatetime
+
+
+def new_trace_id() -> str:
+    return secrets.token_hex(8)
 
 
 class PubSubJobEvent(FrozenStrictModel):
@@ -15,6 +20,7 @@ class PubSubJobEvent(FrozenStrictModel):
     class_id: ClassId
     subject: str = Field(min_length=1)
     triggered_at: TzAwareDatetime
+    trace_id: str = Field(default_factory=new_trace_id, min_length=8)
 
 
 class PubSubMessage(FrozenStrictModel):
