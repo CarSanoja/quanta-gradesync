@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 pubsub_router = APIRouter(tags=["webhooks"])
 
 BEARER_SCHEME = "bearer"
+PUSH_TOKEN_PARAM = "token"
 STATUS_ACCEPTED = "accepted"
 STATUS_DUPLICATE = "duplicate"
 STATUS_IGNORED = "ignored"
@@ -32,12 +33,27 @@ def extract_bearer_token(request: Request) -> str | None:
     return token.strip()
 
 
+def extract_query_token(request: Request) -> str | None:
+    token = request.query_params.get(PUSH_TOKEN_PARAM)
+    if token is None:
+        return None
+    stripped = token.strip()
+    return stripped or None
+
+
+def resolve_push_token(request: Request, expected: str) -> str | None:
+    query_token = extract_query_token(request)
+    if query_token is not None:
+        return query_token
+    return extract_bearer_token(request)
+
+
 def require_push_token(request: Request, expected: str) -> None:
-    provided = extract_bearer_token(request)
+    provided = resolve_push_token(request, expected)
     if provided is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="missing or malformed bearer authorization header",
+            detail="missing push token query parameter or bearer authorization header",
         )
     if not expected or not secrets.compare_digest(
         provided.encode("utf-8"), expected.encode("utf-8")

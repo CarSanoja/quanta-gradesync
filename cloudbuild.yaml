@@ -2,16 +2,17 @@ substitutions:
   _REGION: us-central1
   _REPOSITORY: autocurricula
   _SERVICE_NAME: autocurricula-gradesync
-  _SERVICE_ACCOUNT: autocurricula-runner@${PROJECT_ID}.iam.gserviceaccount.com
+  _SERVICE_ACCOUNT: autocurricula-runner@quanta-gradesync.iam.gserviceaccount.com
   _GCS_BUCKET: your-exam-uploads-bucket
-  _PUBSUB_TOPIC: projects/${PROJECT_ID}/topics/exam-batch-ingest
+  _PUBSUB_TOPIC: projects/quanta-gradesync/topics/exam-batch-ingest
   _PUSH_TOKEN_SECRET: gradesync-push-token
   _GEMINI_PRO_MODEL: gemini-3.5-flash
   _GEMINI_FLASH_MODEL: gemini-3.5-flash-lite
   _GEMINI_LOCATION: global
-  _SIS_BASE_URL: ""
   _MIN_INSTANCES: "0"
   _MAX_INSTANCES: "2"
+
+serviceAccount: projects/quanta-gradesync/serviceAccounts/gradesync-builder@quanta-gradesync.iam.gserviceaccount.com
 
 steps:
   - name: gcr.io/cloud-builders/docker
@@ -42,7 +43,7 @@ steps:
       - --service-account=${_SERVICE_ACCOUNT}
       - --allow-unauthenticated
       - --set-secrets=GRADESYNC_PUBSUB_PUSH_TOKEN=${_PUSH_TOKEN_SECRET}:latest
-      - --set-env-vars=^^^GRADESYNC_GCP_PROJECT_ID=${PROJECT_ID}^^^,^^^GRADESYNC_GCP_REGION=${_REGION}^^^,^^^GRADESYNC_GEMINI_PRO_MODEL=${_GEMINI_PRO_MODEL}^^^,^^^GRADESYNC_GEMINI_FLASH_MODEL=${_GEMINI_FLASH_MODEL}^^^,^^^GRADESYNC_GEMINI_LOCATION=${_GEMINI_LOCATION}^^^,^^^GRADESYNC_PUBSUB_TOPIC=${_PUBSUB_TOPIC}^^^,^^^GRADESYNC_GCS_BUCKET=${_GCS_BUCKET}^^^,^^^GRADESYNC_GCS_LOCAL_STAGING_DIR=/tmp/autocurricula/staging^^^,^^^GRADESYNC_SIS_BASE_URL=${_SIS_BASE_URL}^^^,^^^GRADESYNC_LOCAL_MODE=false^^^,^^^GRADESYNC_LOCAL_DATA_DIR=/tmp/autocurricula/data
+      - --set-env-vars=GRADESYNC_GCP_PROJECT_ID=${PROJECT_ID},GRADESYNC_GCP_REGION=${_REGION},GRADESYNC_GEMINI_PRO_MODEL=${_GEMINI_PRO_MODEL},GRADESYNC_GEMINI_FLASH_MODEL=${_GEMINI_FLASH_MODEL},GRADESYNC_GEMINI_LOCATION=${_GEMINI_LOCATION},GRADESYNC_PUBSUB_TOPIC=${_PUBSUB_TOPIC},GRADESYNC_GCS_BUCKET=${_GCS_BUCKET},GRADESYNC_GCS_LOCAL_STAGING_DIR=/tmp/autocurricula/staging,GRADESYNC_LOCAL_MODE=false,GRADESYNC_LOCAL_DATA_DIR=/tmp/autocurricula/data
 
 images:
   - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE_NAME}:${SHORT_SHA}

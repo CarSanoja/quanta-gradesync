@@ -143,3 +143,39 @@ async def test_push_returns_500_when_checkpoint_store_is_unavailable(
         "/webhooks/pubsub", json=make_push_body(make_event()), headers=auth_headers
     )
     assert response.status_code == 500
+
+
+async def test_push_token_accepted_from_query_parameter(
+    client: httpx.AsyncClient, make_event, make_push_body, push_token: str
+) -> None:
+    response = await client.post(
+        "/webhooks/pubsub",
+        params={"token": push_token},
+        json=make_push_body(make_event()),
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == "accepted"
+
+
+async def test_query_token_takes_precedence_over_oidc_header(
+    client: httpx.AsyncClient, make_event, make_push_body, push_token: str
+) -> None:
+    response = await client.post(
+        "/webhooks/pubsub",
+        params={"token": push_token},
+        headers={"Authorization": "Bearer oidc-identity-token-from-pubsub"},
+        json=make_push_body(make_event()),
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == "accepted"
+
+
+async def test_wrong_query_token_is_forbidden(
+    client: httpx.AsyncClient, make_event, make_push_body
+) -> None:
+    response = await client.post(
+        "/webhooks/pubsub",
+        params={"token": "not-the-push-token"},
+        json=make_push_body(make_event()),
+    )
+    assert response.status_code == 403
