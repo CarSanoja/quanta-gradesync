@@ -22,8 +22,8 @@ from autocurricula.core.evolution.prompt_mutator import PromptVariant
 from autocurricula.core.harness import BatchAnomalyBreaker
 from autocurricula.core.resilience import DeadLetterStore, SchemaRepairAgent
 from autocurricula.core.review import DEFAULT_CONFIDENCE_THRESHOLD, ReviewStore, build_review_store
+from autocurricula.core.orchestration.stage_execution import execute_stage
 from autocurricula.core.telemetry import AuditLogger, Recorder, collect_metrics
-from autocurricula.schemas.telemetry import ATTR_AGENT_STAGE
 from autocurricula.schemas.common import utc_now
 from autocurricula.schemas.events import PubSubJobEvent
 from autocurricula.tools.gcs_fetcher import Fetcher
@@ -115,12 +115,7 @@ class JobRunner:
                 continue
             session.mark_stage(step.name, StageStatus.RUNNING)
             try:
-                with recorder.span(
-                    f"Stage_{step.name}",
-                    stage=step.name.upper(),
-                    attributes={ATTR_AGENT_STAGE: step.name.upper()},
-                ):
-                    context = await step.callable(context)
+                context = await execute_stage(step, context, recorder)
             except Exception as error:
                 record = await self._fail(record, session, step.name, error)
                 await self._audit(recorder, record)

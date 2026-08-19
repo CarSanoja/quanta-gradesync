@@ -99,10 +99,13 @@ def event_text(event: Any) -> str:
 async def run_agent_for_text(
     runner: Any, user_id: str, session_id: str, message: Any
 ) -> str:
+    from autocurricula.core.telemetry.usage import record_event_usage
+
     events = []
     async for event in runner.run_async(
         user_id=user_id, session_id=session_id, new_message=message
     ):
+        record_event_usage(event)
         events.append(event)
     for event in reversed(events):
         text = event_text(event)

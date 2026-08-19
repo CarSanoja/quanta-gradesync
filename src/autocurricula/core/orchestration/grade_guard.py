@@ -15,12 +15,15 @@ from autocurricula.core.resilience import (
     RepairBudgetExhausted,
     SchemaRepairAgent,
 )
-from autocurricula.core.telemetry import Recorder
+from autocurricula.core.telemetry import Recorder, usage_scope
 from autocurricula.core.telemetry.tracer import SpanHandle
 from autocurricula.schemas.grading import GradingResult
 from autocurricula.schemas.telemetry import (
     ATTR_EVIDENCE_SPAN_MATCH,
+    ATTR_GEN_AI_CALLS,
     ATTR_GEN_AI_SYSTEM,
+    ATTR_GEN_AI_USAGE_INPUT_TOKENS,
+    ATTR_GEN_AI_USAGE_OUTPUT_TOKENS,
 )
 
 logger = logging.getLogger(__name__)
@@ -68,7 +71,11 @@ class GradeGuard:
                 "student_id": submission.student_id,
             },
         ) as span:
-            result = await self._guarded(submission, rubric, retrieved, span)
+            with usage_scope() as ledger:
+                result = await self._guarded(submission, rubric, retrieved, span)
+            span.set(ATTR_GEN_AI_CALLS, ledger.calls)
+            span.set(ATTR_GEN_AI_USAGE_INPUT_TOKENS, ledger.input_tokens)
+            span.set(ATTR_GEN_AI_USAGE_OUTPUT_TOKENS, ledger.output_tokens)
             if result is None:
                 span.set("harness.isolated", True)
                 return None

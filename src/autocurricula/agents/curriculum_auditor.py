@@ -134,17 +134,21 @@ class AdkCurriculumAuditor:
     async def _generate(self, *, contents: str) -> Any:
         from google.genai import types
 
+        from autocurricula.core.telemetry.usage import record_usage
+
         config = types.GenerateContentConfig(
             system_instruction=self._instruction,
             response_mime_type="application/json",
             response_schema=AuditResponse,
             temperature=AUDITOR_TEMPERATURE,
         )
-        return await self._client.aio.models.generate_content(
+        response = await self._client.aio.models.generate_content(
             model=self._model_id,
             contents=contents,
             config=config,
         )
+        record_usage(getattr(response, "usage_metadata", None))
+        return response
 
     @staticmethod
     def _extract(response: Any) -> CurriculumAuditResult:
