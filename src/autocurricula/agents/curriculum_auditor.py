@@ -1,6 +1,7 @@
 import json
 from typing import Any, Protocol, runtime_checkable
 
+from autocurricula.agents.audit_response import AuditResponse
 from autocurricula.agents.local_auditor import LocalCurriculumAuditor
 from autocurricula.agents.prompts.auditor_prompts import build_auditor_variant
 from autocurricula.config.settings import Settings
@@ -13,8 +14,8 @@ AUDITOR_MAX_ATTEMPTS = 3
 AUDITOR_TEMPERATURE = 0.0
 AUDITOR_RETRY_CORRECTION = (
     "CORRECTION: your previous reply was invalid: {error}. "
-    "Return only a corrected CurriculumAuditResult JSON object "
-    "for submission_id {submission_id}."
+    "Return only a corrected audit JSON object with submission_id {submission_id}, "
+    "a mappings array of objects with criterion_id and competency_codes, and notes."
 )
 
 
@@ -136,7 +137,7 @@ class AdkCurriculumAuditor:
         config = types.GenerateContentConfig(
             system_instruction=self._instruction,
             response_mime_type="application/json",
-            response_schema=CurriculumAuditResult,
+            response_schema=AuditResponse,
             temperature=AUDITOR_TEMPERATURE,
         )
         return await self._client.aio.models.generate_content(
@@ -150,10 +151,15 @@ class AdkCurriculumAuditor:
         parsed = getattr(response, "parsed", None)
         if isinstance(parsed, CurriculumAuditResult):
             return parsed
+        if isinstance(parsed, AuditResponse):
+            return parsed.to_audit_result()
         text = getattr(response, "text", None)
-        if isinstance(text, str) and text.strip():
+        if not isinstance(text, str) or not text.strip():
+            raise ValueError("response carried neither parsed schema output nor text")
+        try:
+            return AuditResponse.model_validate_json(text).to_audit_result()
+        except ValueError:
             return CurriculumAuditResult.model_validate_json(text)
-        raise ValueError("response carried neither parsed schema output nor text")
 
 
 def _build_gemini_client(settings: Settings) -> Any:
@@ -162,7 +168,7 @@ def _build_gemini_client(settings: Settings) -> Any:
     return genai.Client(
         vertexai=True,
         project=settings.gcp_project_id,
-        location=settings.gcp_region,
+        location=settings.gemini_location,
     )
 
 

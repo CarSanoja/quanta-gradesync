@@ -27,10 +27,16 @@ CONSERVATIVE MAPPING POLICY
 7. notes must cite the decisive evidence by criterion id, competency code and chunk source, and must confirm that unsupported mappings were withheld.
 
 OUTPUT
-Return exactly one CurriculumAuditResult object. submission_id must equal grading_result.submission_id. covered_codes and missing_codes must be disjoint and free of duplicates."""
+Return exactly one JSON object with three keys: submission_id, mappings and notes.
+submission_id must equal grading_result.submission_id.
+mappings is an array; each entry carries criterion_id (a rubric criterion id) and competency_codes
+(the verbatim ministry codes that criterion demonstrably covers).
+Omit a criterion entirely when no mapping is supported; never emit an empty competency_codes array.
+The engine derives covered_codes and missing_codes from mappings, so report every supported
+mapping explicitly."""
 
 AUDITOR_FEW_SHOTS: tuple[str, ...] = (
-    """{"submission_id": "sub-42", "mappings": {"crit-fluency": ["MAT.7.3"]}, "covered_codes": ["MAT.7.3"], "missing_codes": ["MAT.7.4"], "notes": "crit-fluency evidence (page 2 quote 'solves linear equations') plus guideline chunk ministry-framework.pdf support MAT.7.3; no criterion demonstrates MAT.7.4, so it is reported missing rather than loosely mapped; unsupported mappings withheld."}""",
+    """{"submission_id": "sub-42", "mappings": [{"criterion_id": "crit-fluency", "competency_codes": ["MAT.7.3"]}], "notes": "crit-fluency evidence (page 2 quote 'solves linear equations') plus guideline chunk ministry-framework.pdf support MAT.7.3; no criterion demonstrates MAT.7.4, so it stays unmapped rather than loosely mapped; unsupported mappings withheld."}""",
 )
 
 
