@@ -48,8 +48,11 @@ async def test_raw_notification_is_translated_into_a_job(
         headers=auth_headers,
     )
     assert response.status_code == 200
-    assert response.json() == {"job_id": E2E_JOB_ID, "status": "accepted"}
-    await asyncio.gather(*container.in_flight)
+    assert response.json() == {
+        "job_id": E2E_JOB_ID,
+        "status": "completed",
+        "stage": "completed",
+    }
     assert len(scripted_runner.events) == 1
     event = scripted_runner.events[0]
     assert event.job_id == E2E_JOB_ID
@@ -69,14 +72,14 @@ async def test_notification_without_data_uses_attributes(
     body = make_notification_body(E2E_OBJECT, with_data=False)
     response = await client.post("/webhooks/pubsub", json=body, headers=auth_headers)
     assert response.status_code == 200
-    assert response.json()["status"] == "accepted"
-    await asyncio.gather(*container.in_flight)
+    assert response.json()["status"] == "completed"
     assert scripted_runner.events[0].exam_batch_prefix == E2E_PREFIX
 
 
 async def test_envelope_with_unknown_fields_is_accepted(
     client: httpx.AsyncClient,
     container: AppContainer,
+    scripted_runner,
     auth_headers,
     make_notification_body,
 ) -> None:
@@ -85,8 +88,8 @@ async def test_envelope_with_unknown_fields_is_accepted(
     body["message"]["orderingKey"] = "exam-batch"
     response = await client.post("/webhooks/pubsub", json=body, headers=auth_headers)
     assert response.status_code == 200
-    assert response.json()["status"] == "accepted"
-    await asyncio.gather(*container.in_flight)
+    assert response.json()["status"] == "completed"
+    assert len(scripted_runner.events) == 1
 
 
 @pytest.mark.parametrize(
@@ -121,6 +124,7 @@ async def test_irrelevant_objects_are_ignored_without_a_job(
     assert body["reason"]
     assert scripted_runner.events == []
     assert container.in_flight == set()
+    assert container.claimed_jobs == set()
 
 
 async def test_non_finalize_event_type_is_ignored(
@@ -146,8 +150,7 @@ async def test_batch_manifest_object_creates_a_job(
     body = make_notification_body(f"{E2E_PREFIX}/batch.json")
     response = await client.post("/webhooks/pubsub", json=body, headers=auth_headers)
     assert response.status_code == 200
-    assert response.json()["status"] == "accepted"
-    await asyncio.gather(*container.in_flight)
+    assert response.json()["status"] == "completed"
     assert [event.job_id for event in scripted_runner.events] == [E2E_JOB_ID]
 
 
@@ -176,13 +179,12 @@ async def test_per_object_fan_in_runs_the_batch_once(
         response = await client.post("/webhooks/pubsub", json=body, headers=auth_headers)
         assert response.status_code == 200
         statuses.append(response.json()["status"])
-        await asyncio.gather(*container.in_flight)
-    assert statuses[0] == "accepted"
+    assert statuses[0] == "completed"
     assert set(statuses[1:]) == {"duplicate"}
     assert [event.job_id for event in scripted_runner.events] == [E2E_JOB_ID]
 
 
-async def test_concurrent_notifications_start_the_job_once(
+async def test_concurrent_notifications_run_the_job_once(
     client: httpx.AsyncClient,
     container: AppContainer,
     scripted_runner,
@@ -203,10 +205,10 @@ async def test_concurrent_notifications_start_the_job_once(
         )
     )
     statuses = [response.json()["status"] for response in responses]
-    assert statuses.count("accepted") == 1
+    assert statuses.count("completed") == 1
     assert statuses.count("duplicate") == 7
-    await asyncio.gather(*container.in_flight)
     assert [event.job_id for event in scripted_runner.events] == [E2E_JOB_ID]
+    assert container.claimed_jobs == set()
 
 
 async def test_notification_job_waits_for_upload_quiescence(
@@ -224,7 +226,6 @@ async def test_notification_job_waits_for_upload_quiescence(
         headers=auth_headers,
     )
     assert response.status_code == 200
-    await asyncio.gather(*container.in_flight)
     assert [event.job_id for event in settler.events] == [E2E_JOB_ID]
     assert [event.job_id for event in scripted_runner.events] == [E2E_JOB_ID]
 
@@ -248,8 +249,11 @@ async def test_legacy_job_event_bypasses_translation_and_settling(
     }
     response = await client.post("/webhooks/pubsub", json=body, headers=auth_headers)
     assert response.status_code == 200
-    assert response.json() == {"job_id": event.job_id, "status": "accepted"}
-    await asyncio.gather(*container.in_flight)
+    assert response.json() == {
+        "job_id": event.job_id,
+        "status": "completed",
+        "stage": "completed",
+    }
     assert [item.job_id for item in scripted_runner.events] == [event.job_id]
     assert settler.events == []
 

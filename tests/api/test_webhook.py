@@ -1,4 +1,3 @@
-import asyncio
 from typing import Any
 
 import httpx
@@ -110,7 +109,7 @@ async def test_push_for_completed_job_is_idempotent(
     assert scripted_runner.events == []
 
 
-async def test_push_accepts_new_job_and_runs_pipeline(
+async def test_push_runs_pipeline_in_request_and_acks_on_success(
     client: httpx.AsyncClient,
     container: AppContainer,
     scripted_runner,
@@ -123,9 +122,14 @@ async def test_push_accepts_new_job_and_runs_pipeline(
         "/webhooks/pubsub", json=make_push_body(event), headers=auth_headers
     )
     assert response.status_code == 200
-    assert response.json() == {"job_id": event.job_id, "status": "accepted"}
-    await asyncio.gather(*container.in_flight)
+    assert response.json() == {
+        "job_id": event.job_id,
+        "status": "completed",
+        "stage": "completed",
+    }
     assert [item.job_id for item in scripted_runner.events] == [event.job_id]
+    assert container.in_flight == set()
+    assert container.claimed_jobs == set()
     stored = await container.checkpoint_store.get(event.job_id)
     assert stored is not None
     assert stored.stage == JobStage.COMPLETED
@@ -154,7 +158,7 @@ async def test_push_token_accepted_from_query_parameter(
         json=make_push_body(make_event()),
     )
     assert response.status_code == 200
-    assert response.json()["status"] == "accepted"
+    assert response.json()["status"] == "completed"
 
 
 async def test_query_token_takes_precedence_over_oidc_header(
@@ -167,7 +171,7 @@ async def test_query_token_takes_precedence_over_oidc_header(
         json=make_push_body(make_event()),
     )
     assert response.status_code == 200
-    assert response.json()["status"] == "accepted"
+    assert response.json()["status"] == "completed"
 
 
 async def test_wrong_query_token_is_forbidden(
