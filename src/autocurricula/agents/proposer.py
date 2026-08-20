@@ -61,6 +61,7 @@ class LlmProposer:
         self._calibration = calibration
         self._failing_sample_limit = failing_sample_limit
         self._temperature = temperature
+        self.proposal_log: list[dict[str, str]] = []
 
     def bind_calibration(self, calibration: CalibrationSet) -> None:
         self._calibration = calibration
@@ -90,12 +91,16 @@ class LlmProposer:
             app_name=PROPOSER_APP_NAME,
             user_id="meta-optimizer",
         )
+        provenance = f"llm-proposer:{current.variant_id}:v{current.version}:a{attempt}"
+        self.proposal_log.append(
+            {"provenance": provenance, "rationale": proposal.rationale}
+        )
         return PromptVariant(
             variant_id=current.variant_id,
             version=current.version + 1,
             system_instruction=proposal.new_system_instruction,
             few_shots=proposal.new_few_shots,
-            provenance=f"llm-proposer:{current.variant_id}:v{current.version}:a{attempt}",
+            provenance=provenance,
         )
 
     def _attempt_temperature(self, attempt: int) -> float:
