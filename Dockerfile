@@ -10,7 +10,7 @@ WORKDIR /app
 RUN groupadd --gid 10001 appgroup \
     && useradd --uid 10001 --gid 10001 --create-home --shell /usr/sbin/nologin appuser
 
-COPY pyproject.toml README.md ./
+COPY pyproject.toml README.md MANIFEST.in ./
 COPY src ./src
 RUN pip install --no-cache-dir .
 
