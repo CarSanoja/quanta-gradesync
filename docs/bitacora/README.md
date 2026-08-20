@@ -25,3 +25,4 @@ verification) live in the [requests registry](../solicitudes/README.md).
 | 2026-08-17 | [Plan 005: observability and self-healing](2026-08-17-plan-005-observability-self-healing.md) | Planning |
 | 2026-08-17 | [Implementation 005: verification 158/158](2026-08-17-implementacion-005-observability-self-healing.md) | Implementation |
 | 2026-08-19 | [Implementation 006: real path, console, dataset, GCP foundations](2026-08-19-implementacion-006-real-path-console-dataset.md) | Implementation |
+| 2026-08-20 | [Implementation 007: armor, visible SIS, ingest, live trace, ack-on-success](2026-08-20-implementacion-007-armor-sis-ingest-ack.md) | Implementation |
