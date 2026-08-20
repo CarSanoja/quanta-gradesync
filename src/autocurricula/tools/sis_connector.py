@@ -130,10 +130,11 @@ def build_sis_connector(settings: Settings) -> SISConnector:
     if settings.local_mode:
         return LocalSISConnector(data_dir=settings.local_data_dir)
     if not settings.sis_base_url:
-        logger.warning(
-            "sis_base_url is empty in gcp mode; grade writes fall back to the local "
-            "jsonl sink at %s/sis_writes.jsonl",
-            settings.local_data_dir,
+        from autocurricula.tools.sis_firestore import FirestoreSISConnector
+
+        logger.info(
+            "sis_base_url is empty in gcp mode; grade writes go to the firestore "
+            "sis ledger collection"
         )
-        return LocalSISConnector(data_dir=settings.local_data_dir)
+        return FirestoreSISConnector(settings=settings)
     return HttpSISConnector(settings=settings)
