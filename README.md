@@ -491,13 +491,21 @@ All endpoints require the same `Authorization: Bearer $GRADESYNC_PUBSUB_PUSH_TOK
 
 ```text
 src/autocurricula/
-├── config/            Settings + lazy GCP client factories
-├── schemas/           Pydantic v2 structured-output models
-├── tools/             SIS connector, GCS fetcher, vector search
-├── agents/            Grading, curriculum audit, risk, meta-optimizer agents
+├── config/            Settings + lazy GCP client factories + Vertex env bootstrap
+├── schemas/           Pydantic v2 structured-output models (incl. armor, telemetry)
+├── tools/             SIS connectors (HTTP, Firestore ledger, local), GCS fetcher, vector search
+├── agents/            Grading, curriculum audit, risk, rework, proposer, calibration, meta-optimizers
 ├── core/memory/       L1 session, L2 vector, L3 managed memory
-├── core/evolution/    Prompt mutation, anti-gaming validators
+├── core/evolution/    Prompt tournaments, anti-gaming validators
+├── core/armor/        Injection detectors + scan-legibility metric
+├── core/harness/      Permission gate, budgets, breakers, faithfulness, provenance, eval gates
+├── core/resilience/   Schema repair, model fallback, dead-letter, state rollback
+├── core/telemetry/    Typed span tracer, metrics, forensic audit log
 ├── core/review/       Confidence gate, review queue, approval service
-├── core/orchestration/  Google ADK workflow execution graph
-└── api/               FastAPI app + Pub/Sub push webhook + review API
+├── core/orchestration/  Pipeline stages, checkpoints, GCS-event translation, upload settle
+└── api/               Webhook, review, jobs, trace, SIS ledger, ingest, console + teacher surfaces
 ```
+
+scripts/ holds the deterministic demo-batch generator (`scripts/README.md`
+documents its case matrix) and the calibration runner; `docs/runbooks/` and
+`docs/reports/` hold reproducible procedures and measured evidence.
