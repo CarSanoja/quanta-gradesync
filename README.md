@@ -1,15 +1,39 @@
 # AutoCurricula & GradeSync Engine
 
-A production-grade, asynchronous microservice for K-12 backoffice automation and the
-"All Things Agentic" competition. The engine breaks the standard chat loop: it runs
-100% in the background, triggered by Cloud Storage uploads and Pub/Sub messages, and
-replaces manual student exam grading, curricular standard reconciliation, and early
-dropout detection.
+Teachers in K-12 schools spend **~12 hours a week** hand-grading exams, students
+wait **~14 days** for feedback, and every grade is retyped into the SIS by hand.
+Across Latin America's public systems that adds up to millions of unpaid evening
+hours and feedback that arrives too late to matter. GradeSync deletes that work:
+scans go into a bucket; **audited, evidence-cited grades appear in the school
+system minutes later**, with dropout alerts and curriculum coverage maps as
+by-products. No chat, no app to learn — the engine runs 100% in the background,
+triggered by Cloud Storage uploads, and escalates to a human only when it should
+not decide alone.
 
-Built on Google Cloud Run + Pub/Sub + Firestore, using the Google Agent Development
-Kit (ADK) with Gemini 3.5 Flash (deep multimodal reasoning, thinking enabled) and
-Gemini 3.5 Flash-Lite (high-speed structured extraction). Every LLM call and every inter-component message
-uses strict Pydantic v2 structured-output schemas — zero loose strings.
+## The fleet
+
+Eleven specialized agents behind one deterministic harness, built with the
+Google Agent Development Kit on Gemini 3.5 Flash (deep multimodal reasoning,
+thinking enabled) and Gemini 3.5 Flash-Lite (high-speed structured extraction):
+
+| # | Agent | Model | Role and pattern |
+|---|---|---|---|
+| 1 | Grading agent | Flash | Multimodal rubric grading of handwritten pages, parallel fan-out per exam, evidence spans cited verbatim |
+| 2 | Curriculum auditor | Flash-Lite | Cross-references every grade against the ministry standard |
+| 3 | Risk detector | deterministic | Dropout early warning from z-scores and longitudinal slopes — math, not opinion |
+| 4 | Armor screener | Flash-Lite | Model Armor: detects handwritten prompt injection and forces quarantine |
+| 5 | Second-opinion evaluator | Flash-Lite | Bounded rework loop over quarantined exams (human-in-the-loop stays in charge) |
+| 6 | Fallback evaluator | Flash-Lite | Model failover on timeout or resource exhaustion, confidence discounted |
+| 7 | Schema repair agent | Flash-Lite | Bounded self-repair of malformed structured outputs before dead-lettering |
+| 8 | Prompt proposer | Flash-Lite | Mutates grading prompts for the tournament |
+| 9 | Calibration evaluator | Flash | Re-grades human-scored samples to score each candidate prompt |
+| 10–11 | Meta-optimizers (grading, audit) | — | Tournament selection with adversarial anti-gaming validation and a composite objective gate (QWK ≥ 0.85 ∧ MAE ≤ 0.4 ∧ \|bias\| < 0.1) |
+
+The harness around them is deterministic and cannot be argued with: permission
+gate (DENY > QUARANTINE > ALLOW), per-exam call budgets, circuit breakers,
+checkpoint resume, provenance ledger, typed telemetry. Every LLM call and every
+inter-component message is a strict Pydantic v2 structured output — zero loose
+strings.
 
 ## Elevator pitch
 
