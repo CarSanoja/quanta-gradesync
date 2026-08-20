@@ -47,7 +47,15 @@ transcription and ~10 minutes of exception review. **Time-to-feedback:** from a
 5. **Anti-gaming self-improvement** — the prompt optimizer only promotes variants
    that improve human agreement (QWK/MAE), actively blocking variance collapse or
    artificial average-to-middle scores.
-6. **Long-running fault tolerance** — persistent per-stage checkpoints; if
+6. **Model Armor** — every graded page is screened for handwritten prompt
+   injection (instructions addressed to the grader rather than student work);
+   a detection forces the record into quarantine with the quoted attempt as
+   the first review reason, regardless of confidence.
+7. **Legibility-aware confidence** — a deterministic image-quality metric
+   (Laplacian blur variance x contrast) discounts the model's self-reported
+   confidence on degraded scans, so illegible pages quarantine even when the
+   model claims certainty.
+8. **Long-running fault tolerance** — persistent per-stage checkpoints; if
    infrastructure is interrupted, the pipeline resumes exactly at the pending stage
    without recomputing prior work.
 
@@ -340,6 +348,10 @@ same seam.
 
 ## Operations console and demo batch
 
+The push webhook processes each batch inside the request and acknowledges only
+on success: a mid-pipeline failure returns 5xx, Pub/Sub redelivers, and the job
+resumes from its Firestore checkpoint without recomputing finished stages.
+
 - `GET /console` serves the human review operations console: jobs timeline with
   per-stage status, the quarantine queue with the scanned page and cited
   evidence overlaid, one-click approve/dismiss, and the prompt-evolution report.
@@ -358,6 +370,10 @@ All endpoints require the same `Authorization: Bearer $GRADESYNC_PUBSUB_PUSH_TOK
 | `GET /review/pending` | Quarantined items with page, cited excerpt, reasons, and proposed record |
 | `POST /review/{review_id}/approve` | Writes the proposed record to the SIS, updates L3 history, marks approved (`409` if already decided) |
 | `POST /review/{review_id}/dismiss` | Closes the item without writing to the SIS |
+| `GET /sis/records` | SIS ledger, newest first (Firestore in cloud mode, JSONL locally) |
+| `POST /ingest/exam` | Multipart exam upload with domain-aware name-collision handling |
+| `POST /ingest/sample-batch` | Server-side copy of the demo batch that triggers the pipeline |
+| `GET /jobs/{job_id}/trace` | Span tree, metrics snapshot and audit tail for a job |
 
 ## Project layout
 
