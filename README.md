@@ -509,3 +509,7 @@ src/autocurricula/
 scripts/ holds the deterministic demo-batch generator (`scripts/README.md`
 documents its case matrix) and the calibration runner; `docs/runbooks/` and
 `docs/reports/` hold reproducible procedures and measured evidence.
+
+## License
+
+Apache License 2.0 — see [LICENSE](LICENSE).
