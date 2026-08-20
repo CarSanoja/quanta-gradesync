@@ -46,3 +46,26 @@ def solid_answers(check_line: str, max_note: str, speed_note: str) -> dict[str, 
             speed_note,
         ],
     }
+
+
+def solid_profile(
+    student_id: str,
+    display_name: str,
+    ink: str,
+    font_size: int,
+    check_line: str,
+    max_note: str,
+    speed_note: str,
+    ground_truth: dict[str, float] | None = None,
+    notes: str = "",
+) -> StudentProfile:
+    return StudentProfile(
+        student_id=student_id,
+        display_name=display_name,
+        quality=QUALITY_SOLID,
+        ink=ink,
+        answers=solid_answers(check_line, max_note, speed_note),
+        ground_truth=ground_truth,
+        notes=notes,
+        font_size=font_size,
+    )

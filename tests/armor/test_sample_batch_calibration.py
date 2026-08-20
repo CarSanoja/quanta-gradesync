@@ -14,10 +14,18 @@ SAMPLE_BATCH = (
 DEGRADED_STUDENT = "camila-rios"
 SOLID_STUDENTS = (
     "ana-torres",
-    "diego-castro",
-    "luis-gomez",
-    "mariana-ruiz",
-    "sofia-morales",
+    "andres-molina",
+    "camilo-fuentes",
+    "daniela-osorio",
+    "gabriela-mendez",
+    "isabela-cardenas",
+    "lucia-navarro",
+    "mateo-quintero",
+    "nicolas-serrano",
+    "renata-aguilar",
+    "santiago-herrera",
+    "sebastian-rincon",
+    "valentina-suarez",
 )
 GRADED_NOT_SOLID = ("tomas-vega", "julian-pardo")
 OBSERVED_MIN_MODEL_CONFIDENCE = 0.95

@@ -22,6 +22,7 @@ INK_COLORS = {
     "blue": (32, 46, 96),
     "dark_blue": (22, 33, 78),
     "graphite": (58, 58, 62),
+    "black": (30, 32, 38),
 }
 
 

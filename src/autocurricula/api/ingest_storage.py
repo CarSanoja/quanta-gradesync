@@ -10,7 +10,7 @@ from autocurricula.core.orchestration.manifest_inference import MIME_BY_EXTENSIO
 
 UPLOADS_PREFIX = "uploads/batches"
 LOCAL_FALLBACK_BUCKET = "local-exams"
-DEMO_SOURCE_PREFIX = "e2e/2026-08-19/batches/2026_Matematicas_10A_Parcial1/"
+DEMO_SOURCE_PREFIX = "demo-source/v2/batches/2026_Matematicas_10A_Parcial1/"
 DEMO_LOT_CODE = "2026_Matematicas_10A_Parcial1"
 DEMO_DESTINATION_ROOT = "demo"
 DEMO_RUN_HEX_BYTES = 4
