@@ -1,4 +1,4 @@
-# Draft issue — googleapis/python-genai
+# Filed upstream: https://github.com/googleapis/python-genai/issues/2889
 
 **Title:** Vertex structured output silently returns empty dict-typed fields (additionalProperties) — model complies but the payload arrives stripped
 

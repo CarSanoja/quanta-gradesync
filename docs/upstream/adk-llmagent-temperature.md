@@ -1,4 +1,4 @@
-# Draft issue — google/adk-python
+# Filed upstream: https://github.com/google/adk-python/issues/6836
 
 **Title:** LlmAgent rejects `temperature=` with extra_forbidden — no discoverable path from the most common generation knob to the right field
 
