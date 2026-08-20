@@ -25,3 +25,5 @@ htmlcov/
 .claude/
 
 docs/video/
+
+docs/internal/
