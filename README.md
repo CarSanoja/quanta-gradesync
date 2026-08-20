@@ -153,21 +153,85 @@ jsonl append).
 
 ## Local-mode quickstart
 
-Requires Python 3.12+ and [uv](https://docs.astral.sh/uv/).
+Requires Python 3.12+. [uv](https://docs.astral.sh/uv/) is optional — a plain
+`venv` works the same.
+
+With uv:
 
 ```bash
 uv venv
 source .venv/bin/activate
 uv pip install -e ".[dev]"
-cp .env.example .env
 pytest
 ```
 
-Run the API locally:
+Without uv, use any Python 3.12+ interpreter explicitly (the macOS system
+`python3` is typically 3.9: too old for the package, and its bundled pip
+cannot editable-install a pyproject-only project):
 
 ```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+pytest
+```
+
+Run `pytest` before creating a `.env`: the settings loader reads `.env` from
+the working directory, and the placeholder SIS URL and settle interval in
+`.env.example` override local-mode defaults that two tests assert. The suite
+itself needs no `.env`, no GCP credentials, and no network.
+
+### Run the API locally
+
+Local mode swaps GCS, Pub/Sub, Firestore, and the SIS for on-disk
+implementations, but the grading and audit agents always call real Gemini
+models. Give the server model credentials before booting — either Vertex AI
+through Application Default Credentials (`gcloud auth application-default
+login`):
+
+```bash
+export GOOGLE_GENAI_USE_VERTEXAI=true
+export GOOGLE_CLOUD_PROJECT=<your-gcp-project-id>
+export GOOGLE_CLOUD_LOCATION=global
+```
+
+or a Gemini Developer API key (`export GOOGLE_API_KEY=...`). Then, in the same
+shell:
+
+```bash
+cp .env.example .env
+export GRADESYNC_PUBSUB_PUSH_TOKEN="$(grep '^GRADESYNC_PUBSUB_PUSH_TOKEN=' .env | cut -d= -f2-)"
+export GRADESYNC_GCS_LOCAL_STAGING_DIR=.local_data
 uvicorn autocurricula.api.main:app --host 0.0.0.0 --port 8080 --loop uvloop --http httptools
 ```
+
+`GRADESYNC_GCS_LOCAL_STAGING_DIR` is the local-mode "bucket root": the fetcher
+reads `<staging>/<bucket>/<object>`. The demo generator writes to
+`.local_data/sample_batch` and its push event names `sample_batch` as the
+bucket, so the server must see `.local_data` here — the `.env` default
+(`.staging`) resolves to nothing. The exported push token is the value the
+webhook and review API verify, and the same one the `curl` below sends.
+
+### Local demo run
+
+With the server up (check `GET /healthz` returns 200):
+
+```bash
+python scripts/generate_sample_batch.py --target .local_data/sample_batch --seed 7
+
+curl -sS -X POST http://localhost:8080/webhooks/pubsub \
+  -H "Authorization: Bearer $GRADESYNC_PUBSUB_PUSH_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data @.local_data/sample_batch/push-event.json
+```
+
+The webhook grades the whole batch inside the request (under a minute with
+real Gemini calls) and answers with the completed job. Then inspect:
+
+- `http://localhost:8080/console` — jobs timeline, quarantine queue, approvals
+- `GET /review/pending` — quarantined submissions (same bearer token)
+- `.local_data/sis_writes.jsonl` — local SIS ledger, one write request per line;
+  quarantined items land here after `POST /review/{review_id}/approve`
 
 Test markers:
 
@@ -211,6 +275,18 @@ All variables use the `GRADESYNC_` prefix and are read from the environment or a
 | `GRADESYNC_OBJECTIVE_QWK_MIN` | `0.85` | Minimum quadratic weighted kappa for promotion (grading scope) |
 | `GRADESYNC_OBJECTIVE_MAE_MAX` | `0.4` | Maximum MAE for promotion |
 | `GRADESYNC_OBJECTIVE_BIAS_ABS_MAX` | `0.1` | Maximum absolute bias for promotion (grading scope) |
+| `GRADESYNC_ARMOR_ENABLED` | `true` | Screen every graded page for handwritten prompt injection; a detection forces quarantine |
+| `GRADESYNC_LEGIBILITY_ENABLED` | `true` | Deterministic scan-legibility metric that discounts model confidence on degraded pages |
+| `GRADESYNC_LEGIBILITY_FULL_TRUST` | `0.70` | Legibility score at or above which confidence is not discounted |
+| `GRADESYNC_LEGIBILITY_CONFIDENCE_FLOOR` | `0.50` | Multiplier a fully illegible page applies to model confidence |
+| `GRADESYNC_MODEL_FALLBACK_LATENCY_SECONDS` | `90` | Primary-model latency above which grading falls back to the fast model |
+| `GRADESYNC_MODEL_FALLBACK_CONFIDENCE_FACTOR` | `0.9` | Confidence multiplier applied to fallback-model results |
+| `GRADESYNC_DEAD_LETTER_MAX_ATTEMPTS` | `3` | Attempts before a failing submission is parked in the dead-letter store |
+| `GRADESYNC_TELEMETRY_AUDIT_ENABLED` | `true` | Append-only audit trail of material pipeline decisions |
+| `GRADESYNC_FIRESTORE_AUDIT_COLLECTION` | `audit` | Audit-trail collection |
+| `GRADESYNC_FIRESTORE_DEAD_LETTER_COLLECTION` | `dead_letter` | Dead-letter collection |
+| `GRADESYNC_BATCH_SETTLE_INTERVAL_SECONDS` | `0` local / `5` GCP | Poll interval while a multi-object upload settles (`0` disables the settler) |
+| `GRADESYNC_BATCH_SETTLE_MAX_ROUNDS` | `6` | Maximum settle polls before the batch is processed as-is |
 | `GRADESYNC_SIS_BASE_URL` | *(empty)* | School Information System API base URL |
 | `GRADESYNC_SIS_API_TOKEN` | *(empty)* | SIS bearer token |
 | `GRADESYNC_LOCAL_MODE` | auto | `true` selects local offline implementations |
