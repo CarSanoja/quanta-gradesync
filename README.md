@@ -119,6 +119,8 @@ transcription and ~10 minutes of exception review. **Time-to-feedback:** from a
 
 ## Architecture
 
+A rendered diagram lives at [`docs/media/architecture.svg`](docs/media/architecture.svg).
+
 ```text
   +---------------+  upload batch   +--------------+  notification  +---------------------+
   | School Staff  |--------------->| | GCS Bucket  |-------------->| | Pub/Sub Topic      |
@@ -128,7 +130,7 @@ transcription and ~10 minutes of exception review. **Time-to-feedback:** from a
                                                                          |
                                                                          v
                          +-----------------------------------------------+-----------------+
-                         | Cloud Run Service  (min-instances=1, timeout=900, no cold starts) |
+                         | Cloud Run Service  (scale 0-2, timeout=900, ack-on-success)      |
                          | FastAPI + uvicorn + uvloop + httptools, Pydantic v2 everywhere    |
                          |                                                               |
                          |   api/main.py       health + readiness endpoints               |
@@ -323,13 +325,15 @@ All variables use the `GRADESYNC_` prefix and are read from the environment or a
 ```bash
 gcloud builds submit . \
   --config cloudbuild.yaml \
-  --substitutions=_REGION=us-central1,_REPOSITORY=autocurricula,_SERVICE_NAME=autocurricula-gradesync,_GCS_BUCKET=my-bucket,_PUBSUB_PUSH_TOKEN=$(openssl rand -hex 24),_SIS_API_TOKEN=***,_SIS_BASE_URL=https://sis.example.edu/api/v1
+  --substitutions=SHORT_SHA=$(git rev-parse --short HEAD),_GCS_BUCKET=my-exams-bucket
 ```
 
-Cloud Build builds the container, pushes it to Artifact Registry (`$_REPOSITORY`), and
-deploys to Cloud Run with `--min-instances=1` (zero cold starts), `--timeout=900`, the
-runtime service account from `$_SERVICE_ACCOUNT`, and env vars injected with the
-`^^^,^^^` multi-value separator.
+Cloud Build runs as the dedicated `gradesync-builder` service account, builds the
+container, pushes it to Artifact Registry (`$_REPOSITORY`), and deploys to Cloud
+Run with scale-to-zero (`--min-instances=0 --max-instances=2`), `--timeout=900`,
+and the runtime service account from `$_SERVICE_ACCOUNT`. The push token is
+mounted from Secret Manager (`_PUSH_TOKEN_SECRET`, default `gradesync-push-token`)
+— no secret ever appears in the build config or the command line.
 
 One-time setup:
 
@@ -360,14 +364,19 @@ gcloud storage buckets notifications create gs://BUCKET \
 
 gcloud pubsub subscriptions create exam-batch-ingest-push \
   --topic=exam-batch-ingest \
-  --push-endpoint=SERVICE_URL/webhooks/pubsub \
+  --push-endpoint="SERVICE_URL/webhooks/pubsub?token=PUSH_TOKEN" \
   --push-auth-service-account=autocurricula-runner@PROJECT_ID.iam.gserviceaccount.com \
+  --push-auth-token-audience=SERVICE_URL \
   --ack-deadline=600 \
   --message-retention-duration=1h
 ```
 
 Notes:
 
+- Pub/Sub OIDC occupies the `Authorization` header, so the shared token travels
+  as the `token` query parameter; the audience must be pinned to the service URL.
+- On `*.run.app`, Google Frontend reserves `/healthz` — use `/readyz` as the
+  public health check.
 - The push endpoint is the deployed Cloud Run URL plus `/webhooks/pubsub`
   (handled by `autocurricula.api.webhooks`).
 - Every delivery must carry the shared `GRADESYNC_PUBSUB_PUSH_TOKEN` (query param or
@@ -448,7 +457,9 @@ same seam.
 
 ## Operations console and demo batch
 
-The push webhook processes each batch inside the request and acknowledges only
+Two surfaces share the same API: `GET /teacher` is the teacher-facing page
+(exception review in plain words, no pipeline jargon) and `GET /console` is the
+operations console for IT. The push webhook processes each batch inside the request and acknowledges only
 on success: a mid-pipeline failure returns 5xx, Pub/Sub redelivers, and the job
 resumes from its Firestore checkpoint without recomputing finished stages.
 
@@ -470,6 +481,7 @@ All endpoints require the same `Authorization: Bearer $GRADESYNC_PUBSUB_PUSH_TOK
 | `GET /review/pending` | Quarantined items with page, cited excerpt, reasons, and proposed record |
 | `POST /review/{review_id}/approve` | Writes the proposed record to the SIS, updates L3 history, marks approved (`409` if already decided) |
 | `POST /review/{review_id}/dismiss` | Closes the item without writing to the SIS |
+| `GET /teacher` | Teacher surface: plain-language review queue, simple upload, synced grades |
 | `GET /sis/records` | SIS ledger, newest first (Firestore in cloud mode, JSONL locally) |
 | `POST /ingest/exam` | Multipart exam upload with domain-aware name-collision handling |
 | `POST /ingest/sample-batch` | Server-side copy of the demo batch that triggers the pipeline |
