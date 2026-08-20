@@ -14,6 +14,7 @@ from autocurricula.core.orchestration.job_state import (
     JobStage,
 )
 from autocurricula.core.orchestration.runner import JobRunner
+from autocurricula.schemas.common import utc_now
 from autocurricula.schemas.events import PubSubJobEvent
 
 logger = logging.getLogger(__name__)
@@ -69,6 +70,15 @@ def resolve_or_reject(body: dict) -> PushResolution:
         ) from error
 
 
+def is_resumable(record: JobRecord, stale_after_seconds: float) -> bool:
+    if record.stage == JobStage.FAILED:
+        return True
+    if record.stage == JobStage.COMPLETED:
+        return False
+    age = (utc_now() - record.updated_at).total_seconds()
+    return age >= stale_after_seconds
+
+
 async def already_processed(container: AppContainer, job_id: str) -> bool:
     try:
         existing = await container.checkpoint_store.get(job_id)
@@ -77,7 +87,16 @@ async def already_processed(container: AppContainer, job_id: str) -> bool:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="checkpoint store unavailable during idempotency check",
         ) from error
-    return existing is not None and existing.stage != JobStage.FAILED
+    if existing is None:
+        return False
+    if is_resumable(existing, container.settings.resume_stale_after_seconds):
+        logger.warning(
+            "job %s checkpoint at stage %s is stale or failed; accepting redelivery",
+            job_id,
+            existing.stage.value,
+        )
+        return False
+    return True
 
 
 def claim_job(container: AppContainer, job_id: str) -> bool:

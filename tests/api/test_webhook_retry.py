@@ -168,3 +168,49 @@ async def test_redelivery_resumes_failed_job_without_recomputing_finished_stages
     final = await container.checkpoint_store.get(job_id)
     assert final is not None
     assert final.stage == JobStage.COMPLETED
+
+
+async def test_stale_in_progress_checkpoint_is_resumed(
+    client, container, make_event, make_push_body
+) -> None:
+    from datetime import timedelta
+
+    from autocurricula.core.orchestration.job_state import JobRecord, JobStage
+    from autocurricula.schemas.common import utc_now
+
+    event = make_event()
+    stale = JobRecord(
+        job_id=event.job_id,
+        event=event,
+        stage=JobStage.GRADED,
+        updated_at=utc_now() - timedelta(seconds=3600),
+    )
+    await container.checkpoint_store.save(stale)
+
+    response = await client.post(
+        "/webhooks/pubsub",
+        headers={"Authorization": f"Bearer {container.settings.pubsub_push_token}"},
+        json=make_push_body(event),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "completed"
+
+
+async def test_fresh_in_progress_checkpoint_stays_duplicate(
+    client, container, make_event, make_push_body
+) -> None:
+    from autocurricula.core.orchestration.job_state import JobRecord, JobStage
+
+    event = make_event()
+    fresh = JobRecord(job_id=event.job_id, event=event, stage=JobStage.GRADED)
+    await container.checkpoint_store.save(fresh)
+
+    response = await client.post(
+        "/webhooks/pubsub",
+        headers={"Authorization": f"Bearer {container.settings.pubsub_push_token}"},
+        json=make_push_body(event),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "duplicate"
