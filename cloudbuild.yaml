@@ -40,7 +40,6 @@ steps:
       - --max-instances=${_MAX_INSTANCES}
       - --timeout=900
       - --memory=1Gi
-      - --no-cpu-throttling
       - --service-account=${_SERVICE_ACCOUNT}
       - --allow-unauthenticated
       - --set-secrets=GRADESYNC_PUBSUB_PUSH_TOKEN=${_PUSH_TOKEN_SECRET}:latest
