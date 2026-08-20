@@ -37,6 +37,18 @@
       <span class="rail-label">Optimizer</span>
       <span class="rail-hint">prompt evolution</span>
     </button>
+    <button type="button" class="rail-item" data-view="ingest">
+      <span class="rail-label">Ingest</span>
+      <span class="rail-hint">upload exam scans</span>
+    </button>
+    <button type="button" class="rail-item" data-view="sis">
+      <span class="rail-label">SIS ledger</span>
+      <span class="rail-hint">grades in the school system</span>
+    </button>
+    <button type="button" class="rail-item" data-view="trace">
+      <span class="rail-label">Live trace</span>
+      <span class="rail-hint">spans, tokens, audit</span>
+    </button>
     <p class="rail-note">
       Grades below the confidence threshold, or scored without cited evidence, are
       never written to the SIS. They wait here.
@@ -92,7 +104,93 @@
         <div class="panel-body" id="optimizer-cycles"></div>
       </div>
     </section>
+    <section class="view" id="view-ingest">
+      <header class="view-head">
+        <h2>Ingest exams</h2>
+        <p>Drop scanned exam pages into a lot. The file name is the student id; a finished
+          upload triggers the deployed pipeline by itself.</p>
+      </header>
+      <div class="split">
+        <div class="panel">
+          <div class="panel-head"><h3>Upload</h3></div>
+          <div class="panel-body">
+            <label class="field-label" for="lot-code-input">Lot code</label>
+            <input type="text" id="lot-code-input" class="text-input mono"
+              placeholder="2026_Matematicas_10A_Parcial1" autocomplete="off" spellcheck="false">
+            <p class="hint">Convention {year}_{subject}_{class}_{assessment}. Files land under
+              uploads/batches/&lt;lot&gt;/ in the exam bucket.</p>
+            <div class="dropzone" id="dropzone" tabindex="0" role="button"
+              aria-label="Drop exam scans or click to choose files">
+              <strong>Drop exam scans here</strong>
+              <span>or click to choose files &middot; jpg, jpeg, png, pdf, heic &middot;
+                max 20 MB each &middot; up to 40 per batch</span>
+            </div>
+            <input type="file" id="file-input" multiple
+              accept=".jpg,.jpeg,.png,.pdf,.heic" hidden>
+            <div class="actions">
+              <button class="primary" id="sample-batch-button" type="button">Load sample batch</button>
+            </div>
+            <p class="hint">Copies the 8 fabricated exams server-side into a fresh demo prefix;
+              the storage notifications start the grading job with no further clicks.</p>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>Uploads</h3><span class="counter" id="upload-count"></span></div>
+          <div class="panel-body" id="upload-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-sis">
+      <header class="view-head">
+        <h2>SIS ledger</h2>
+        <p>Grade records written to the school information system, newest first.</p>
+      </header>
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Written grades</h3>
+          <span class="poll-note"><span class="poll-dot" id="sis-poll"></span><span class="counter" id="sis-count"></span></span>
+        </div>
+        <div class="panel-body" id="sis-records"></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-trace">
+      <header class="view-head">
+        <h2>Live trace</h2>
+        <p>Stage progress while a job runs; the persisted span tree, token usage and audit
+          trail once the engine writes them.</p>
+      </header>
+      <div class="split">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Jobs</h3>
+            <span class="poll-note"><span class="poll-dot" id="trace-poll"></span><span class="counter" id="trace-status"></span></span>
+          </div>
+          <div class="panel-body" id="trace-jobs"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>Trace</h3></div>
+          <div class="panel-body" id="trace-detail"></div>
+        </div>
+      </div>
+    </section>
   </main>
+</div>
+
+<div class="gate" id="collision-gate" hidden>
+  <div class="gate-card">
+    <h3>Scan already exists</h3>
+    <p id="collision-message"></p>
+    <input type="text" id="collision-rename-input" class="text-input mono"
+      placeholder="different student id (file stem)" autocomplete="off" spellcheck="false" hidden>
+    <p class="gate-error" id="collision-error" hidden></p>
+    <div class="gate-actions">
+      <button type="button" class="ghost" id="collision-cancel">Cancel</button>
+      <button type="button" class="ghost" id="collision-rename">Different student</button>
+      <button type="button" class="primary" id="collision-replace">Replace scan</button>
+    </div>
+  </div>
 </div>
 
 <div class="gate" id="token-gate" hidden>

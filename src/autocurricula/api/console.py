@@ -14,6 +14,9 @@ ASSET_MEDIA_TYPES = {
     "api.js": "text/javascript; charset=utf-8",
     "views.js": "text/javascript; charset=utf-8",
     "render.js": "text/javascript; charset=utf-8",
+    "sis.js": "text/javascript; charset=utf-8",
+    "ingest.js": "text/javascript; charset=utf-8",
+    "trace.js": "text/javascript; charset=utf-8",
 }
 
 

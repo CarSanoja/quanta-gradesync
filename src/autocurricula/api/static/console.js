@@ -4,6 +4,7 @@ import {
   getJson,
   getObjectUrl,
   getToken,
+  postForm,
   postJson,
   readiness,
   setToken,
@@ -16,6 +17,9 @@ import {
   renderReviewDetail,
   renderReviewList,
 } from "./views.js";
+import { createIngestController } from "./ingest.js";
+import { createSisController } from "./sis.js";
+import { createTraceController } from "./trace.js";
 
 const dom = {
   rail: document.getElementById("rail"),
@@ -38,6 +42,26 @@ const dom = {
   optimizerVariants: document.getElementById("optimizer-variants"),
   optimizerCycles: document.getElementById("optimizer-cycles"),
   cyclesCount: document.getElementById("cycles-count"),
+  sisRecords: document.getElementById("sis-records"),
+  sisCount: document.getElementById("sis-count"),
+  sisPoll: document.getElementById("sis-poll"),
+  traceJobs: document.getElementById("trace-jobs"),
+  traceDetail: document.getElementById("trace-detail"),
+  tracePoll: document.getElementById("trace-poll"),
+  traceStatus: document.getElementById("trace-status"),
+  lotCodeInput: document.getElementById("lot-code-input"),
+  dropzone: document.getElementById("dropzone"),
+  fileInput: document.getElementById("file-input"),
+  sampleBatchButton: document.getElementById("sample-batch-button"),
+  uploadList: document.getElementById("upload-list"),
+  uploadCount: document.getElementById("upload-count"),
+  collisionGate: document.getElementById("collision-gate"),
+  collisionMessage: document.getElementById("collision-message"),
+  collisionRenameInput: document.getElementById("collision-rename-input"),
+  collisionError: document.getElementById("collision-error"),
+  collisionCancel: document.getElementById("collision-cancel"),
+  collisionReplace: document.getElementById("collision-replace"),
+  collisionRename: document.getElementById("collision-rename"),
 };
 
 const state = {
@@ -92,6 +116,12 @@ function setView(view) {
   document.querySelectorAll(".view").forEach((section) => {
     section.classList.toggle("is-active", section.id === `view-${view}`);
   });
+  if (sisController) {
+    view === "sis" ? sisController.start() : sisController.stop();
+  }
+  if (traceController) {
+    view === "trace" ? traceController.start() : traceController.stop();
+  }
 }
 
 function releaseImage() {
@@ -246,8 +276,27 @@ async function refreshAll() {
   dom.refresh.disabled = true;
   await loadMode();
   await Promise.all([loadJobs(), loadReviews(), loadOptimizer()]);
+  if (state.view === "sis") {
+    await sisController.load();
+  }
+  if (state.view === "trace") {
+    await traceController.load();
+  }
   dom.refresh.disabled = false;
 }
+
+const sisController = createSisController({ dom, guard, getJson, endpoints });
+const traceController = createTraceController({ dom, guard, getJson, endpoints });
+createIngestController({
+  dom,
+  toast,
+  postForm,
+  postJson,
+  endpoints,
+  guard,
+  onAuthError: () =>
+    openGate("The API rejected that token. Paste the deployment token to continue."),
+});
 
 dom.rail.addEventListener("click", (event) => {
   const button = event.target.closest(".rail-item");

@@ -55,6 +55,22 @@ export async function postJson(path) {
   return response.json();
 }
 
+export async function postForm(path, formData) {
+  const headers = new Headers();
+  const token = getToken();
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+  const response = await fetch(path, { method: "POST", body: formData, headers });
+  let body = null;
+  try {
+    body = await response.json();
+  } catch (error) {
+    body = null;
+  }
+  return { status: response.status, ok: response.ok, body };
+}
+
 export async function getObjectUrl(path) {
   const response = await request(path);
   return URL.createObjectURL(await response.blob());
@@ -74,4 +90,14 @@ export const endpoints = {
   pageImage: (reviewId, index) =>
     `/review/${encodeURIComponent(reviewId)}/page-image?index=${index}`,
   optimizer: () => "/optimizer/report",
+  sisRecords: (jobId, limit = 50) => {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (jobId) {
+      params.set("job_id", jobId);
+    }
+    return `/sis/records?${params}`;
+  },
+  trace: (jobId) => `/jobs/${encodeURIComponent(jobId)}/trace`,
+  ingestExam: () => "/ingest/exam",
+  sampleBatch: () => "/ingest/sample-batch",
 };

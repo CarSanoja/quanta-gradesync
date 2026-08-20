@@ -6,22 +6,25 @@ from fastapi import APIRouter, Depends, FastAPI
 from fastapi.responses import JSONResponse
 
 from autocurricula import __version__
+from autocurricula.api.console import console_router
 from autocurricula.api.dependencies import (
     AppContainer,
     build_container,
     get_container,
     set_container,
 )
+from autocurricula.api.ingest import ingest_router
+from autocurricula.api.jobs import jobs_router
+from autocurricula.api.optimizer import optimizer_router
 from autocurricula.api.readiness import (
     BackendUnavailable,
     ping_backend,
     settings_issues,
 )
-from autocurricula.api.console import console_router
-from autocurricula.api.jobs import jobs_router
-from autocurricula.api.optimizer import optimizer_router
 from autocurricula.api.responses import HealthResponse, ReadinessResponse
 from autocurricula.api.review import review_router
+from autocurricula.api.sis_ledger import sis_router
+from autocurricula.api.trace import trace_router
 from autocurricula.api.webhooks import pubsub_router
 from autocurricula.config.genai_env import configure_genai_env
 
@@ -78,6 +81,9 @@ def create_app() -> FastAPI:
     application.include_router(pubsub_router)
     application.include_router(review_router)
     application.include_router(jobs_router)
+    application.include_router(trace_router)
+    application.include_router(sis_router)
+    application.include_router(ingest_router)
     application.include_router(optimizer_router)
     application.include_router(console_router)
     return application

@@ -420,3 +420,122 @@ async def test_optimizer_report_reads_promoted_cycles(
     assert grading["source"] == "history"
     assert grading["promoted_cycles"] == 1
     assert grading["latest_metrics"]["quadratic_weighted_kappa"] == 0.89
+
+
+TRACE_ID = "9c41e77b20f5a3d6"
+
+
+def seed_audit_event(container: AppContainer, job_id: str) -> dict:
+    event = {
+        "recorded_at": "2026-08-19T22:30:41+00:00",
+        "job_id": job_id,
+        "trace_id": TRACE_ID,
+        "summary": {
+            "stage": "completed",
+            "error": None,
+            "metrics": {
+                "stages": [
+                    {
+                        "stage": "grade",
+                        "count": 8,
+                        "errors": 0,
+                        "latency_p95_ms": 26253.0,
+                        "total_tokens": 59865,
+                    }
+                ],
+                "total_spans": 2,
+                "total_errors": 0,
+                "total_tokens": 59865,
+            },
+        },
+        "spans": [
+            {
+                "name": "pipeline",
+                "trace_id": TRACE_ID,
+                "span_id": "s1",
+                "parent_id": None,
+                "stage": None,
+                "status": "ok",
+                "duration_ms": 40217.0,
+                "attributes": {},
+            },
+            {
+                "name": "grade",
+                "trace_id": TRACE_ID,
+                "span_id": "s2",
+                "parent_id": "s1",
+                "stage": "grade",
+                "status": "ok",
+                "duration_ms": 28102.0,
+                "attributes": {"gen_ai.usage.tokens": 59865},
+            },
+        ],
+    }
+    directory = Path(container.settings.local_data_dir) / "audit"
+    directory.mkdir(parents=True, exist_ok=True)
+    (directory / f"{job_id}.jsonl").write_text(
+        json.dumps(event) + "\n", encoding="utf-8"
+    )
+    return event
+
+
+async def test_trace_endpoint_requires_the_push_token(
+    client: httpx.AsyncClient, saved_job: str
+) -> None:
+    response = await client.get(f"/jobs/{saved_job}/trace")
+    assert response.status_code == 401
+
+
+async def test_trace_endpoint_returns_404_for_unknown_jobs(
+    client: httpx.AsyncClient, auth_headers
+) -> None:
+    response = await client.get("/jobs/job-ghost/trace", headers=auth_headers)
+    assert response.status_code == 404
+
+
+async def test_trace_endpoint_serves_stage_statuses_before_any_audit_event(
+    client: httpx.AsyncClient, auth_headers, saved_job: str
+) -> None:
+    response = await client.get(f"/jobs/{saved_job}/trace", headers=auth_headers)
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["job_id"] == saved_job
+    assert payload["stage"] == "synced"
+    stages = {stage["name"]: stage["status"] for stage in payload["stages"]}
+    assert stages["grade"] == "succeeded"
+    assert payload["spans"] == []
+    assert payload["metrics"] is None
+    assert payload["events"] == []
+
+
+async def test_trace_endpoint_projects_the_persisted_span_tree(
+    client: httpx.AsyncClient, container: AppContainer, auth_headers, saved_job: str
+) -> None:
+    seed_audit_event(container, saved_job)
+    response = await client.get(f"/jobs/{saved_job}/trace", headers=auth_headers)
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["recorded_at"] == "2026-08-19T22:30:41+00:00"
+    assert len(payload["spans"]) == 2
+    child = payload["spans"][1]
+    assert child["parent_id"] == "s1"
+    assert child["attributes"]["gen_ai.usage.tokens"] == 59865
+    assert payload["metrics"]["total_tokens"] == 59865
+    assert payload["events"][0]["stage"] == "completed"
+    assert payload["events"][0]["span_count"] == 2
+    assert payload["events"][0]["total_tokens"] == 59865
+
+
+async def test_console_page_ships_the_new_panels(client: httpx.AsyncClient) -> None:
+    response = await client.get("/console")
+    assert response.status_code == 200
+    assert "SIS ledger" in response.text
+    assert "Ingest" in response.text
+    assert "Live trace" in response.text
+
+
+async def test_new_console_assets_are_whitelisted(client: httpx.AsyncClient) -> None:
+    for asset in ("sis.js", "ingest.js", "trace.js"):
+        response = await client.get(f"/console/assets/{asset}")
+        assert response.status_code == 200, asset
+        assert response.headers["content-type"].startswith("text/javascript")
