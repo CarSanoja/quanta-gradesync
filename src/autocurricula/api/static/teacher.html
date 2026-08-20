@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GradeSync — Your review</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9C%8F%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="/teacher/assets/teacher.css">
+</head>
+<body>
+<header class="masthead">
+  <div class="wordmark">
+    <span class="wordmark-dot" aria-hidden="true"></span>
+    <span class="wordmark-text">GradeSync <em>for teachers</em></span>
+  </div>
+  <div class="masthead-actions">
+    <button class="quiet" id="refresh-button" type="button">Refresh</button>
+    <button class="quiet" id="access-button" type="button">Access code</button>
+  </div>
+</header>
+
+<main class="page">
+  <section class="hero" id="review-section" aria-labelledby="hero-title">
+    <p class="eyebrow">Ten minutes, then you're done</p>
+    <h1 id="hero-title">Exams waiting for <span class="hl">your review</span></h1>
+    <p class="hero-note" id="hero-note">Checking your queue&hellip;</p>
+    <div class="card-row" id="review-cards"></div>
+    <div class="review-detail" id="review-detail" hidden></div>
+    <div class="all-done" id="all-done" hidden>
+      <div class="all-done-mark" aria-hidden="true">&#10003;</div>
+      <h2>Nothing waiting &mdash; your grading is done.</h2>
+      <p id="all-done-note"></p>
+    </div>
+  </section>
+
+  <section class="band" id="upload-section" aria-labelledby="upload-title">
+    <h2 id="upload-title">Upload scans</h2>
+    <p class="band-note">Photograph or scan each exam, name the file after the student, and drop
+      everything here. Grading starts on its own.</p>
+    <div class="upload-grid">
+      <div class="upload-fields">
+        <label class="field">
+          <span>Subject</span>
+          <input type="text" id="subject-input" placeholder="Mathematics" autocomplete="off">
+        </label>
+        <label class="field">
+          <span>Class</span>
+          <input type="text" id="class-input" placeholder="10A" autocomplete="off">
+        </label>
+        <label class="field">
+          <span>Assessment name</span>
+          <input type="text" id="assessment-input" placeholder="Midterm 1" autocomplete="off">
+        </label>
+      </div>
+      <div class="dropzone" id="dropzone" tabindex="0" role="button"
+        aria-label="Drop exam scans or click to choose files">
+        <span class="dropzone-art" aria-hidden="true">&#8686;</span>
+        <strong>Drop the scans here</strong>
+        <span class="dropzone-hint">or click to choose files &middot; photos or PDFs, up to 20 MB each</span>
+      </div>
+    </div>
+    <ul class="upload-log" id="upload-log"></ul>
+  </section>
+
+  <section class="band" id="synced-section" aria-labelledby="synced-title">
+    <h2 id="synced-title">Recently synced grades</h2>
+    <p class="band-note">Already in the gradebook. Nothing for you to do here.</p>
+    <div class="synced-list" id="synced-list"></div>
+  </section>
+</main>
+
+<footer class="footnote">Grades only reach the gradebook after the checks pass &mdash; or after you approve them yourself.</footer>
+
+<div class="veil" id="collision-veil" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="collision-title">
+    <h3 id="collision-title">This student already has a scan</h3>
+    <p id="collision-message"></p>
+    <input type="text" id="collision-name-input" placeholder="Student name for the file, like ana-torres" autocomplete="off" spellcheck="false" hidden>
+    <p class="sheet-error" id="collision-error" hidden></p>
+    <div class="sheet-actions">
+      <button type="button" class="quiet" id="collision-cancel">Cancel</button>
+      <button type="button" class="quiet" id="collision-different">This is a different student</button>
+      <button type="button" class="primary" id="collision-replace">Replace scan</button>
+    </div>
+  </div>
+</div>
+
+<div class="veil" id="access-veil" hidden>
+  <form class="sheet" id="access-form" aria-labelledby="access-title">
+    <h3 id="access-title">Access code</h3>
+    <p>Enter the access code from your school's GradeSync setup. It stays on this device.</p>
+    <input type="password" id="access-input" placeholder="Access code" autocomplete="off">
+    <p class="sheet-error" id="access-error" hidden></p>
+    <div class="sheet-actions">
+      <button type="button" class="quiet" id="access-cancel">Cancel</button>
+      <button type="submit" class="primary">Open my review</button>
+    </div>
+  </form>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script type="module" src="/teacher/assets/teacher.js"></script>
+</body>
+</html>

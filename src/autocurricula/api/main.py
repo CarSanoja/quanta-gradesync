@@ -24,6 +24,7 @@ from autocurricula.api.readiness import (
 from autocurricula.api.responses import HealthResponse, ReadinessResponse
 from autocurricula.api.review import review_router
 from autocurricula.api.sis_ledger import sis_router
+from autocurricula.api.teacher import teacher_router
 from autocurricula.api.trace import trace_router
 from autocurricula.api.webhooks import pubsub_router
 from autocurricula.config.genai_env import configure_genai_env
@@ -86,6 +87,7 @@ def create_app() -> FastAPI:
     application.include_router(ingest_router)
     application.include_router(optimizer_router)
     application.include_router(console_router)
+    application.include_router(teacher_router)
     return application
 
 
