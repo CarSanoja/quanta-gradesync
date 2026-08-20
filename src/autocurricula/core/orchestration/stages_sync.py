@@ -1,10 +1,15 @@
 import logging
 
+from autocurricula.core.armor import (
+    flagged_students,
+    injection_reason,
+    load_armor_report,
+    resolve_legibility,
+)
 from autocurricula.core.evolution.prompt_mutator import PromptVariant
 from autocurricula.core.harness import (
     BatchAnomalyBreaker,
     BreakerTripped,
-    PermissionDecision,
 )
 from autocurricula.core.memory.manager import MemoryManager
 from autocurricula.core.orchestration.context import STAGE_SYNC, JobContext, StageCallable
@@ -14,7 +19,7 @@ from autocurricula.core.orchestration.sync_governance import (
     build_provenance,
     build_sis_permission_gate,
     partition_by_gate,
-    sis_action,
+    partition_records,
 )
 from autocurricula.core.orchestration.sync_io import (
     SisSyncError,
@@ -51,6 +56,9 @@ def build_sync_step(
     prompt_variant: PromptVariant | None = None,
     dead_letter: DeadLetterStore | None = None,
     dead_letter_max_attempts: int = DEFAULT_DEAD_LETTER_MAX_ATTEMPTS,
+    legibility_enabled: bool | None = None,
+    legibility_full_trust: float | None = None,
+    legibility_confidence_floor: float | None = None,
 ) -> StageCallable:
     gate = ConfidenceGate(confidence_threshold)
 
@@ -60,28 +68,31 @@ def build_sync_step(
         request = build_sis_write_request(
             outputs.batch, grade_result, context.audits.audits
         )
-        _, reasons, evidence, documents, confidences = partition_by_gate(
-            outputs.batch, grade_result, gate
+        factors, legibility = await resolve_legibility(
+            outputs.batch,
+            legibility_enabled,
+            legibility_full_trust,
+            legibility_confidence_floor,
         )
+        _, reasons, evidence, documents, confidences = partition_by_gate(
+            outputs.batch,
+            grade_result,
+            gate,
+            confidence_factors=factors,
+            legibility=legibility,
+        )
+        armor_flagged = flagged_students(
+            load_armor_report(context.session), outputs.batch
+        )
+        for student_id, quote in armor_flagged.items():
+            reasons.setdefault(student_id, []).insert(0, injection_reason(quote))
         permission = build_sis_permission_gate(
             {submission.student_id for submission in outputs.batch.submissions},
             confidence_threshold,
         )
-        auto_records: list[SISGradeRecord] = []
-        quarantined_records: list[SISGradeRecord] = []
-        for record in request.records:
-            verdict = permission.evaluate(
-                sis_action(record, confidences.get(record.student_id, 0.0))
-            )
-            if verdict.decision == PermissionDecision.DENY:
-                logger.warning(
-                    "harness denied sis write for out-of-manifest target %s",
-                    record.student_id,
-                )
-            elif verdict.decision == PermissionDecision.QUARANTINE:
-                quarantined_records.append(record)
-            else:
-                auto_records.append(record)
+        auto_records, quarantined_records = partition_records(
+            request.records, permission, confidences, armor_flagged
+        )
         if breaker is not None:
             quarantined_records, auto_records = _apply_breaker(
                 breaker, len(request.records), quarantined_records, auto_records, reasons

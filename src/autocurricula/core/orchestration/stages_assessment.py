@@ -3,7 +3,7 @@ import logging
 
 from autocurricula.agents.curriculum_auditor import CurriculumAuditor
 from autocurricula.agents.evaluator import GradingEvaluator
-from autocurricula.core.harness import DEFAULT_MAX_CALLS_PER_ITEM
+from autocurricula.core.armor import InjectionDetector, store_armor_report
 from autocurricula.core.memory.manager import MemoryManager
 from autocurricula.core.orchestration.catalog import JobCatalog
 from autocurricula.core.orchestration.context import (
@@ -23,7 +23,7 @@ from autocurricula.core.resilience import (
 )
 from autocurricula.core.telemetry import Recorder
 from autocurricula.schemas.common import utc_now
-from autocurricula.schemas.grading import GradingBatchResult, GradingResult
+from autocurricula.schemas.grading import GradingBatchResult
 from autocurricula.tools.gcs_fetcher import Fetcher
 
 logger = logging.getLogger(__name__)
@@ -73,6 +73,8 @@ def build_grade_step(
     repair_agent: SchemaRepairAgent | None = None,
     dead_letter: DeadLetterStore | None = None,
     dead_letter_max_attempts: int = 3,
+    armor_detector: InjectionDetector | None = None,
+    armor_enabled: bool | None = None,
 ) -> StageCallable:
     async def run(context: JobContext) -> JobContext:
         outputs = context.fetch_outputs
@@ -93,6 +95,8 @@ def build_grade_step(
             recorder=recorder,
             faithfulness_enabled=faithfulness_enabled,
             batch=outputs.batch,
+            armor_detector=armor_detector,
+            armor_enabled=armor_enabled,
         )
 
         graded_results = await asyncio.gather(
@@ -102,6 +106,8 @@ def build_grade_step(
             )
         )
         results = [result for result in graded_results if result is not None]
+        if guard.armor is not None:
+            store_armor_report(context.session, context.job_id, guard.armor_verdicts)
         if not results:
             raise StageExecutionError(STAGE_GRADE, "no submissions could be graded")
         context.complete(

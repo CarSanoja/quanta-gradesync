@@ -1,3 +1,5 @@
+import logging
+
 from autocurricula.core.evolution.prompt_mutator import PromptVariant
 from autocurricula.core.harness import (
     ActionRisk,
@@ -14,10 +16,16 @@ from autocurricula.schemas.exam import ExamBatch
 from autocurricula.schemas.grading import EvidenceSpan, GradingBatchResult
 from autocurricula.schemas.sis_sync import SISGradeRecord
 
+logger = logging.getLogger(__name__)
+
 SIS_WRITE_TOOL = "sis.write_grades"
 
 GovernancePartition = tuple[
-    set[str], dict[str, list[str]], dict[str, list[EvidenceSpan]], dict[str, list[str]], dict[str, float]
+    set[str],
+    dict[str, list[str]],
+    dict[str, list[EvidenceSpan]],
+    dict[str, list[str]],
+    dict[str, float],
 ]
 
 
@@ -39,8 +47,15 @@ def sis_action(record: SISGradeRecord, min_confidence: float) -> ToolAction:
 
 
 def partition_by_gate(
-    batch: ExamBatch, grade_result: GradingBatchResult, gate: ConfidenceGate
+    batch: ExamBatch,
+    grade_result: GradingBatchResult,
+    gate: ConfidenceGate,
+    *,
+    confidence_factors: dict[str, float] | None = None,
+    legibility: dict[str, float] | None = None,
 ) -> GovernancePartition:
+    factors = confidence_factors or {}
+    scores = legibility or {}
     student_by_submission = {
         submission.submission_id: submission.student_id
         for submission in batch.submissions
@@ -57,11 +72,12 @@ def partition_by_gate(
         student_id = student_by_submission.get(result.submission_id)
         if student_id is None:
             continue
-        verdict = gate.evaluate(result)
+        factor = factors.get(student_id, 1.0)
+        verdict = gate.evaluate(result, confidence_factor=factor)
         all_cited = all(
             criterion.evidence for criterion in result.criterion_scores
         )
-        effective = min(
+        effective = factor * min(
             (criterion.confidence for criterion in result.criterion_scores),
             default=0.0,
         )
@@ -79,8 +95,48 @@ def partition_by_gate(
         if not verdict.quarantined:
             continue
         quarantined_students.add(student_id)
-        reasons.setdefault(student_id, []).extend(verdict.reasons)
+        student_reasons = reasons.setdefault(student_id, [])
+        if factor < 1.0:
+            student_reasons.append(
+                _legibility_reason(scores.get(student_id), factor)
+            )
+        student_reasons.extend(verdict.reasons)
     return quarantined_students, reasons, evidence, documents, confidences
+
+
+def _legibility_reason(score: float | None, factor: float) -> str:
+    measured = f"{score:.2f}" if score is not None else "unknown"
+    return (
+        f"low scan legibility: score {measured} discounted model confidence "
+        f"by factor {factor:.2f}"
+    )
+
+
+def partition_records(
+    records: list[SISGradeRecord],
+    permission,
+    confidences: dict[str, float],
+    armor_flagged: dict[str, str],
+) -> tuple[list[SISGradeRecord], list[SISGradeRecord]]:
+    auto_records: list[SISGradeRecord] = []
+    quarantined_records: list[SISGradeRecord] = []
+    for record in records:
+        verdict = permission.evaluate(
+            sis_action(record, confidences.get(record.student_id, 0.0))
+        )
+        if verdict.decision == PermissionDecision.DENY:
+            logger.warning(
+                "harness denied sis write for out-of-manifest target %s",
+                record.student_id,
+            )
+        elif (
+            record.student_id in armor_flagged
+            or verdict.decision == PermissionDecision.QUARANTINE
+        ):
+            quarantined_records.append(record)
+        else:
+            auto_records.append(record)
+    return auto_records, quarantined_records
 
 
 def build_provenance(

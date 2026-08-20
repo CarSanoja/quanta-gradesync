@@ -21,14 +21,28 @@ class ConfidenceGate:
     def threshold(self) -> float:
         return self._threshold
 
-    def evaluate(self, result: GradingResult) -> GateVerdict:
+    def evaluate(
+        self, result: GradingResult, *, confidence_factor: float = 1.0
+    ) -> GateVerdict:
+        if not 0.0 < confidence_factor <= 1.0:
+            raise ValueError("confidence factor must be in (0, 1]")
         reasons: list[str] = []
         for criterion in result.criterion_scores:
-            if criterion.confidence < self._threshold:
-                reasons.append(
-                    f"{criterion.criterion_id} confidence {criterion.confidence:.3f} "
-                    f"below threshold {self._threshold:.2f}"
-                )
+            effective = criterion.confidence * confidence_factor
+            if effective < self._threshold:
+                reasons.append(self._confidence_reason(criterion, effective, confidence_factor))
             if not criterion.evidence:
                 reasons.append(f"{criterion.criterion_id} has no cited evidence")
         return GateVerdict(quarantined=bool(reasons), reasons=tuple(dict.fromkeys(reasons)))
+
+    def _confidence_reason(self, criterion, effective: float, factor: float) -> str:
+        if factor >= 1.0:
+            return (
+                f"{criterion.criterion_id} confidence {criterion.confidence:.3f} "
+                f"below threshold {self._threshold:.2f}"
+            )
+        return (
+            f"{criterion.criterion_id} confidence {criterion.confidence:.3f} x "
+            f"legibility factor {factor:.2f} = effective {effective:.3f} "
+            f"below threshold {self._threshold:.2f}"
+        )

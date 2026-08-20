@@ -1,6 +1,11 @@
 import logging
 from typing import Any
 
+from autocurricula.core.armor import (
+    InjectionDetector,
+    resolve_injection_detector,
+    screen_submission,
+)
 from autocurricula.core.harness import (
     PageTextProvider,
     SidecarTextProvider,
@@ -17,6 +22,7 @@ from autocurricula.core.resilience import (
 )
 from autocurricula.core.telemetry import Recorder, usage_scope
 from autocurricula.core.telemetry.tracer import SpanHandle
+from autocurricula.schemas.armor import ArmorVerdict
 from autocurricula.schemas.grading import GradingResult
 from autocurricula.schemas.telemetry import (
     ATTR_EVIDENCE_SPAN_MATCH,
@@ -46,6 +52,7 @@ class GradeGuard:
         model_id: str,
         recorder: Recorder,
         provider: PageTextProvider | None,
+        armor: InjectionDetector | None = None,
     ) -> None:
         self.job_id = job_id
         self.evaluator = FallbackEvaluator(
@@ -60,6 +67,8 @@ class GradeGuard:
         self.model_id = model_id
         self.recorder = recorder
         self.provider = provider
+        self.armor = armor
+        self.armor_verdicts: dict[str, ArmorVerdict] = {}
 
     async def grade(self, submission, rubric, retrieved) -> GradingResult | None:
         with self.recorder.span(
@@ -79,14 +88,25 @@ class GradeGuard:
             if result is None:
                 span.set("harness.isolated", True)
                 return None
+            if self.armor is not None:
+                await self._screen_armor(submission, span)
             if self.provider is not None:
                 result = self._enforce_faithfulness(submission, result, span)
             return result
 
+    async def _screen_armor(self, submission, span: SpanHandle) -> None:
+        with self.recorder.span(
+            "ArmorScreen", parent=span, stage="GRADE"
+        ) as armor_span:
+            verdict = await screen_submission(self.armor, submission)
+            armor_span.set("armor.injection_detected", verdict.injection_detected)
+            armor_span.set("armor.severity", verdict.severity.value)
+            self.armor_verdicts[submission.submission_id] = verdict
+
     async def _guarded(self, submission, rubric, retrieved, span: SpanHandle):
-        operation = lambda attempt: self.evaluator.grade(
-            submission, rubric, retrieved
-        )
+        def operation(attempt):
+            return self.evaluator.grade(submission, rubric, retrieved)
+
         try:
             if self.repair_agent is not None:
                 return await self.repair_agent.run(operation)
@@ -148,12 +168,15 @@ def build_grade_guard(
     recorder: Recorder | None,
     faithfulness_enabled: bool,
     batch: Any,
+    armor_detector: InjectionDetector | None = None,
+    armor_enabled: bool | None = None,
 ) -> GradeGuard:
     provider = (
         SidecarTextProvider(sidecar_texts_from_batch(batch))
         if faithfulness_enabled
         else None
     )
+    armor = resolve_injection_detector(armor_detector, armor_enabled, batch)
     return GradeGuard(
         job_id=job_id,
         evaluator=evaluator,
@@ -166,4 +189,5 @@ def build_grade_guard(
         model_id=model_id,
         recorder=recorder,
         provider=provider,
+        armor=armor,
     )

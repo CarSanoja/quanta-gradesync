@@ -60,6 +60,11 @@ class Settings(BaseSettings):
     objective_mae_max: float = Field(default=0.4, gt=0.0)
     objective_bias_abs_max: float = Field(default=0.1, gt=0.0)
 
+    armor_enabled: bool = True
+    legibility_enabled: bool = True
+    legibility_full_trust: float = Field(default=0.70, gt=0.0, le=1.0)
+    legibility_confidence_floor: float = Field(default=0.50, gt=0.0, le=1.0)
+
     model_fallback_latency_seconds: float = Field(default=90.0, gt=0.0)
     model_fallback_confidence_factor: float = Field(default=0.9, gt=0.0, le=1.0)
     dead_letter_max_attempts: int = Field(default=3, ge=1, le=10)
