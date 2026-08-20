@@ -11,11 +11,14 @@ const dom = {};
   "all-done", "all-done-note", "subject-input", "class-input", "assessment-input",
   "dropzone", "upload-log", "synced-list", "collision-veil", "collision-message",
   "collision-name-input", "collision-error", "collision-cancel", "collision-different",
-  "collision-replace", "access-veil", "access-form", "access-input", "access-error",
+  "collision-replace", "pages-veil", "pages-message", "pages-groups", "pages-separate",
+  "pages-combine", "access-veil", "access-form", "access-input", "access-error",
   "access-cancel", "toast",
 ].forEach((id) => {
   dom[id.replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = document.getElementById(id);
 });
+
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
 const fileInput = el("input", { type: "file", multiple: true, accept: ".jpg,.jpeg,.png,.pdf,.heic", hidden: true });
 document.body.append(fileInput);
@@ -23,6 +26,7 @@ document.body.append(fileInput);
 const state = { reviews: [], openId: null, imageUrl: null, uploads: [] };
 let toastTimer = null;
 let collisionResolver = null;
+let pagesResolver = null;
 
 function toast(message) {
   dom.toast.textContent = message;
@@ -97,15 +101,17 @@ function heroNote(count) {
 function renderCards() {
   clear(dom.reviewCards);
   state.reviews.forEach((review) => {
+    const isOpen = review.review_id === state.openId;
     dom.reviewCards.append(
       el("button", {
         type: "button",
-        class: `exam-card${review.review_id === state.openId ? " is-open" : ""}`,
+        class: `exam-card${isOpen ? " is-open" : ""}`,
+        "aria-expanded": isOpen ? "true" : "false",
         onclick: () => toggleReview(review.review_id),
       }, [
         el("span", { class: "student", text: review.student_name }),
-        el("p", { class: "context", text: `${prettySubject(review.subject)} · waiting ${timeAgo(review.waiting_since)}` }),
-        el("p", { class: "peek", text: review.reasons[0] }),
+        el("span", { class: "context", text: `${prettySubject(review.subject)} · waiting ${timeAgo(review.waiting_since)}` }),
+        el("span", { class: "peek", text: review.reasons[0] }),
       ])
     );
   });
@@ -158,6 +164,7 @@ function decisionSide(review) {
     el("h3", { text: "Feedback for the student" }),
     el("p", { class: "feedback", text: review.feedback }),
     el("div", { class: "decision-actions" }, [approve, sendBack]),
+    el("p", { class: "decision-hint", text: "Approve puts this grade in the gradebook. Send back records no grade, so you can grade this exam yourself." }),
   ]);
 }
 
@@ -173,7 +180,7 @@ async function renderDetail(review) {
     ]),
     el("div", { class: "detail-grid" }, [side, decisionSide(review)])
   );
-  dom.reviewDetail.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  dom.reviewDetail.scrollIntoView({ behavior: reducedMotion.matches ? "auto" : "smooth", block: "nearest" });
   if (!review.has_page) {
     clear(frame).append(el("div", { class: "scan-missing", text: "No scan is attached to this exam." }));
     return;
@@ -228,6 +235,8 @@ async function decide(review, action, buttons) {
 async function loadSummary() {
   const summary = await guard(() => getJson(SUMMARY_PATH));
   if (!summary) {
+    dom.heroNote.textContent = "The review queue couldn't load. Press Refresh to try again.";
+    dom.heroNote.hidden = false;
     return;
   }
   state.reviews = summary.waiting;
@@ -284,24 +293,107 @@ function composeLotCode() {
   return `${new Date().getFullYear()}_${parts.join("_")}`;
 }
 
+function fileStem(name) {
+  const dot = name.lastIndexOf(".");
+  return dot > 0 ? name.slice(0, dot) : name;
+}
+
+const PAGE_MARKER = /^(.+?)[\s._-]*(?:p|pg|page)[\s._-]*(\d{1,3})$/i;
+const COPY_MARKER = /^(.+?)\s*\((\d{1,3})\)$/;
+const BARE_NUMBER = /^(.+?)[\s._-]+(\d{1,3})$/;
+
+function pageSignal(stem) {
+  for (const [pattern, explicit] of [[PAGE_MARKER, true], [COPY_MARKER, false], [BARE_NUMBER, false]]) {
+    const match = stem.match(pattern);
+    if (match) {
+      const base = match[1].replace(/[\s._-]+$/, "");
+      if (base) {
+        return { base, explicit };
+      }
+    }
+  }
+  return null;
+}
+
+function detectPageGroups(names) {
+  const entries = names.map((name) => ({ name, stem: fileStem(name), signal: pageSignal(fileStem(name)) }));
+  const byBase = new Map();
+  entries.forEach((entry) => {
+    if (entry.signal) {
+      const key = entry.signal.base.toLowerCase();
+      byBase.set(key, byBase.get(key) || []);
+      byBase.get(key).push(entry);
+    }
+  });
+  entries.forEach((entry) => {
+    if (!entry.signal && byBase.has(entry.stem.toLowerCase())) {
+      byBase.get(entry.stem.toLowerCase()).push(entry);
+    }
+  });
+  const groups = [];
+  byBase.forEach((members) => {
+    if (members.length >= 2 || members.some((member) => member.signal.explicit)) {
+      groups.push(members.map((member) => member.name));
+    }
+  });
+  return groups;
+}
+
 function paintUploads() {
   clear(dom.uploadLog);
   state.uploads.slice().reverse().forEach((item) => {
+    const name = el("div", { class: "upload-name" }, [el("span", { class: "file", text: item.label })]);
+    if (item.student) {
+      name.append(el("span", { class: "as" }, ["appears in the gradebook as ", el("strong", { text: item.student })]));
+    } else if (item.note) {
+      name.append(el("span", { class: "as", text: item.note }));
+    }
     dom.uploadLog.append(el("li", { "data-tone": item.tone }, [
-      el("span", { text: item.label }),
+      name,
       el("span", { class: "status", text: item.status }),
     ]));
   });
 }
 
+function askPages(groups) {
+  clear(dom.pagesGroups);
+  groups.forEach((names) => {
+    dom.pagesGroups.append(el("li", {}, [
+      el("span", { class: "files", text: names.join("  +  ") }),
+      el("span", {
+        class: "becomes",
+        text: `would sync as ${names.map((name) => `“${prettyName(fileStem(name))}”`).join(", ")}`,
+      }),
+    ]));
+  });
+  const single = groups.length === 1 && groups[0].length === 1;
+  dom.pagesMessage.textContent = single
+    ? "This file name ends in a page number, so it looks like one page of a longer exam:"
+    : "These files differ only by a page number. Each file becomes its own student in the gradebook:";
+  dom.pagesVeil.hidden = false;
+  dom.pagesCombine.focus();
+  return new Promise((resolve) => { pagesResolver = resolve; });
+}
+
+function settlePages(action) {
+  if (pagesResolver) {
+    dom.pagesVeil.hidden = true;
+    pagesResolver(action);
+    pagesResolver = null;
+    dom.dropzone.focus({ preventScroll: true });
+  }
+}
+
 function askCollision(fileName) {
   dom.collisionMessage.textContent =
-    `There's already a scan saved for ${fileName.replace(/\.[^.]+$/, "")} in this assessment. ` +
+    `There's already a scan saved for ${fileStem(fileName)} in this assessment. ` +
     "You can replace it, or save this one under a different student.";
   dom.collisionNameInput.hidden = true;
   dom.collisionNameInput.value = "";
   dom.collisionError.hidden = true;
+  dom.collisionDifferent.textContent = "This is a different student";
   dom.collisionVeil.hidden = false;
+  dom.collisionCancel.focus();
   return new Promise((resolve) => { collisionResolver = resolve; });
 }
 
@@ -310,6 +402,7 @@ function settleCollision(result) {
     dom.collisionVeil.hidden = true;
     collisionResolver(result);
     collisionResolver = null;
+    dom.dropzone.focus({ preventScroll: true });
   }
 }
 
@@ -346,6 +439,9 @@ async function uploadOne(item, file, lotCode) {
       }
       mode = decision.action;
       newName = decision.name || "";
+      if (newName) {
+        item.student = prettyName(newName);
+      }
       continue;
     }
     item.status = result.body && result.body.detail ? String(result.body.detail) : "couldn't upload";
@@ -359,17 +455,30 @@ async function handleFiles(fileList) {
   if (!lotCode) {
     return;
   }
-  for (const file of Array.from(fileList)) {
+  const files = Array.from(fileList);
+  const heldBack = new Set();
+  const groups = detectPageGroups(files.map((file) => file.name));
+  if (groups.length) {
+    const action = await askPages(groups);
+    if (action === "combine") {
+      groups.flat().forEach((name) => heldBack.add(name));
+    }
+  }
+  for (const file of files) {
     const suffix = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
-    const item = { label: file.name, status: "sending…", tone: "" };
+    const item = { label: file.name, status: "sending…", tone: "", note: "", student: "" };
     state.uploads.push(item);
-    if (!ALLOWED_SUFFIXES.has(suffix)) {
+    if (heldBack.has(file.name)) {
+      item.status = "held back";
+      item.note = "Combine the pages into one PDF, then upload that single file.";
+    } else if (!ALLOWED_SUFFIXES.has(suffix)) {
       item.status = "not a photo or PDF";
       item.tone = "bad";
     } else if (file.size > MAX_UPLOAD_BYTES) {
       item.status = "over the 20 MB limit";
       item.tone = "bad";
     } else {
+      item.student = prettyName(fileStem(file.name));
       paintUploads();
       await uploadOne(item, file, lotCode);
     }
@@ -388,6 +497,7 @@ dom.collisionReplace.addEventListener("click", () => settleCollision({ action: "
 dom.collisionDifferent.addEventListener("click", () => {
   if (dom.collisionNameInput.hidden) {
     dom.collisionNameInput.hidden = false;
+    dom.collisionDifferent.textContent = "Save under this name";
     dom.collisionNameInput.focus();
     return;
   }
@@ -398,6 +508,48 @@ dom.collisionDifferent.addEventListener("click", () => {
     return;
   }
   settleCollision({ action: "rename", name });
+});
+
+dom.pagesCombine.addEventListener("click", () => settlePages("combine"));
+dom.pagesSeparate.addEventListener("click", () => settlePages("separate"));
+
+function activeVeil() {
+  return [dom.collisionVeil, dom.pagesVeil, dom.accessVeil].find((veil) => !veil.hidden) || null;
+}
+
+document.addEventListener("keydown", (event) => {
+  const veil = activeVeil();
+  if (!veil) {
+    return;
+  }
+  if (event.key === "Escape") {
+    event.preventDefault();
+    if (veil === dom.collisionVeil) {
+      settleCollision({ action: "cancel" });
+    } else if (veil === dom.pagesVeil) {
+      settlePages("combine");
+    } else {
+      dom.accessVeil.hidden = true;
+    }
+    return;
+  }
+  if (event.key === "Tab") {
+    const focusables = [...veil.querySelectorAll("button, input")]
+      .filter((node) => !node.hidden && !node.disabled);
+    if (!focusables.length) {
+      return;
+    }
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    const inside = veil.contains(document.activeElement);
+    if (event.shiftKey && (document.activeElement === first || !inside)) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && (document.activeElement === last || !inside)) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
 });
 
 dom.dropzone.addEventListener("click", () => fileInput.click());
