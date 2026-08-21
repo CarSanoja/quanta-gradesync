@@ -19,7 +19,12 @@ from autocurricula.core.orchestration.job_state import (
 from autocurricula.core.orchestration.stages_outcome import TermResolver, default_term
 from autocurricula.core.orchestration.verifier import DEFAULT_VERIFY_MAX_ITERATIONS
 from autocurricula.core.evolution.prompt_mutator import PromptVariant
-from autocurricula.core.harness import BatchAnomalyBreaker
+from autocurricula.core.fleet import (
+    FIRESTORE_CHECKPOINT,
+    ORCHESTRATOR_PRINCIPAL,
+    authorize_firestore_write,
+)
+from autocurricula.core.harness import BatchAnomalyBreaker, CapabilityLedger, capability_scope
 from autocurricula.core.resilience import DeadLetterStore, SchemaRepairAgent
 from autocurricula.core.review import DEFAULT_CONFIDENCE_THRESHOLD, ReviewStore, build_review_store
 from autocurricula.core.orchestration.stage_execution import execute_stage
@@ -99,11 +104,20 @@ class JobRunner:
         return list(self._pipeline)
 
     async def process(self, event: PubSubJobEvent) -> JobRecord:
+        with capability_scope() as ledger:
+            return await self._process(event, ledger)
+
+    async def _process(
+        self, event: PubSubJobEvent, ledger: CapabilityLedger
+    ) -> JobRecord:
         existing = await self._checkpoint_store.get(event.job_id)
         if existing is not None and existing.stage == JobStage.COMPLETED:
             return existing
         session = self._memory_manager.new_session(event.job_id)
         record = JobRecord(job_id=event.job_id, event=event)
+        authorize_firestore_write(
+            ORCHESTRATOR_PRINCIPAL, FIRESTORE_CHECKPOINT, event.job_id
+        )
         if existing is not None:
             await self._restore_session(session, existing)
         record.stage_statuses = dict(session.state.stage_statuses)
@@ -118,7 +132,7 @@ class JobRunner:
                 context = await execute_stage(step, context, recorder)
             except Exception as error:
                 record = await self._fail(record, session, step.name, error)
-                await self._audit(recorder, record)
+                await self._audit(recorder, record, ledger)
                 return record
             session.mark_stage(step.name, StageStatus.SUCCEEDED)
             self._advance(record, session, step.name)
@@ -129,10 +143,15 @@ class JobRunner:
         record.updated_at = utc_now()
         await self._checkpoint_store.save_state(event.job_id, session.state)
         await self._checkpoint_store.save(record)
-        await self._audit(recorder, record)
+        await self._audit(recorder, record, ledger)
         return record
 
-    async def _audit(self, recorder: Recorder, record: JobRecord) -> None:
+    async def _audit(
+        self,
+        recorder: Recorder,
+        record: JobRecord,
+        ledger: CapabilityLedger | None = None,
+    ) -> None:
         if self._audit_logger is None:
             return
         try:
@@ -144,6 +163,10 @@ class JobRunner:
                     "stage": record.stage.value,
                     "error": record.error,
                     "metrics": collect_metrics(recorder.spans).model_dump(),
+                    "capability_denials": [
+                        denial.model_dump(mode="json")
+                        for denial in (ledger.denials if ledger is not None else [])
+                    ],
                 },
             )
         except Exception as error:

@@ -29,7 +29,7 @@ class PermissionGate:
                         decision=decision,
                         tool=action.tool,
                         target=action.target,
-                        reasons=[_reason_for(decision, action)],
+                        reasons=[_reason_for(decision, action, rule)],
                     )
         return PermissionVerdict(
             decision=PermissionDecision.ALLOW,
@@ -38,7 +38,14 @@ class PermissionGate:
         )
 
 
-def _reason_for(decision: PermissionDecision, action: ToolAction) -> str:
+def _reason_for(
+    decision: PermissionDecision, action: ToolAction, rule: Rule | None = None
+) -> str:
+    explain = getattr(rule, "permission_reason", None)
+    if explain is not None:
+        reason = explain(action)
+        if reason:
+            return reason
     if decision == PermissionDecision.DENY:
         return f"target {action.target!r} is outside the allowed scope for {action.tool}"
     return (

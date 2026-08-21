@@ -13,3 +13,5 @@ class Provenance(FrozenStrictModel):
     evidence_hashes: list[str] = Field(default_factory=list)
     model_sha: SHA256Hex | None = None
     faithfulness_checked: bool | None = None
+    agent_id: str | None = None
+    writer_principal: str | None = None

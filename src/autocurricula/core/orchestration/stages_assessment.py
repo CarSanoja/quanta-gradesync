@@ -4,6 +4,12 @@ import logging
 from autocurricula.agents.curriculum_auditor import CurriculumAuditor
 from autocurricula.agents.evaluator import GradingEvaluator
 from autocurricula.core.armor import InjectionDetector, store_armor_report
+from autocurricula.core.fleet import (
+    CURRICULUM_AUDITOR_ID,
+    EXAM_FETCHER_PRINCIPAL,
+    authorize_gcs_read,
+    authorize_llm,
+)
 from autocurricula.core.memory.manager import MemoryManager
 from autocurricula.core.orchestration.catalog import JobCatalog
 from autocurricula.core.orchestration.context import (
@@ -48,6 +54,11 @@ def build_fetch_step(
 ) -> StageCallable:
     async def run(context: JobContext) -> JobContext:
         manifest = await catalog.load_manifest(context.event)
+        authorize_gcs_read(
+            EXAM_FETCHER_PRINCIPAL,
+            f"gs://{context.event.bucket}/{context.event.exam_batch_prefix}",
+            recorder=context.recorder,
+        )
         batch = await fetcher.fetch_batch(manifest.batch)
         context.complete(
             STAGE_FETCH,
@@ -150,6 +161,12 @@ def build_audit_step(
             for competency in standard.competencies
         )
         retrieved = await memory_manager.l2.search(query)
+        authorize_llm(
+            CURRICULUM_AUDITOR_ID,
+            context.job_id,
+            model_id=getattr(auditor, "model_id", ""),
+            recorder=context.recorder,
+        )
         audits = await asyncio.gather(
             *(
                 auditor.audit(result, standard, retrieved)

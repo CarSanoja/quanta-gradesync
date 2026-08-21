@@ -2,7 +2,14 @@ import logging
 from typing import Any
 
 from autocurricula.core.armor import InjectionDetector, screen_submission
+from autocurricula.core.fleet import (
+    ARMOR_SCREENER_ID,
+    GRADING_AGENT_ID,
+    annotate_span,
+    authorize_llm,
+)
 from autocurricula.core.harness import (
+    CapabilityDenied,
     PageTextProvider,
     enforce_result,
     verify_result,
@@ -82,8 +89,9 @@ class GradeGuard:
                 "student_id": submission.student_id,
             },
         ) as span:
+            annotate_span(span, GRADING_AGENT_ID)
             with usage_scope() as ledger:
-                result, detail = await self._guarded(submission, rubric, retrieved)
+                result, detail = await self._guarded(submission, rubric, retrieved, span)
             span.set(ATTR_GEN_AI_CALLS, ledger.calls)
             span.set(ATTR_GEN_AI_USAGE_INPUT_TOKENS, ledger.input_tokens)
             span.set(ATTR_GEN_AI_USAGE_OUTPUT_TOKENS, ledger.output_tokens)
@@ -112,17 +120,37 @@ class GradeGuard:
         with self.recorder.span(
             "ArmorScreen", parent=span, stage="GRADE"
         ) as armor_span:
+            annotate_span(armor_span, ARMOR_SCREENER_ID)
+            authorize_llm(
+                ARMOR_SCREENER_ID,
+                submission.submission_id,
+                model_id=getattr(self.armor, "model", ""),
+                recorder=self.recorder,
+                parent=armor_span,
+            )
             verdict = await screen_submission(self.armor, submission)
             armor_span.set("armor.injection_detected", verdict.injection_detected)
             armor_span.set("armor.severity", verdict.severity.value)
             self.armor_verdicts[submission.submission_id] = verdict
 
     async def _guarded(
-        self, submission, rubric, retrieved
+        self, submission, rubric, retrieved, span: SpanHandle | None = None
     ) -> tuple[GradingResult | None, str]:
         def operation(attempt):
             return self.evaluator.grade(submission, rubric, retrieved)
 
+        try:
+            authorize_llm(
+                GRADING_AGENT_ID,
+                submission.submission_id,
+                model_id=self.model_id,
+                recorder=self.recorder,
+                parent=span,
+            )
+        except CapabilityDenied as denial:
+            detail = f"{type(denial).__name__}: {denial}"
+            await self._dead_letter(submission, detail)
+            return None, detail
         try:
             if self.repair_agent is not None:
                 return await self.repair_agent.run(operation), ""

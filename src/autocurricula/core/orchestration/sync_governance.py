@@ -1,15 +1,24 @@
 import logging
 
 from autocurricula.core.evolution.prompt_mutator import PromptVariant
+from autocurricula.core.fleet import (
+    GRADING_AGENT_ID,
+    SIS_WRITER_PRINCIPAL,
+    get_authorizer,
+)
 from autocurricula.core.harness import (
     ActionRisk,
     PermissionDecision,
     Provenance,
     ToolAction,
     evidence_sha,
-    manifest_scope_gate,
     model_id_sha,
     prompt_version_sha,
+)
+from autocurricula.core.harness.permission_gate import (
+    PermissionGate,
+    confidence_rule,
+    scope_rule,
 )
 from autocurricula.core.review import ConfidenceGate
 from autocurricula.schemas.exam import ExamBatch
@@ -32,9 +41,15 @@ GovernancePartition = tuple[
 
 def build_sis_permission_gate(
     manifest_students: set[str], confidence_threshold: float
-):
-    return manifest_scope_gate(
-        manifest_students, SIS_WRITE_TOOL, "min_confidence", confidence_threshold
+) -> PermissionGate:
+    return PermissionGate(
+        [
+            get_authorizer().capability_rule(SIS_WRITER_PRINCIPAL),
+            scope_rule(SIS_WRITE_TOOL, manifest_students),
+            confidence_rule(
+                SIS_WRITE_TOOL, "min_confidence", confidence_threshold
+            ),
+        ]
     )
 
 
@@ -121,10 +136,11 @@ def partition_records(
 ) -> tuple[list[SISGradeRecord], list[SISGradeRecord]]:
     auto_records: list[SISGradeRecord] = []
     quarantined_records: list[SISGradeRecord] = []
+    authorizer = get_authorizer()
     for record in records:
-        verdict = permission.evaluate(
-            sis_action(record, confidences.get(record.student_id, 0.0))
-        )
+        action = sis_action(record, confidences.get(record.student_id, 0.0))
+        verdict = permission.evaluate(action)
+        authorizer.record(SIS_WRITER_PRINCIPAL, action, verdict)
         if verdict.decision == PermissionDecision.DENY:
             logger.warning(
                 "harness denied sis write for out-of-manifest target %s",
@@ -162,6 +178,8 @@ def build_provenance(
         evidence_hashes=[evidence_sha(span) for span in spans],
         model_sha=model_sha,
         faithfulness_checked=faithfulness_checked,
+        agent_id=GRADING_AGENT_ID,
+        writer_principal=SIS_WRITER_PRINCIPAL,
     )
 
 

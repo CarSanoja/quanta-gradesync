@@ -7,6 +7,10 @@ from typing import Any, Protocol
 import httpx
 
 from autocurricula.config import Settings
+from autocurricula.core.fleet.credentials import (
+    sis_writer_authorization,
+    sis_writer_firestore_client,
+)
 from autocurricula.schemas.common import utc_now
 from autocurricula.schemas.sis_sync import SISWriteRequest, SISWriteResult
 
@@ -33,6 +37,7 @@ class HttpSISConnector:
         settings: Settings,
         client: httpx.AsyncClient | None = None,
     ) -> None:
+        self._settings = settings
         self._url = f"{settings.sis_base_url.rstrip('/')}/grades"
         self._token = settings.sis_api_token
         self._client = client if client is not None else httpx.AsyncClient(
@@ -41,7 +46,10 @@ class HttpSISConnector:
         self._owns_client = client is None
 
     async def write_grades(self, request: SISWriteRequest) -> SISWriteResult:
-        headers = {"Authorization": f"Bearer {self._token}"}
+        authorization = await asyncio.to_thread(
+            sis_writer_authorization, self._settings, self._token
+        )
+        headers = {"Authorization": authorization}
         body = request.model_dump(mode="json")
         last_error = "sis write failed"
         for attempt in range(MAX_ATTEMPTS):
@@ -136,5 +144,7 @@ def build_sis_connector(settings: Settings) -> SISConnector:
             "sis_base_url is empty in gcp mode; grade writes go to the firestore "
             "sis ledger collection"
         )
-        return FirestoreSISConnector(settings=settings)
+        return FirestoreSISConnector(
+            settings=settings, client=sis_writer_firestore_client(settings)
+        )
     return HttpSISConnector(settings=settings)

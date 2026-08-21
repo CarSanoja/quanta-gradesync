@@ -50,6 +50,8 @@ class AppContainer:
     optimizers: list[MetaOptimizerAgent]
     catalog: JobCatalog
     review_service: ReviewService
+    rework_evaluator: GradingEvaluator | None = None
+    fallback_evaluator: GradingEvaluator | None = None
     batch_settler: BatchSettler | None = None
     in_flight: set[asyncio.Task[JobRecord]] = field(default_factory=set)
     claimed_jobs: set[str] = field(default_factory=set)
@@ -67,6 +69,8 @@ def build_container(settings: Settings | None = None) -> AppContainer:
     optimizers = build_optimizer_fleet(resolved, memory_manager=memory_manager)
     catalog = build_job_catalog(resolved)
     prompt_variant = _active_grading_variant(optimizers)
+    rework_evaluator = build_rework_evaluator(resolved)
+    fallback_evaluator = build_rework_evaluator(resolved)
     review_store: ReviewStore = build_review_store(resolved)
     review_service = ReviewService(
         store=review_store,
@@ -85,11 +89,11 @@ def build_container(settings: Settings | None = None) -> AppContainer:
         catalog=catalog,
         review_store=review_store,
         confidence_threshold=resolved.confidence_threshold,
-        rework_evaluator=build_rework_evaluator(resolved),
+        rework_evaluator=rework_evaluator,
         verify_max_iterations=resolved.verify_max_iterations,
         sis_breaker=BatchAnomalyBreaker(resolved.batch_anomaly_threshold),
         prompt_variant=prompt_variant,
-        fallback_evaluator=build_rework_evaluator(resolved),
+        fallback_evaluator=fallback_evaluator,
         fallback_latency_seconds=resolved.model_fallback_latency_seconds,
         fallback_confidence_factor=resolved.model_fallback_confidence_factor,
         repair_agent=SchemaRepairAgent(resolved.schema_repair_attempts),
@@ -114,6 +118,8 @@ def build_container(settings: Settings | None = None) -> AppContainer:
         optimizers=optimizers,
         catalog=catalog,
         review_service=review_service,
+        rework_evaluator=rework_evaluator,
+        fallback_evaluator=fallback_evaluator,
         batch_settler=build_batch_settler(resolved),
     )
 
