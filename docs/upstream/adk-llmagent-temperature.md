@@ -1,5 +1,10 @@
 # Filed upstream: https://github.com/google/adk-python/issues/6836
 
+**Status (2026-08-21):** confirmed by a maintainer; PR #6837 opened by a
+contributor and verified against this repro plus four edge cases (kwarg merge
+without clobbering an explicit config, directed errors for agent-owned fields,
+and no regression on genuine typos). Verification posted to the issue.
+
 **Title:** LlmAgent rejects `temperature=` with extra_forbidden — no discoverable path from the most common generation knob to the right field
 
 ## Summary

@@ -1,5 +1,9 @@
 # Filed upstream: https://github.com/googleapis/python-genai/issues/2889
 
+**Status (2026-08-21):** acknowledged by a maintainer, who is filing an internal
+bug. Follow-up posted with the silent-success detail and the list-shaped wire
+model workaround this project ships.
+
 **Title:** Vertex structured output silently returns empty dict-typed fields (additionalProperties) — model complies but the payload arrives stripped
 
 ## Summary
