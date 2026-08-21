@@ -24,15 +24,89 @@
     <p class="eyebrow">Ten minutes, then you're done</p>
     <h1 id="hero-title">Exams waiting for <span class="hl">your review</span></h1>
     <p class="hero-note" id="hero-note">Checking your queue&hellip;</p>
-    <div class="hero-actions" id="hero-actions" hidden>
-      <button class="primary" id="guided-start" type="button">Review one by one</button>
-      <span class="hero-actions-note" id="guided-note"></span>
+
+    <dl class="count-strip" id="count-strip" hidden>
+      <div class="count-figure">
+        <dt>waiting for you</dt>
+        <dd id="count-waiting">0</dd>
+      </div>
+      <div class="count-figure">
+        <dt>in the gradebook</dt>
+        <dd id="count-synced">0</dd>
+      </div>
+      <div class="count-figure">
+        <dt>still grading</dt>
+        <dd id="count-grading">0</dd>
+      </div>
+      <div class="count-figure">
+        <dt>time left</dt>
+        <dd id="count-time">&mdash;</dd>
+      </div>
+    </dl>
+
+    <div class="triage" id="triage" hidden>
+      <article class="triage-card" id="judgement-card" data-group="judgement"
+        aria-labelledby="judgement-title">
+        <header class="triage-head">
+          <div class="triage-headings">
+            <p class="triage-kicker">Group one</p>
+            <h2 class="triage-title" id="judgement-title">Needs your judgement</h2>
+            <p class="triage-count" id="judgement-count"></p>
+            <p class="triage-note" id="judgement-note"></p>
+          </div>
+          <div class="stack" id="judgement-stack" aria-hidden="true"></div>
+        </header>
+        <ul class="reason-breakdown" id="judgement-reasons"></ul>
+        <div class="triage-actions">
+          <button class="primary" id="judgement-start" type="button">Review one at a time</button>
+          <span class="triage-hint" id="judgement-hint"></span>
+        </div>
+        <label class="finder" id="judgement-finder" hidden>
+          <span>Find a student</span>
+          <input type="search" id="judgement-search" placeholder="Start typing a name"
+            autocomplete="off" spellcheck="false">
+        </label>
+        <ul class="queue-list" id="judgement-list"></ul>
+        <p class="queue-more" id="judgement-more" hidden></p>
+        <p class="triage-empty" id="judgement-empty" hidden></p>
+      </article>
+
+      <article class="triage-card" id="hold-card" data-group="batch-hold"
+        aria-labelledby="hold-title">
+        <header class="triage-head">
+          <div class="triage-headings">
+            <p class="triage-kicker">Group two</p>
+            <h2 class="triage-title" id="hold-title">Held only by the batch rule</h2>
+            <p class="triage-count" id="hold-count"></p>
+            <p class="triage-note" id="hold-note"></p>
+          </div>
+          <div class="stack" id="hold-stack" aria-hidden="true"></div>
+        </header>
+        <ul class="reason-breakdown" id="hold-reasons"></ul>
+        <div class="triage-actions">
+          <button class="primary" id="hold-release" type="button">Release all</button>
+          <span class="triage-hint" id="hold-hint"></span>
+        </div>
+        <label class="finder" id="hold-finder" hidden>
+          <span>Find a student</span>
+          <input type="search" id="hold-search" placeholder="Start typing a name"
+            autocomplete="off" spellcheck="false">
+        </label>
+        <ul class="queue-list" id="hold-list"></ul>
+        <p class="queue-more" id="hold-more" hidden></p>
+        <p class="triage-empty" id="hold-empty" hidden></p>
+      </article>
     </div>
-    <div class="card-row" id="review-cards"></div>
+
     <div class="guided" id="guided-panel" hidden>
       <div class="guided-head">
         <span class="guided-progress" id="guided-progress"></span>
-        <button class="quiet" id="guided-exit" type="button">Back to the list</button>
+        <div class="guided-tools">
+          <span class="shortcut-hint" id="guided-shortcuts">
+            <kbd>A</kbd> approve &middot; <kbd>S</kbd> I'll grade it myself
+          </span>
+          <button class="quiet" id="guided-exit" type="button">Back to the triage</button>
+        </div>
       </div>
       <p class="guided-flash" id="guided-flash" hidden></p>
       <div class="guided-body" id="guided-body"></div>
@@ -177,6 +251,24 @@
       <button type="submit" class="primary">Open my review</button>
     </div>
   </form>
+</div>
+
+<div class="veil" id="release-veil" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="release-title">
+    <h3 id="release-title">Release these grades?</h3>
+    <p id="release-message"></p>
+    <ul class="release-facts">
+      <li>Every grade keeps the quote from that student's own page, exactly as it was cited.</li>
+      <li>Each one is written to the gradebook on its own, under your name, one entry per student.</li>
+      <li>You can still change any single grade afterwards.</li>
+      <li>Exams that need your judgement are not part of this &mdash; they stay in group one.</li>
+    </ul>
+    <p class="sheet-error" id="release-error" hidden></p>
+    <div class="sheet-actions">
+      <button type="button" class="quiet" id="release-cancel">Not yet</button>
+      <button type="button" class="primary" id="release-confirm">Release them</button>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast" role="status" hidden></div>

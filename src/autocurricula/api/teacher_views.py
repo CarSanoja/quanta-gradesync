@@ -2,44 +2,27 @@ from pydantic import Field
 
 from autocurricula.api.dependencies import AppContainer
 from autocurricula.api.job_views import as_model
+from autocurricula.api.teacher_feedback import TeacherFeedbackView, build_feedback_view
+from autocurricula.api.teacher_reasons import (
+    BATCH_HELD,
+    BLURRY_SCAN,
+    COULD_NOT_GRADE,
+    FALLBACK_REASON,
+    INJECTION_FOUND,
+    LATE_SCAN,
+    NO_QUOTE,
+    NOT_SURE,
+    REASON_TRANSLATIONS,
+    reason_key,
+    translate_reason,
+    translate_reasons,
+)
 from autocurricula.core.memory.session_memory import SessionState
 from autocurricula.core.orchestration.context import STAGE_FETCH, STAGE_GRADE, FetchOutputs
+from autocurricula.core.review.triage import judgement_reasons, triage_group
 from autocurricula.schemas.common import StrictBaseModel, TzAwareDatetime
-from autocurricula.schemas.grading import CriterionScore, GradingBatchResult
+from autocurricula.schemas.grading import CriterionScore, GradingBatchResult, GradingResult
 from autocurricula.schemas.review import ReviewItem
-
-BATCH_HELD = "This whole batch was held for a human look as a precaution."
-INJECTION_FOUND = (
-    "This page contains written instructions addressed to the grader — review carefully."
-)
-BLURRY_SCAN = "This scan is blurry — please confirm the grade yourself."
-NO_QUOTE = "The grade doesn't quote anything from the page — please double-check it."
-NOT_SURE = "The grading wasn't sure about this one — please confirm it yourself."
-COULD_NOT_GRADE = "This exam could not be graded — it needs manual grading."
-LATE_SCAN = "This scan arrived after grading started — it has not been graded."
-FALLBACK_REASON = "This exam is waiting for your decision before the grade goes out."
-
-REASON_TRANSLATIONS: tuple[tuple[str, str], ...] = (
-    ("batch anomaly", BATCH_HELD),
-    ("prompt injection", INJECTION_FOUND),
-    ("legibility", BLURRY_SCAN),
-    ("could not be graded", COULD_NOT_GRADE),
-    ("arrived after grading started", LATE_SCAN),
-    ("no cited evidence", NO_QUOTE),
-    ("below threshold", NOT_SURE),
-)
-
-
-def translate_reason(reason: str) -> str:
-    lowered = reason.lower()
-    for needle, message in REASON_TRANSLATIONS:
-        if needle in lowered:
-            return message
-    return FALLBACK_REASON
-
-
-def translate_reasons(reasons: list[str]) -> list[str]:
-    return list(dict.fromkeys(translate_reason(reason) for reason in reasons))
 
 
 def display_name(student_id: str) -> str:
@@ -69,31 +52,19 @@ class TeacherReviewView(StrictBaseModel):
     student_id: str
     student_name: str
     subject: str
+    job_id: str
+    group: str
+    reason_key: str
+    primary_reason: str
     waiting_since: TzAwareDatetime
     reasons: list[str] = Field(min_length=1)
     evidence: list[TeacherEvidenceView] = Field(default_factory=list)
     score_text: str
     percentage: float
     feedback: str
+    student_feedback: TeacherFeedbackView | None = None
     criteria: list[TeacherCriterionView] = Field(default_factory=list)
     has_page: bool
-
-
-class TeacherBatchProgress(StrictBaseModel):
-    assessment: str
-    received: int = Field(ge=0)
-    in_gradebook: int = Field(ge=0)
-    waiting_for_you: int = Field(ge=0)
-    still_grading: int = Field(ge=0)
-    could_not_grade: int = Field(ge=0)
-    headline: str
-    settled: bool
-
-
-class TeacherSummary(StrictBaseModel):
-    waiting: list[TeacherReviewView] = Field(default_factory=list)
-    waiting_count: int = Field(ge=0)
-    batch: TeacherBatchProgress | None = None
 
 
 def _criterion_title(criterion_id: str, description: str | None) -> str:
@@ -101,19 +72,23 @@ def _criterion_title(criterion_id: str, description: str | None) -> str:
     return plain[:1].upper() + plain[1:] if plain else criterion_id
 
 
-def _score_for(state: SessionState | None, item: ReviewItem) -> list[CriterionScore]:
+def graded_result(state: SessionState | None, item: ReviewItem) -> GradingResult | None:
     if state is None:
-        return []
+        return None
     fetch = as_model(state.stage_results.get(STAGE_FETCH), FetchOutputs)
     grades = as_model(state.stage_results.get(STAGE_GRADE), GradingBatchResult)
     if grades is None:
-        return []
+        return None
     submissions = fetch.batch.submissions if fetch is not None else []
     target = next(
         (entry.submission_id for entry in submissions if entry.student_id == item.student_id),
         item.student_id,
     )
-    scored = next((entry for entry in grades.results if entry.submission_id == target), None)
+    return next((entry for entry in grades.results if entry.submission_id == target), None)
+
+
+def _score_for(state: SessionState | None, item: ReviewItem) -> list[CriterionScore]:
+    scored = graded_result(state, item)
     return list(scored.criterion_scores) if scored is not None else []
 
 
@@ -144,17 +119,42 @@ def plain_criteria(state: SessionState | None, item: ReviewItem) -> list[Teacher
     return views
 
 
-async def build_review_view(container: AppContainer, item: ReviewItem) -> TeacherReviewView:
+def _primary_reason(item: ReviewItem) -> str:
+    own = judgement_reasons(item)
+    return own[0] if own else item.reasons[0]
+
+
+async def load_state(
+    container: AppContainer, job_id: str, cache: dict[str, SessionState | None] | None
+) -> SessionState | None:
+    if cache is not None and job_id in cache:
+        return cache[job_id]
     try:
-        state = await container.checkpoint_store.load_state(item.job_id)
+        state = await container.checkpoint_store.load_state(job_id)
     except Exception:
         state = None
+    if cache is not None:
+        cache[job_id] = state
+    return state
+
+
+async def build_review_view(
+    container: AppContainer,
+    item: ReviewItem,
+    cache: dict[str, SessionState | None] | None = None,
+) -> TeacherReviewView:
+    state = await load_state(container, item.job_id, cache)
     record = item.proposed_record
+    primary = _primary_reason(item)
     return TeacherReviewView(
         review_id=item.review_id,
         student_id=item.student_id,
         student_name=display_name(item.student_id),
         subject=item.subject,
+        job_id=item.job_id,
+        group=triage_group(item),
+        reason_key=reason_key(primary),
+        primary_reason=translate_reason(primary),
         waiting_since=item.created_at,
         reasons=translate_reasons(item.reasons),
         evidence=[
@@ -164,6 +164,31 @@ async def build_review_view(container: AppContainer, item: ReviewItem) -> Teache
         score_text=f"{record.score:g} points",
         percentage=record.percentage,
         feedback=record.feedback,
+        student_feedback=build_feedback_view(record, graded_result(state, item)),
         criteria=plain_criteria(state, item),
         has_page=bool(item.document_paths),
     )
+
+
+__all__ = [
+    "BATCH_HELD",
+    "BLURRY_SCAN",
+    "COULD_NOT_GRADE",
+    "FALLBACK_REASON",
+    "INJECTION_FOUND",
+    "LATE_SCAN",
+    "NOT_SURE",
+    "NO_QUOTE",
+    "REASON_TRANSLATIONS",
+    "TeacherCriterionView",
+    "TeacherEvidenceView",
+    "TeacherReviewView",
+    "build_review_view",
+    "display_name",
+    "graded_result",
+    "plain_criteria",
+    "points_text",
+    "reason_key",
+    "translate_reason",
+    "translate_reasons",
+]

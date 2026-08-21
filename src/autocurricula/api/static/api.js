@@ -1,10 +1,11 @@
 const TOKEN_KEY = "gradesync.console.token";
 
 export class ApiError extends Error {
-  constructor(status, detail) {
+  constructor(status, detail, body) {
     super(detail || `request failed with status ${status}`);
     this.status = status;
     this.detail = detail;
+    this.body = body === undefined ? null : body;
   }
 }
 
@@ -20,16 +21,15 @@ export function clearToken() {
   sessionStorage.removeItem(TOKEN_KEY);
 }
 
-async function detailOf(response) {
+async function failureOf(response) {
+  let body = null;
   try {
-    const body = await response.json();
-    if (body && typeof body.detail === "string") {
-      return body.detail;
-    }
+    body = await response.json();
   } catch (error) {
-    return response.statusText;
+    body = null;
   }
-  return response.statusText;
+  const detail = body && typeof body.detail === "string" ? body.detail : response.statusText;
+  return new ApiError(response.status, detail, body);
 }
 
 async function request(path, options = {}) {
@@ -40,7 +40,7 @@ async function request(path, options = {}) {
   }
   const response = await fetch(path, { ...options, headers });
   if (!response.ok) {
-    throw new ApiError(response.status, await detailOf(response));
+    throw await failureOf(response);
   }
   return response;
 }
@@ -50,8 +50,13 @@ export async function getJson(path) {
   return response.json();
 }
 
-export async function postJson(path) {
-  const response = await request(path, { method: "POST" });
+export async function postJson(path, body) {
+  const options = { method: "POST" };
+  if (body !== undefined) {
+    options.headers = { "Content-Type": "application/json" };
+    options.body = JSON.stringify(body);
+  }
+  const response = await request(path, options);
   return response.json();
 }
 
@@ -87,6 +92,7 @@ export const endpoints = {
   pending: () => "/review/pending",
   approve: (reviewId) => `/review/${encodeURIComponent(reviewId)}/approve`,
   dismiss: (reviewId) => `/review/${encodeURIComponent(reviewId)}/dismiss`,
+  bulkApprove: () => "/review/bulk-approve",
   pageImage: (reviewId, index) =>
     `/review/${encodeURIComponent(reviewId)}/page-image?index=${index}`,
   optimizer: () => "/optimizer/report",

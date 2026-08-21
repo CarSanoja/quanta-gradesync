@@ -1,28 +1,53 @@
-import { ApiError, endpoints, getJson, getObjectUrl, getToken, postJson, setToken } from "/console/assets/api.js";
+import { ApiError, endpoints, getJson, getToken, postJson, setToken } from "/console/assets/api.js";
 import { clear, el } from "/console/assets/render.js";
 import { prettyName, setupUploads, showProgress, veils, escapeVeil } from "/teacher/assets/teacher-upload.js";
+import { detailButtons, prettySubject, renderDetail, timeAgo } from "/teacher/assets/teacher-detail.js";
+import { releaseLabel, releaseMessage, renderGroup } from "/teacher/assets/teacher-triage.js";
 
 const SUMMARY_PATH = "/teacher/summary";
 const POLL_MS = 6000;
 const MAX_POLLS = 40;
+const EM_DASH = "—";
 
 const dom = {};
 [
-  "refresh-button", "access-button", "hero-note", "hero-actions", "guided-start", "guided-note",
-  "review-section", "review-cards", "review-detail", "guided-panel", "guided-progress",
-  "guided-flash", "guided-exit", "guided-body", "all-done", "all-done-note", "synced-tools",
-  "synced-search", "synced-count", "synced-list", "access-veil", "access-form", "access-input",
-  "access-error", "access-cancel", "toast",
+  "refresh-button", "access-button", "hero-note", "count-strip", "count-waiting", "count-synced",
+  "count-grading", "count-time", "triage", "judgement-card", "judgement-count", "judgement-note",
+  "judgement-stack", "judgement-reasons", "judgement-start", "judgement-hint", "judgement-finder",
+  "judgement-search", "judgement-list", "judgement-more", "judgement-empty", "hold-card",
+  "hold-count", "hold-note", "hold-stack", "hold-reasons", "hold-release", "hold-hint",
+  "hold-finder", "hold-search", "hold-list", "hold-more", "hold-empty", "review-section",
+  "review-detail", "guided-panel", "guided-progress", "guided-flash", "guided-exit", "guided-body",
+  "all-done", "all-done-note", "synced-tools", "synced-search", "synced-count", "synced-list",
+  "access-veil", "access-form", "access-input", "access-error", "access-cancel", "release-veil",
+  "release-title", "release-message", "release-error", "release-cancel", "release-confirm", "toast",
 ].forEach((id) => {
   dom[id.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())] = document.getElementById(id);
 });
 
-const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+const groups = {
+  judgement: {
+    card: dom.judgementCard, count: dom.judgementCount, note: dom.judgementNote,
+    stack: dom.judgementStack, reasons: dom.judgementReasons, action: dom.judgementStart,
+    hint: dom.judgementHint, finder: dom.judgementFinder, search: dom.judgementSearch,
+    list: dom.judgementList, more: dom.judgementMore, empty: dom.judgementEmpty,
+  },
+  batch_hold: {
+    card: dom.holdCard, count: dom.holdCount, note: dom.holdNote, stack: dom.holdStack,
+    reasons: dom.holdReasons, action: dom.holdRelease, hint: dom.holdHint,
+    finder: dom.holdFinder, search: dom.holdSearch, list: dom.holdList, more: dom.holdMore,
+    empty: dom.holdEmpty,
+  },
+};
 
-const state = { reviews: [], synced: [], openId: null, imageUrl: null };
-const guided = { active: false, queue: [], done: 0, total: 0, approved: 0, sentBack: 0, flash: "" };
-const watch = { lotCode: "", timer: null, polls: 0 };
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+const scrollMode = () => (reducedMotion.matches ? "auto" : "smooth");
+
+const state = { summary: null, byId: new Map(), synced: [], openId: null, imageUrl: null };
+const guided = { active: false, group: "judgement", queue: [], done: 0, total: 0, approved: 0, sentBack: 0, flash: "" };
+const watch = { lotCode: new URLSearchParams(window.location.search).get("batch") || "", timer: null, polls: 0 };
 let toastTimer = null;
+let releasing = false;
 
 function toast(message) {
   dom.toast.textContent = message;
@@ -52,27 +77,6 @@ async function guard(action) {
   }
 }
 
-function prettySubject(subject) {
-  const plain = String(subject).replace(/[-_]+/g, " ");
-  return plain ? plain[0].toUpperCase() + plain.slice(1) : subject;
-}
-
-function timeAgo(value) {
-  const then = new Date(value);
-  if (Number.isNaN(then.getTime())) {
-    return "";
-  }
-  const minutes = Math.round((Date.now() - then.getTime()) / 60000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes} min ago`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return hours === 1 ? "an hour ago" : `${hours} hours ago`;
-  const days = Math.round(hours / 24);
-  if (days === 1) return "yesterday";
-  if (days < 7) return `${days} days ago`;
-  return then.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}
-
 function releaseImage() {
   if (state.imageUrl) {
     URL.revokeObjectURL(state.imageUrl);
@@ -80,109 +84,91 @@ function releaseImage() {
   }
 }
 
-function heroNote(count) {
-  if (!count) return "";
-  const lead = count === 1 ? "One exam needs a quick human look" : `${count} exams need a quick human look`;
-  return `${lead} before the grades go out. Everything else is already in the gradebook.`;
-}
-
-function renderCards() {
-  clear(dom.reviewCards);
-  state.reviews.forEach((review) => {
-    const isOpen = review.review_id === state.openId;
-    dom.reviewCards.append(
-      el("button", {
-        type: "button",
-        class: `exam-card${isOpen ? " is-open" : ""}`,
-        "aria-expanded": isOpen ? "true" : "false",
-        onclick: () => toggleReview(review.review_id),
-      }, [
-        el("span", { class: "student", text: review.student_name }),
-        el("span", { class: "context", text: `${prettySubject(review.subject)} · waiting ${timeAgo(review.waiting_since)}` }),
-        el("span", { class: "peek", text: review.reasons[0] }),
-      ])
-    );
-  });
-}
-
-function scanSide(review) {
-  const frame = el("div", { class: "scan-frame" }, [
-    el("div", { class: "scan-missing", text: "Loading the scanned page…" }),
-  ]);
-  const flags = el("ul", { class: "evidence-stack" }, review.evidence.map((span) =>
-    el("li", { class: "evidence-flag" }, [
-      el("span", { class: "page-tab", text: `Page ${span.page}` }),
-      el("q", { text: span.quote }),
-      el("span", { class: "note", text: span.note }),
-    ])
-  ));
-  const side = el("div", { class: "scan-side" }, [
-    frame,
-    review.evidence.length ? flags : null,
-    el("p", { class: "scan-caption", text: "The scanned page, exactly as it was uploaded. Quotes below are the grader's evidence." }),
-  ]);
-  return { side, frame };
-}
-
-function decisionSide(review) {
-  const grades = review.criteria.length
-    ? el("ul", { class: "grade-lines" }, review.criteria.map((criterion) =>
-        el("li", {}, [
-          el("div", { class: "grade-line-top" }, [
-            el("span", { class: "title", text: criterion.title }),
-            el("span", { class: "points", text: criterion.score_text }),
-          ]),
-          el("p", { class: "comment", text: criterion.comment }),
-        ])
-      ))
-    : el("p", { class: "feedback", text: "The grade breakdown isn't available for this exam." });
-  const approve = el("button", { class: "primary", type: "button", text: "Approve grade" });
-  const sendBack = el("button", { class: "send-back", type: "button", text: "Send back" });
-  approve.addEventListener("click", () => decide(review, "approve", [approve, sendBack]));
-  sendBack.addEventListener("click", () => decide(review, "dismiss", [approve, sendBack]));
-  return el("div", { class: "decision-side" }, [
-    el("h3", { text: "Why it needs you" }),
-    el("ul", { class: "reason-list" }, review.reasons.map((reason) => el("li", { text: reason }))),
-    el("h3", { text: "The proposed grade" }),
-    grades,
-    el("div", { class: "grade-total" }, [
-      el("span", { class: "points", text: review.score_text }),
-      el("span", { class: "percent", text: `${Math.round(review.percentage)}%` }),
-    ]),
-    el("h3", { text: "Feedback for the student" }),
-    el("p", { class: "feedback", text: review.feedback }),
-    el("div", { class: "decision-actions" }, [approve, sendBack]),
-    el("p", { class: "decision-hint", text: "Approve puts this grade in the gradebook. Send back records no grade, so you can grade this exam yourself." }),
-  ]);
-}
-
-async function renderDetail(review, host) {
-  releaseImage();
-  clear(host);
-  host.hidden = false;
-  const { side, frame } = scanSide(review);
-  host.append(
-    el("div", { class: "detail-head" }, [
-      el("h2", { text: review.student_name }),
-      el("span", { class: "context", text: `${prettySubject(review.subject)} · waiting ${timeAgo(review.waiting_since)}` }),
-    ]),
-    el("div", { class: "detail-grid" }, [side, decisionSide(review)])
-  );
-  if (!guided.active) {
-    host.scrollIntoView({ behavior: reducedMotion.matches ? "auto" : "smooth", block: "nearest" });
+function group(key) {
+  const summary = state.summary;
+  if (!summary) {
+    return { key, count: 0, items: [], reasons: [], note: "", empty_note: "" };
   }
-  if (!review.has_page) {
-    clear(frame).append(el("div", { class: "scan-missing", text: "No scan is attached to this exam." }));
+  return key === "judgement" ? summary.judgement : summary.batch_hold;
+}
+
+function heroNote(summary) {
+  const total = summary.waiting_count;
+  if (!total) return "";
+  const judged = summary.judgement.count;
+  const held = summary.batch_hold.count;
+  if (judged && held) {
+    return `${total} exams are on hold. ${judged} need your judgement one by one; the other `
+      + `${held} are held only by the batch rule and go out together.`;
+  }
+  if (judged) {
+    return judged === 1
+      ? "One exam needs your judgement before its grade goes out."
+      : `${judged} exams need your judgement before their grades go out.`;
+  }
+  return held === 1
+    ? "One exam is held only by the batch rule — nothing is wrong with it."
+    : `${held} exams are held only by the batch rule — nothing is wrong with them.`;
+}
+
+function formatMinutes(minutes) {
+  if (minutes === null || minutes === undefined) return EM_DASH;
+  if (minutes <= 0) return "done";
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest ? `${hours} h ${rest} min` : `${hours} h`;
+}
+
+function renderCountStrip() {
+  const summary = state.summary;
+  if (!summary) {
+    dom.countStrip.hidden = true;
     return;
   }
-  try {
-    state.imageUrl = await getObjectUrl(endpoints.pageImage(review.review_id, 0));
-    if (state.openId === review.review_id) {
-      clear(frame).append(el("img", { src: state.imageUrl, alt: `Scanned exam page from ${review.student_name}` }));
-    }
-  } catch (error) {
-    clear(frame).append(el("div", { class: "scan-missing", text: "The scan couldn't be loaded right now." }));
+  const batch = summary.batch;
+  dom.countWaiting.textContent = String(summary.waiting_count);
+  dom.countSynced.textContent = String(batch ? batch.in_gradebook : state.synced.length);
+  dom.countGrading.textContent = batch ? String(batch.still_grading) : EM_DASH;
+  dom.countTime.textContent = batch ? formatMinutes(batch.minutes_left) : EM_DASH;
+  dom.countStrip.hidden = false;
+}
+
+function handlers() {
+  return { onOpen: toggleReview, isOpen: (id) => state.openId === id };
+}
+
+function renderTriage() {
+  const summary = state.summary;
+  if (!summary) {
+    return;
   }
+  const busy = guided.active;
+  dom.triage.hidden = busy || summary.waiting_count === 0;
+  dom.allDone.hidden = busy || summary.waiting_count > 0;
+  dom.heroNote.textContent = heroNote(summary);
+  dom.heroNote.hidden = !summary.waiting_count;
+  if (dom.triage.hidden) {
+    return;
+  }
+  const judged = group("judgement");
+  const held = group("batch_hold");
+  dom.judgementHint.textContent = judged.count > 1
+    ? `We walk you through the ${judged.count} one at a time — page, quote, proposed grade.`
+    : "The page, the quoted line and the proposed grade, side by side.";
+  dom.holdRelease.textContent = releaseLabel(held.count);
+  dom.holdHint.textContent = "One decision, one confirmation. Nothing from the other group can ride along.";
+  renderGroup(groups.judgement, judged, dom.judgementSearch.value, handlers());
+  renderGroup(groups.batch_hold, held, dom.holdSearch.value, handlers());
+}
+
+async function openDetail(review, host, scroll) {
+  releaseImage();
+  state.imageUrl = await renderDetail(review, host, {
+    onDecide: decide,
+    isOpen: (id) => state.openId === id,
+    scroll,
+  });
 }
 
 function closeDetail() {
@@ -190,7 +176,7 @@ function closeDetail() {
   state.openId = null;
   dom.reviewDetail.hidden = true;
   clear(dom.reviewDetail);
-  renderCards();
+  renderTriage();
 }
 
 async function toggleReview(reviewId) {
@@ -198,26 +184,30 @@ async function toggleReview(reviewId) {
     closeDetail();
     return;
   }
-  const review = state.reviews.find((candidate) => candidate.review_id === reviewId);
+  const review = state.byId.get(reviewId);
   if (!review) {
     return;
   }
   state.openId = reviewId;
-  renderCards();
-  await renderDetail(review, dom.reviewDetail);
+  renderTriage();
+  await openDetail(review, dom.reviewDetail, scrollMode());
+}
+
+function groupItems(key) {
+  return group(key).items;
 }
 
 function nextGuidedReview() {
-  const byId = new Map(state.reviews.map((review) => [review.review_id, review]));
-  const queued = guided.queue.find((id) => byId.has(id));
+  const available = new Map(groupItems(guided.group).map((item) => [item.review_id, item]));
+  const queued = guided.queue.find((id) => available.has(id));
   if (queued) {
-    return byId.get(queued);
+    return available.get(queued);
   }
-  const extra = state.reviews.filter((review) => !guided.queue.includes(review.review_id));
+  const extra = [...available.values()].filter((item) => !guided.queue.includes(item.review_id));
   if (!extra.length) {
     return null;
   }
-  extra.forEach((review) => guided.queue.push(review.review_id));
+  extra.forEach((item) => guided.queue.push(item.review_id));
   guided.total = guided.queue.length;
   return extra[0];
 }
@@ -236,23 +226,22 @@ function guidedDone() {
     }),
     el("p", {
       text: clean
-        ? "Nothing else is waiting for you."
+        ? "Nothing else is waiting for you here."
         : `${guided.approved} went to the gradebook, ${guided.sentBack} came back to you to grade by hand.`,
     }),
-    el("button", { class: "quiet", type: "button", text: "Back to the list", onclick: exitGuided }),
+    el("button", { class: "quiet", type: "button", text: "Back to the triage", onclick: exitGuided }),
   ]));
 }
 
 function guidedStale() {
-  return !dom.guidedBody.childElementCount
-    || !state.reviews.some((review) => review.review_id === state.openId);
+  return !dom.guidedBody.childElementCount || !state.byId.has(state.openId);
 }
 
 async function renderGuided() {
   dom.guidedPanel.hidden = false;
-  dom.reviewCards.hidden = true;
-  dom.heroActions.hidden = true;
+  dom.triage.hidden = true;
   dom.reviewDetail.hidden = true;
+  dom.allDone.hidden = true;
   const review = nextGuidedReview();
   dom.guidedFlash.textContent = guided.flash;
   dom.guidedFlash.hidden = !guided.flash;
@@ -264,21 +253,29 @@ async function renderGuided() {
   }
   state.openId = review.review_id;
   dom.guidedProgress.textContent = `Exam ${Math.min(guided.done + 1, guided.total)} of ${guided.total}`;
-  await renderDetail(review, dom.guidedBody);
+  await openDetail(review, dom.guidedBody, null);
 }
 
-function startGuided() {
+function startGuided(key) {
+  const items = groupItems(key);
+  if (!items.length) {
+    return;
+  }
   Object.assign(guided, {
     active: true,
-    queue: state.reviews.map((review) => review.review_id),
-    total: state.reviews.length,
+    group: key,
+    queue: items.map((item) => item.review_id),
+    total: items.length,
     done: 0,
     approved: 0,
     sentBack: 0,
     flash: "",
   });
-  closeDetail();
-  dom.guidedPanel.scrollIntoView({ behavior: reducedMotion.matches ? "auto" : "smooth", block: "start" });
+  releaseImage();
+  state.openId = null;
+  dom.reviewDetail.hidden = true;
+  clear(dom.reviewDetail);
+  dom.guidedPanel.scrollIntoView({ behavior: scrollMode(), block: "start" });
   renderGuided();
 }
 
@@ -289,7 +286,7 @@ function exitGuided() {
   state.openId = null;
   dom.guidedPanel.hidden = true;
   clear(dom.guidedBody);
-  renderQueue();
+  renderTriage();
 }
 
 async function decide(review, action, buttons) {
@@ -302,7 +299,7 @@ async function decide(review, action, buttons) {
   }
   const message = action === "approve"
     ? `${review.student_name}'s grade is approved — it's in the gradebook.`
-    : `${review.student_name}'s exam was sent back — no grade was recorded.`;
+    : `${review.student_name}'s exam came back to you — no grade was recorded.`;
   toast(message);
   if (guided.active) {
     guided.done += 1;
@@ -316,17 +313,71 @@ async function decide(review, action, buttons) {
   await refreshAll();
 }
 
-function renderQueue() {
-  const count = state.reviews.length;
-  dom.heroNote.textContent = heroNote(count);
-  dom.heroNote.hidden = !count;
-  dom.allDone.hidden = Boolean(count) || guided.active;
-  dom.reviewCards.hidden = !count || guided.active;
-  dom.heroActions.hidden = count < 2 || guided.active;
-  dom.guidedNote.textContent = count > 1
-    ? `We walk you through the ${count} exams one at a time, or pick one from the list below.`
-    : "";
-  renderCards();
+function openReleaseSheet() {
+  const held = group("batch_hold");
+  if (!held.count) {
+    return;
+  }
+  dom.releaseTitle.textContent = held.count === 1
+    ? "Release this grade to the gradebook?"
+    : `Release ${held.count} grades to the gradebook?`;
+  dom.releaseMessage.textContent = releaseMessage(held.count);
+  dom.releaseConfirm.textContent = releaseLabel(held.count);
+  dom.releaseError.hidden = true;
+  dom.releaseError.textContent = "";
+  dom.releaseVeil.hidden = false;
+  dom.releaseConfirm.focus();
+}
+
+function closeReleaseSheet() {
+  dom.releaseVeil.hidden = true;
+}
+
+function refusalNote(error) {
+  const refused = error.body && Array.isArray(error.body.refused) ? error.body.refused : [];
+  if (!refused.length) {
+    return error.message;
+  }
+  const names = refused.map((entry) => prettyName(entry.student_id || entry.review_id));
+  return `Nothing was released. ${names.join(", ")} need your judgement — review them one at a time.`;
+}
+
+async function confirmRelease() {
+  if (releasing) {
+    return;
+  }
+  const held = group("batch_hold");
+  const ids = held.items.map((item) => item.review_id);
+  if (!ids.length) {
+    closeReleaseSheet();
+    return;
+  }
+  releasing = true;
+  dom.releaseConfirm.disabled = true;
+  dom.releaseCancel.disabled = true;
+  try {
+    const result = await postJson(endpoints.bulkApprove(), { review_ids: ids });
+    closeReleaseSheet();
+    const count = result.released_count;
+    const failed = (result.failed || []).length;
+    const done = count === 1 ? "1 grade is in the gradebook." : `${count} grades are in the gradebook.`;
+    toast(failed
+      ? `${done} ${failed} could not be written and are still waiting — try again.`
+      : done);
+    await refreshAll();
+  } catch (error) {
+    if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+      closeReleaseSheet();
+      openGate("That access code didn't work. Check it and try again.");
+    } else {
+      dom.releaseError.textContent = error instanceof ApiError ? refusalNote(error) : error.message;
+      dom.releaseError.hidden = false;
+    }
+  } finally {
+    releasing = false;
+    dom.releaseConfirm.disabled = false;
+    dom.releaseCancel.disabled = false;
+  }
 }
 
 async function loadSummary() {
@@ -337,11 +388,13 @@ async function loadSummary() {
     dom.heroNote.hidden = false;
     return;
   }
-  state.reviews = summary.waiting;
-  if (!state.reviews.some((review) => review.review_id === state.openId) && !guided.active) {
+  state.summary = summary;
+  state.byId = new Map(summary.waiting.map((item) => [item.review_id, item]));
+  if (state.openId && !state.byId.has(state.openId) && !guided.active) {
     closeDetail();
   }
-  renderQueue();
+  renderCountStrip();
+  renderTriage();
   if (guided.active && guidedStale()) {
     await renderGuided();
   }
@@ -369,13 +422,13 @@ function groupTitle(record) {
 }
 
 function groupRecords(records) {
-  const groups = new Map();
+  const collected = new Map();
   records.forEach((record) => {
     const title = groupTitle(record);
-    groups.set(title, groups.get(title) || []);
-    groups.get(title).push(record);
+    collected.set(title, collected.get(title) || []);
+    collected.get(title).push(record);
   });
-  return [...groups.entries()];
+  return [...collected.entries()];
 }
 
 function renderSynced() {
@@ -395,9 +448,9 @@ function renderSynced() {
     dom.syncedList.append(el("p", { class: "synced-empty", text: `No student here matches “${dom.syncedSearch.value.trim()}”.` }));
     return;
   }
-  const groups = groupRecords(matches);
-  groups.forEach(([title, records]) => {
-    if (groups.length > 1) {
+  const collected = groupRecords(matches);
+  collected.forEach(([title, records]) => {
+    if (collected.length > 1) {
       dom.syncedList.append(el("h3", { class: "synced-group" }, [
         el("span", { text: title }),
         el("span", { class: "synced-group-count", text: `${records.length}` }),
@@ -414,6 +467,7 @@ async function loadSynced() {
   }
   state.synced = payload.items;
   renderSynced();
+  renderCountStrip();
   dom.allDoneNote.textContent = payload.count
     ? `${payload.count} grade${payload.count === 1 ? "" : "s"} synced recently.`
     : "Upload scans below to get started.";
@@ -440,22 +494,64 @@ function startBatchWatch(lotCode) {
 }
 
 function goToReview() {
-  dom.reviewSection.scrollIntoView({ behavior: reducedMotion.matches ? "auto" : "smooth", block: "start" });
+  dom.reviewSection.scrollIntoView({ behavior: scrollMode(), block: "start" });
 }
 
 function activeVeil() {
-  return [...veils(), dom.accessVeil].find((veil) => !veil.hidden) || null;
+  return [...veils(), dom.accessVeil, dom.releaseVeil].find((veil) => !veil.hidden) || null;
+}
+
+function isTyping(target) {
+  if (!target || target === document.body) {
+    return false;
+  }
+  const tag = (target.tagName || "").toLowerCase();
+  return target.isContentEditable || tag === "input" || tag === "textarea" || tag === "select";
+}
+
+function openDecisionHost() {
+  if (guided.active && !dom.guidedPanel.hidden) {
+    return dom.guidedBody;
+  }
+  if (state.openId && !dom.reviewDetail.hidden) {
+    return dom.reviewDetail;
+  }
+  return null;
+}
+
+function shortcut(event) {
+  if (event.metaKey || event.ctrlKey || event.altKey || activeVeil() || isTyping(event.target)) {
+    return;
+  }
+  const key = event.key.toLowerCase();
+  if (key !== "a" && key !== "s") {
+    return;
+  }
+  const host = openDecisionHost();
+  if (!host) {
+    return;
+  }
+  const review = state.byId.get(state.openId);
+  const buttons = detailButtons(host);
+  if (!review || buttons.length < 2 || buttons.some((button) => button.disabled)) {
+    return;
+  }
+  event.preventDefault();
+  decide(review, key === "a" ? "approve" : "dismiss", buttons);
 }
 
 document.addEventListener("keydown", (event) => {
   const veil = activeVeil();
   if (!veil) {
+    shortcut(event);
     return;
   }
   if (event.key === "Escape") {
     event.preventDefault();
     if (veil === dom.accessVeil) {
       dom.accessVeil.hidden = true;
+    } else if (veil === dom.releaseVeil) {
+      closeReleaseSheet();
     } else {
       escapeVeil(veil);
     }
@@ -482,7 +578,12 @@ document.addEventListener("keydown", (event) => {
 
 setupUploads({ toast, openGate, onBatchSent: startBatchWatch, goToReview });
 
-dom.guidedStart.addEventListener("click", startGuided);
+dom.judgementStart.addEventListener("click", () => startGuided("judgement"));
+dom.holdRelease.addEventListener("click", openReleaseSheet);
+dom.releaseCancel.addEventListener("click", closeReleaseSheet);
+dom.releaseConfirm.addEventListener("click", confirmRelease);
+dom.judgementSearch.addEventListener("input", renderTriage);
+dom.holdSearch.addEventListener("input", renderTriage);
 dom.guidedExit.addEventListener("click", exitGuided);
 dom.syncedSearch.addEventListener("input", renderSynced);
 dom.refreshButton.addEventListener("click", refreshAll);
