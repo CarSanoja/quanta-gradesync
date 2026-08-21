@@ -76,6 +76,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="use the offline scripted generator instead of Gemma",
     )
+    parser.add_argument(
+        "--no-prescreen",
+        action="store_true",
+        help=(
+            "score the model screen alone, without the deterministic metadata and "
+            "encoding prescreen that production runs in front of it"
+        ),
+    )
     parser.add_argument("--project", default=os.environ.get("GRADESYNC_GCP_PROJECT_ID", ""))
     return parser.parse_args(argv)
 
@@ -116,6 +124,11 @@ def build_generator(arguments: argparse.Namespace, settings: Settings):
 
 def report(payload: dict, json_path: Path, markdown_path: Path) -> None:
     totals = payload["totals"]
+    if not payload["measurement_valid"]:
+        print(
+            f"INVALID RUN     the screen failed open on {totals['armor_errors']} "
+            "payloads; the numbers below are not a measurement"
+        )
     print(f"classes         {', '.join(payload['config']['classes'])}")
     print(f"generator       {payload['models']['generator']}")
     print(f"armor screen    {payload['models']['screen']}")
@@ -144,6 +157,7 @@ async def run(arguments: argparse.Namespace) -> int:
         screen_mode=arguments.screen,
         with_grading=arguments.with_grading,
         budget_calls=arguments.budget_calls,
+        prescreen=not arguments.no_prescreen,
     )
     settings = build_settings(arguments)
     result = await run_campaign(config, build_generator(arguments, settings), settings)

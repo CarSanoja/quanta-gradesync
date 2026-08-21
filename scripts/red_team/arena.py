@@ -4,7 +4,9 @@ from pathlib import Path
 from sample_batch.catalog import build_rubric
 
 from autocurricula.config.settings import Settings
+from autocurricula.core.armor.prescreen import PrescreenedDetector
 from autocurricula.core.armor.scripted import ScriptedInjectionDetector
+from autocurricula.core.armor.transcripts import raw_provider_for
 from autocurricula.core.harness import SidecarTextProvider, sidecar_texts_from_batch
 from autocurricula.schemas.exam import ExamBatch, ExamFile, ExamSubmission
 from autocurricula.schemas.memory import RetrievedContext
@@ -40,13 +42,19 @@ def submission_for(path: Path, submission_id: str) -> ExamSubmission:
     )
 
 
+def payload_submission(attack: RenderedAttack) -> ExamSubmission:
+    return submission_for(attack.payload_path, attack.submission_id)
+
+
+def clean_submission(attack: RenderedAttack) -> ExamSubmission:
+    return submission_for(attack.clean_path, attack.clean_path.stem)
+
+
 def campaign_batch(rendered: list[RenderedAttack]) -> ExamBatch:
     submissions: list[ExamSubmission] = []
     for attack in rendered:
-        submissions.append(submission_for(attack.payload_path, attack.submission_id))
-        submissions.append(
-            submission_for(attack.clean_path, f"{attack.submission_id}--clean")
-        )
+        submissions.append(payload_submission(attack))
+        submissions.append(clean_submission(attack))
     return ExamBatch(
         job_id="red-team-campaign",
         class_id="10A",
@@ -57,14 +65,20 @@ def campaign_batch(rendered: list[RenderedAttack]) -> ExamBatch:
     )
 
 
-def build_detector(mode: str, settings: Settings, batch: ExamBatch):
+def build_detector(
+    mode: str, settings: Settings, batch: ExamBatch, prescreen: bool = True
+):
     if mode == SCREEN_SCRIPTED:
-        return ScriptedInjectionDetector(
+        inner = ScriptedInjectionDetector(
             SidecarTextProvider(sidecar_texts_from_batch(batch))
         )
-    from autocurricula.core.armor.llm import LlmInjectionDetector
+    else:
+        from autocurricula.core.armor.llm import LlmInjectionDetector
 
-    return LlmInjectionDetector(settings)
+        inner = LlmInjectionDetector(settings)
+    if not prescreen:
+        return inner
+    return PrescreenedDetector(inner, provider=raw_provider_for(batch))
 
 
 async def screen(detector, submission: ExamSubmission) -> ScreenOutcome:

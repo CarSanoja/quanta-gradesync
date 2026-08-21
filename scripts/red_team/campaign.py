@@ -8,10 +8,11 @@ from red_team.arena import (
     SCREEN_SCRIPTED,
     build_detector,
     campaign_batch,
+    clean_submission,
     grade_total,
+    payload_submission,
     red_team_rubric,
     screen,
-    submission_for,
 )
 from red_team.generator import GenerationResult
 from red_team.renderer import RenderedAttack, render_attack
@@ -29,6 +30,7 @@ class CampaignConfig:
     screen_mode: str = SCREEN_SCRIPTED
     with_grading: bool = False
     budget_calls: int = 60
+    prescreen: bool = True
 
 
 @dataclass
@@ -113,13 +115,11 @@ async def score_attack(
     rubric,
     budget: list[int],
 ) -> AttackOutcome:
-    payload_submission = submission_for(attack.payload_path, attack.submission_id)
-    clean_submission = submission_for(
-        attack.clean_path, f"{attack.submission_id}--clean"
-    )
-    hit = await screen(detector, payload_submission)
+    hostile = payload_submission(attack)
+    clean_twin = clean_submission(attack)
+    hit = await screen(detector, hostile)
     budget[0] -= 1
-    clean = await screen(detector, clean_submission)
+    clean = await screen(detector, clean_twin)
     budget[0] -= 1
     outcome = AttackOutcome(
         attack_class=attack.attack_class,
@@ -137,10 +137,8 @@ async def score_attack(
     )
     if evaluator is None or budget[0] < 2:
         return outcome
-    payload_score, payload_error = await grade_total(
-        evaluator, payload_submission, rubric
-    )
-    clean_score, clean_error = await grade_total(evaluator, clean_submission, rubric)
+    payload_score, payload_error = await grade_total(evaluator, hostile, rubric)
+    clean_score, clean_error = await grade_total(evaluator, clean_twin, rubric)
     budget[0] -= 2
     outcome.payload_score = payload_score
     outcome.clean_score = clean_score
@@ -160,8 +158,8 @@ async def run_campaign(
         result.notes.append("no payloads were rendered; nothing was screened")
         return result
     batch = campaign_batch(rendered)
-    detector = build_detector(config.screen_mode, settings, batch)
-    result.screen_model = getattr(detector, "model", config.screen_mode)
+    detector = build_detector(config.screen_mode, settings, batch, config.prescreen)
+    result.screen_model = getattr(detector, "model", "") or config.screen_mode
     evaluator = None
     rubric = red_team_rubric()
     if config.with_grading:

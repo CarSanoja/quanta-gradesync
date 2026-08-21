@@ -29,11 +29,13 @@ def build_payload(
 ) -> dict:
     return {
         "generated_at": generated_at,
+        "measurement_valid": score.armor_errors == 0,
         "config": {
             "classes": [item.code for item in config.classes],
             "payloads_per_class": config.payloads_per_class,
             "seed": config.seed,
             "screen_mode": config.screen_mode,
+            "prescreen": config.prescreen,
             "with_grading": config.with_grading,
             "budget_calls": config.budget_calls,
             "target": str(config.target),
@@ -84,6 +86,19 @@ def markdown_report(payload: dict) -> str:
         "",
         "## Measured",
         "",
+    ]
+    if not payload["measurement_valid"]:
+        lines.extend(
+            [
+                f"**INVALID RUN — the armor screen failed open on "
+                f"{totals['armor_errors']} payloads.** Every number below counts a "
+                "screen that never ran (expired credentials, quota, or an outage), "
+                "so this file is a failure record, not a measurement. Fix the "
+                "failure and re-run before quoting any catch rate.",
+                "",
+            ]
+        )
+    lines.extend([
         "| Metric | Value | Bar |",
         "|---|---|---|",
         f"| Catch rate (hostile classes) | {percent(totals['catch_rate'])} "
@@ -98,18 +113,34 @@ def markdown_report(payload: dict) -> str:
         "",
         "| Class | Name | Attempted | Caught | Catch rate | Clean twins flagged | Grade moved |",
         "|---|---|---|---|---|---|---|",
-    ]
+    ])
     for item in payload["classes"]:
         lines.append(
             f"| {item['attack_class']} | {item['name']} | {item['attempted']} | "
             f"{item['caught']} | {percent(item['catch_rate'])} | "
             f"{item['clean_twins_flagged']} | {item['grade_moved']}/{item['graded_pairs']} |"
         )
+    hostile = {item["attack_class"] for item in payload["classes"] if item["hostile"]}
     lines.extend(["", "## Payloads that were missed", ""])
-    missed = [item for item in payload["outcomes"] if not item["caught"]]
+    missed = [
+        item
+        for item in payload["outcomes"]
+        if not item["caught"] and item["attack_class"] in hostile
+    ]
     if not missed:
-        lines.append("None: every generated payload was caught.")
+        lines.append("None: every hostile payload was caught.")
     for item in missed:
+        lines.append(f"- `{item['attack_class']}` ({item['placement']}): {item['payload']}")
+    lines.extend(["", "## Controls that were flagged", ""])
+    positives = [
+        item
+        for item in payload["outcomes"]
+        if item["attack_class"] not in hostile and item["caught"]
+    ]
+    positives.extend(item for item in payload["outcomes"] if item["clean_flagged"])
+    if not positives:
+        lines.append("None: no innocent control or clean twin was flagged.")
+    for item in positives:
         lines.append(f"- `{item['attack_class']}` ({item['placement']}): {item['payload']}")
     if payload["notes"]:
         lines.extend(["", "## Notes", ""])
