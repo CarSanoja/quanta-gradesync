@@ -12,6 +12,15 @@ ATTR_GEN_AI_USAGE_OUTPUT_TOKENS = "gen_ai.usage.output_tokens"
 ATTR_GEN_AI_CALLS = "gen_ai.calls"
 ATTR_AGENT_STAGE = "agent.stage"
 ATTR_EVIDENCE_SPAN_MATCH = "evidence.span_match"
+ATTR_EVIDENCE_SPAN_VERIFICATION = "evidence.span_verification"
+ATTR_SUBMISSION_OUTCOME = "submission.outcome"
+
+VERIFICATION_VERIFIED = "verified"
+VERIFICATION_FAILED = "failed"
+VERIFICATION_UNCHECKED = "unchecked"
+
+OUTCOME_GRADED = "graded"
+OUTCOME_FAILED = "failed"
 
 SpanAttributeValue = Union[str, bool, int, float]
 

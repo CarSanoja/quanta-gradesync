@@ -15,6 +15,7 @@ from autocurricula.core.review import ConfidenceGate
 from autocurricula.schemas.exam import ExamBatch
 from autocurricula.schemas.grading import EvidenceSpan, GradingBatchResult
 from autocurricula.schemas.sis_sync import SISGradeRecord
+from autocurricula.schemas.telemetry import VERIFICATION_UNCHECKED
 
 logger = logging.getLogger(__name__)
 
@@ -144,18 +145,56 @@ def build_provenance(
     grade_result: GradingBatchResult,
     prompt_variant: PromptVariant | None,
     spans: list[EvidenceSpan],
+    faithfulness_checked: bool | None = None,
 ) -> Provenance:
     model_sha = model_id_sha(grade_result.model_id)
-    if prompt_variant is None:
-        return Provenance(
-            prompt_variant_id=grade_result.model_id,
-            prompt_version_sha=model_sha,
-            evidence_hashes=[evidence_sha(span) for span in spans],
-            model_sha=model_sha,
-        )
+    variant_id = (
+        grade_result.model_id
+        if prompt_variant is None
+        else f"{prompt_variant.variant_id}@v{prompt_variant.version}"
+    )
+    version_sha = (
+        model_sha if prompt_variant is None else prompt_version_sha(prompt_variant)
+    )
     return Provenance(
-        prompt_variant_id=f"{prompt_variant.variant_id}@v{prompt_variant.version}",
-        prompt_version_sha=prompt_version_sha(prompt_variant),
+        prompt_variant_id=variant_id,
+        prompt_version_sha=version_sha,
         evidence_hashes=[evidence_sha(span) for span in spans],
         model_sha=model_sha,
+        faithfulness_checked=faithfulness_checked,
     )
+
+
+def faithfulness_by_student(
+    batch: ExamBatch, statuses: dict[str, str]
+) -> dict[str, bool]:
+    checked: dict[str, bool] = {}
+    for submission in batch.submissions:
+        status = statuses.get(submission.submission_id, VERIFICATION_UNCHECKED)
+        confirmed = status != VERIFICATION_UNCHECKED
+        student = submission.student_id
+        checked[student] = confirmed and checked.get(student, True)
+    return checked
+
+
+def stamp_provenance(
+    records: list[SISGradeRecord],
+    grade_result: GradingBatchResult,
+    prompt_variant: PromptVariant | None,
+    evidence: dict[str, list[EvidenceSpan]],
+    checked: dict[str, bool],
+) -> dict[str, SISGradeRecord]:
+    return {
+        record.student_id: record.model_copy(
+            update={
+                "provenance": build_provenance(
+                    record.student_id,
+                    grade_result,
+                    prompt_variant,
+                    evidence.get(record.student_id, []),
+                    checked.get(record.student_id, False),
+                )
+            }
+        )
+        for record in records
+    }
