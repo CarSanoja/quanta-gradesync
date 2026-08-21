@@ -77,6 +77,7 @@ def build_ledger_document(
         "feedback": record.feedback,
         "competency_codes": list(record.competency_codes),
         "criterion_scores": criteria.get(record.student_id, []),
+        "student_feedback": payload.get("student_feedback"),
         "provenance": payload.get("provenance"),
         "graded_at": payload.get("graded_at"),
         "written_at": written_at,
