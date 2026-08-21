@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
-from fastapi.responses import FileResponse
-from pydantic import Field
+from fastapi.responses import FileResponse, JSONResponse
 
 from autocurricula.api.dependencies import AppContainer, get_container
 from autocurricula.api.media import (
@@ -10,7 +9,17 @@ from autocurricula.api.media import (
     media_type_for,
     resolve_document,
 )
+from autocurricula.api.review_bulk import (
+    BulkReleaseRequest,
+    BulkReleaseResponse,
+    bulk_release,
+)
 from autocurricula.api.review_context import ReviewContext, load_review_context
+from autocurricula.api.review_models import (
+    PendingReviewsResponse,
+    ReviewOverrideRequest,
+    review_error,
+)
 from autocurricula.api.webhooks import require_push_token
 from autocurricula.core.review.override import OverrideValidationError
 from autocurricula.core.review.service import (
@@ -18,57 +27,15 @@ from autocurricula.core.review.service import (
     ReviewNotFoundError,
     ReviewStateError,
 )
-from autocurricula.schemas.common import StrictBaseModel
 from autocurricula.schemas.review import ReviewItem
 
 review_router = APIRouter(tags=["review"])
 
 
-class PendingReviewsResponse(StrictBaseModel):
-    items: list[ReviewItem] = Field(default_factory=list)
-    count: int = Field(ge=0)
-
-
-class CriterionOverride(StrictBaseModel):
-    criterion_id: str = Field(min_length=1)
-    score: float = Field(ge=0)
-
-
-class ReviewOverrideRequest(StrictBaseModel):
-    scores: list[CriterionOverride] = Field(min_length=1)
-    note: str | None = Field(default=None, max_length=2000)
-
-    def as_mapping(self) -> dict[str, float]:
-        mapping: dict[str, float] = {}
-        for entry in self.scores:
-            if entry.criterion_id in mapping:
-                raise ValueError(
-                    f"criterion {entry.criterion_id!r} appears more than once"
-                )
-            mapping[entry.criterion_id] = entry.score
-        return mapping
-
-
-def _review_error(error: Exception) -> HTTPException:
-    if isinstance(error, ReviewNotFoundError):
-        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error))
-    if isinstance(error, ReviewStateError):
-        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(error))
-    if isinstance(error, OverrideValidationError):
-        return HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(error)
-        )
-    return HTTPException(
-        status_code=status.HTTP_502_BAD_GATEWAY, detail=str(error)
-    )
-
-
-async def _decision_context(
-    container: AppContainer, review_id: str
-) -> ReviewContext:
+async def _decision_context(container: AppContainer, review_id: str) -> ReviewContext:
     item = await container.review_service.store.get(review_id)
     if item is None:
-        raise _review_error(ReviewNotFoundError(f"no review item {review_id!r}"))
+        raise review_error(ReviewNotFoundError(f"no review item {review_id!r}"))
     return await load_review_context(
         item, container.checkpoint_store, container.catalog
     )
@@ -82,6 +49,16 @@ async def list_pending_reviews(
     require_push_token(request, container.settings.pubsub_push_token)
     items = await container.review_service.list_pending()
     return PendingReviewsResponse(items=items, count=len(items))
+
+
+@review_router.post("/review/bulk-approve", response_model=None)
+async def bulk_approve_reviews(
+    payload: BulkReleaseRequest,
+    request: Request,
+    container: AppContainer = Depends(get_container),
+) -> JSONResponse | BulkReleaseResponse:
+    require_push_token(request, container.settings.pubsub_push_token)
+    return await bulk_release(container, payload)
 
 
 @review_router.post("/review/{review_id}/approve", response_model=ReviewItem)
@@ -99,7 +76,7 @@ async def approve_review(
             ceilings=context.ceilings,
         )
     except (ReviewNotFoundError, ReviewStateError, ReviewApprovalError) as error:
-        raise _review_error(error) from error
+        raise review_error(error) from error
 
 
 @review_router.post("/review/{review_id}/dismiss", response_model=ReviewItem)
@@ -117,7 +94,7 @@ async def dismiss_review(
             ceilings=context.ceilings,
         )
     except (ReviewNotFoundError, ReviewStateError) as error:
-        raise _review_error(error) from error
+        raise review_error(error) from error
 
 
 @review_router.post("/review/{review_id}/override", response_model=ReviewItem)
@@ -149,7 +126,7 @@ async def override_review(
         ReviewApprovalError,
         OverrideValidationError,
     ) as error:
-        raise _review_error(error) from error
+        raise review_error(error) from error
 
 
 @review_router.get("/review/{review_id}/page-image")
