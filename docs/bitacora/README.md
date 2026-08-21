@@ -27,3 +27,4 @@ verification) live in the [requests registry](../solicitudes/README.md).
 | 2026-08-19 | [Implementation 006: real path, console, dataset, GCP foundations](2026-08-19-implementacion-006-real-path-console-dataset.md) | Implementation |
 | 2026-08-20 | [Implementation 007: armor, visible SIS, ingest, live trace, ack-on-success](2026-08-20-implementacion-007-armor-sis-ingest-ack.md) | Implementation |
 | 2026-08-20 | [Implementation 008: roster, resilience, calibration, cold-start](2026-08-20-implementacion-008-roster-resilience-calibration.md) | Implementation |
+| 2026-08-20 | [Implementation 009: teacher scale, adversarial review](2026-08-20-implementacion-009-teacher-scale-adversarial-review.md) | Implementation |
