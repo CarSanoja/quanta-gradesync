@@ -1,10 +1,12 @@
+from autocurricula.agents.prompts.feedback_bands import feedback_section
+from autocurricula.agents.prompts.grading_few_shots import GRADING_FEW_SHOTS_V1
 from autocurricula.core.evolution.prompt_mutator import PromptRegistry, PromptVariant
 
 GRADING_VARIANT_ID = "grading-v1"
 GRADING_VARIANT_VERSION = 1
 GRADING_PROMPT_PROVENANCE = "manual-seed"
 
-GRADING_SYSTEM_INSTRUCTION_V1 = """You are the AutoCurricula grading specialist, a multimodal K-12
+GRADING_INSTRUCTION_BASE = """You are the AutoCurricula grading specialist, a multimodal K-12
 examiner that performs deep rubric-grounded assessment of student exam work.
 
 ROLE
@@ -42,87 +44,25 @@ TOOLS
 
 OUTPUT
 - Return exactly one JSON object conforming to the GradingResult schema with keys
-  submission_id, criterion_scores, total_score, percentage, feedback.
+  submission_id, criterion_scores, total_score, percentage, feedback and student_feedback.
 - submission_id must equal the submission id given in the task.
-- feedback is concise, kind, student-facing prose naming one strength and one concrete next step.
+- feedback is the flat one-line summary the SIS stores: one sentence of plain prose naming one
+  strength and one concrete next step, with no labels such as "Strength:" or "Next step:", and
+  never blank.
+- student_feedback is the developmental version of that message for the student, written under the
+  student feedback contract below in the band the task names. Omit it rather than writing
+  something you cannot ground in the page.
 - Emit the JSON object only; no surrounding prose and no markdown fences."""
 
-GRADING_FEW_SHOTS_V1 = (
-    """
-{
-  "task": {
-    "submission_id": "sub-0042",
-    "subject": "geometry",
-    "criterion": {
-      "criterion_id": "geo-2",
-      "description": "Applies the Pythagorean theorem to right triangles",
-      "max_score": 10
-    }
-  },
-  "grading_result": {
-    "submission_id": "sub-0042",
-    "criterion_scores": [
-      {
-        "criterion_id": "geo-2",
-        "score": 8.0,
-        "comment": "The theorem is applied correctly twice; the final answer swaps the hypotenuse.",
-        "evidence": [
-          {
-            "page": 2,
-            "quote": "c^2 = 5^2 + 12^2 = 169 so c = 13",
-            "rationale": "Verbatim working shows correct substitution and accurate root extraction."
-          },
-          {
-            "page": 3,
-            "quote": "leg A = 13 cm, leg B = 12 cm",
-            "rationale": "Final labels place the hypotenuse on a leg, capping mastery below top."
-          }
-        ],
-        "confidence": 0.86
-      }
-    ],
-    "total_score": 8.0,
-    "percentage": 80.0,
-    "feedback": "Your triangle reasoning is secure; next step is naming the hypotenuse first."
-  }
-}
-""",
-    """
-{
-  "task": {
-    "submission_id": "sub-0043",
-    "subject": "algebra",
-    "criterion": {
-      "criterion_id": "alg-1",
-      "description": "Solves linear equations in one variable",
-      "max_score": 10
-    }
-  },
-  "grading_result": {
-    "submission_id": "sub-0043",
-    "criterion_scores": [
-      {
-        "criterion_id": "alg-1",
-        "score": 0.0,
-        "comment": "The pages contain only the printed prompt; no student work is present.",
-        "evidence": [],
-        "confidence": 0.3
-      }
-    ],
-    "total_score": 0.0,
-    "percentage": 0.0,
-    "feedback": "No work was visible for this task; submit the worked pages for assessment."
-  }
-}
-""",
-)
+GRADING_SYSTEM_INSTRUCTION_V1 = f"{GRADING_INSTRUCTION_BASE}\n\n{feedback_section()}"
 
 GRADING_REPAIR_TEMPLATE = (
     "Your previous answer violated the GradingResult schema and cannot be accepted.\n"
     "Validation error: {error}\n"
     "Return exactly one corrected JSON object that validates against the GradingResult schema, "
     "with one criterion score per rubric criterion, an evidence span for every nonzero score, "
-    "and no surrounding prose."
+    "and no surrounding prose. If student_feedback is what failed, drop that key entirely rather "
+    "than inventing feedback."
 )
 
 

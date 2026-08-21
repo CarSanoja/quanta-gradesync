@@ -1,25 +1,33 @@
-import json
+import copy
 from collections.abc import Callable
 from typing import Any
 
 from autocurricula.agents.base import (
-    inline_file_part,
     make_user_content,
     resolve_model,
     run_agent_for_text,
     structured_output_with_retry,
     text_part,
 )
-from autocurricula.agents.evaluator import GradingEvaluator, GradingValidationError
+from autocurricula.agents.evaluator import (
+    GradingEvaluator,
+    GradingValidationError,
+    salvage_without_student_feedback,
+    stamp_feedback_band,
+)
 from autocurricula.agents.grading_tools import build_grading_tools
+from autocurricula.agents.prompts.grading_parts import (
+    MAX_INLINE_FILE_BYTES,
+    build_grading_parts,
+)
 from autocurricula.agents.prompts.grading_prompts import (
     build_grading_prompt_variant,
     grading_repair_instruction,
 )
 from autocurricula.config.settings import Settings
-from autocurricula.core.armor.metadata import prompt_safe_submission, safe_path
 from autocurricula.core.evolution.prompt_mutator import PromptVariant
 from autocurricula.schemas.exam import ExamSubmission
+from autocurricula.schemas.feedback import FeedbackBand, band_for_grade_level
 from autocurricula.schemas.grading import GradingResult
 from autocurricula.schemas.memory import RetrievedContext
 from autocurricula.schemas.rubric import Rubric
@@ -27,7 +35,6 @@ from autocurricula.schemas.rubric import Rubric
 GRADING_AGENT_NAME = "grading_agent"
 GRADING_APP_NAME = "gradesync_grading"
 GRADING_USER_ID = "gradesync_worker"
-MAX_INLINE_FILE_BYTES = 18 * 1024 * 1024
 
 RunnerFactory = Callable[[Any, Any], Any]
 
@@ -70,38 +77,6 @@ def _default_runner_factory(agent: Any, session_service: Any) -> Any:
     return Runner(agent=agent, app_name=GRADING_APP_NAME, session_service=session_service)
 
 
-async def build_grading_parts(
-    submission: ExamSubmission,
-    rubric: Rubric,
-    context: RetrievedContext,
-    *,
-    max_inline_bytes: int = MAX_INLINE_FILE_BYTES,
-) -> list[Any]:
-    task = {
-        "submission": prompt_safe_submission(submission),
-        "rubric": rubric.model_dump(mode="json"),
-        "retrieved_context": context.model_dump(mode="json"),
-    }
-    payload = json.dumps(task, ensure_ascii=False, indent=2)
-    parts = [text_part(f"GRADE THIS SUBMISSION\n{payload}")]
-    notes: list[str] = []
-    for file in submission.files:
-        safe_uri = safe_path(file.gcs_uri)
-        if file.local_path is None:
-            notes.append(f"{safe_uri}: not staged inline; call fetch_exam_files")
-            continue
-        part = await inline_file_part(
-            file.local_path, file.mime_type, max_bytes=max_inline_bytes
-        )
-        if part is None:
-            notes.append(f"{safe_uri}: exceeds inline byte limit; call fetch_exam_files")
-        else:
-            parts.append(part)
-    if notes:
-        parts.append(text_part("File notes:\n" + "\n".join(notes)))
-    return parts
-
-
 class AdkGradingEvaluator(GradingEvaluator):
     def __init__(
         self,
@@ -113,6 +88,7 @@ class AdkGradingEvaluator(GradingEvaluator):
         max_inline_bytes: int = MAX_INLINE_FILE_BYTES,
     ) -> None:
         self._settings = settings
+        self._band: FeedbackBand | None = None
         self._variant = variant if variant is not None else build_grading_prompt_variant()
         self._model = resolve_model(settings)
         self._max_inline_bytes = max_inline_bytes
@@ -136,6 +112,15 @@ class AdkGradingEvaluator(GradingEvaluator):
     def variant_id(self) -> str:
         return self._variant.variant_id
 
+    @property
+    def feedback_band(self) -> FeedbackBand | None:
+        return self._band
+
+    def for_grade_level(self, grade_level: str | None) -> "AdkGradingEvaluator":
+        bound = copy.copy(self)
+        bound._band = band_for_grade_level(grade_level)
+        return bound
+
     async def grade(
         self, submission: ExamSubmission, rubric: Rubric, context: RetrievedContext
     ) -> GradingResult:
@@ -144,7 +129,11 @@ class AdkGradingEvaluator(GradingEvaluator):
         )
         runner = self._runner_factory(self._agent, self._session_service)
         parts = await build_grading_parts(
-            submission, rubric, context, max_inline_bytes=self._max_inline_bytes
+            submission,
+            rubric,
+            context,
+            max_inline_bytes=self._max_inline_bytes,
+            band=self._band,
         )
 
         async def call(repair: str | None) -> str:
@@ -154,12 +143,19 @@ class AdkGradingEvaluator(GradingEvaluator):
             message = make_user_content(message_parts)
             return await run_agent_for_text(runner, GRADING_USER_ID, session.id, message)
 
-        return await structured_output_with_retry(
-            call,
-            GradingResult,
-            _validation_error,
-            build_repair=grading_repair_instruction,
-        )
+        try:
+            result = await structured_output_with_retry(
+                call,
+                GradingResult,
+                _validation_error,
+                build_repair=grading_repair_instruction,
+            )
+        except GradingValidationError as error:
+            salvaged = salvage_without_student_feedback(error)
+            if salvaged is None:
+                raise
+            result = salvaged
+        return stamp_feedback_band(result, self._band)
 
 
 def build_grading_evaluator(

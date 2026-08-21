@@ -3,6 +3,7 @@ from typing import Self
 from pydantic import Field, field_validator, model_validator
 
 from autocurricula.schemas.common import FrozenStrictModel, JobId, StudentId, TzAwareDatetime
+from autocurricula.schemas.feedback import StudentFeedback
 from autocurricula.schemas.provenance import Provenance
 
 
@@ -12,6 +13,7 @@ class SISGradeRecord(FrozenStrictModel):
     score: float = Field(ge=0)
     percentage: float = Field(ge=0, le=100)
     feedback: str = Field(min_length=1)
+    student_feedback: StudentFeedback | None = None
     competency_codes: list[str] = Field(default_factory=list)
     provenance: Provenance | None = None
     graded_at: TzAwareDatetime

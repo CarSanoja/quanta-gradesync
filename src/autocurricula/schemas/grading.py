@@ -1,12 +1,15 @@
 from pydantic import Field, field_validator
 
 from autocurricula.schemas.common import FrozenStrictModel, JobId, TzAwareDatetime
+from autocurricula.schemas.feedback import EvidenceSpan, StudentFeedback
 
-
-class EvidenceSpan(FrozenStrictModel):
-    page: int = Field(ge=1)
-    quote: str = Field(min_length=1)
-    rationale: str = Field(min_length=1)
+__all__ = [
+    "CriterionScore",
+    "EvidenceSpan",
+    "GradingBatchResult",
+    "GradingResult",
+    "StudentFeedback",
+]
 
 
 class CriterionScore(FrozenStrictModel):
@@ -23,6 +26,7 @@ class GradingResult(FrozenStrictModel):
     total_score: float = Field(ge=0)
     percentage: float = Field(ge=0, le=100)
     feedback: str = Field(min_length=1)
+    student_feedback: StudentFeedback | None = None
 
     @field_validator("criterion_scores")
     @classmethod
