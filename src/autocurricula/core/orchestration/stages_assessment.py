@@ -2,7 +2,7 @@ import asyncio
 import logging
 
 from autocurricula.agents.curriculum_auditor import CurriculumAuditor
-from autocurricula.agents.evaluator import GradingEvaluator
+from autocurricula.agents.evaluator import GradingEvaluator, bind_feedback_band
 from autocurricula.core.armor import InjectionDetector, store_armor_report
 from autocurricula.core.fleet import (
     CURRICULUM_AUDITOR_ID,
@@ -93,10 +93,11 @@ def build_grade_step(
             outputs.rubric, context.event.subject
         )
         recorder: Recorder = context.recorder
+        grade_level = outputs.batch.grade_level
         guard = build_grade_guard(
             job_id=context.job_id,
-            evaluator=grading_evaluator,
-            fallback=fallback_evaluator,
+            evaluator=bind_feedback_band(grading_evaluator, grade_level),
+            fallback=bind_feedback_band(fallback_evaluator, grade_level),
             latency_seconds=fallback_latency_seconds,
             confidence_factor=fallback_confidence_factor,
             repair_agent=repair_agent,

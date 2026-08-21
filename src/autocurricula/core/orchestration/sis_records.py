@@ -2,6 +2,7 @@ from collections.abc import Sequence
 
 from autocurricula.schemas.curriculum import CurriculumAuditResult
 from autocurricula.schemas.exam import ExamBatch
+from autocurricula.schemas.feedback import StudentFeedback
 from autocurricula.schemas.grading import GradingBatchResult, GradingResult
 from autocurricula.schemas.sis_sync import SISGradeRecord, SISWriteRequest
 
@@ -49,6 +50,15 @@ def _mean(values: Sequence[float]) -> float:
     return sum(values) / len(values)
 
 
+def first_student_feedback(
+    results: Sequence[GradingResult],
+) -> StudentFeedback | None:
+    for result in results:
+        if result.student_feedback is not None:
+            return result.student_feedback
+    return None
+
+
 def build_sis_write_request(
     batch: ExamBatch,
     batch_result: GradingBatchResult,
@@ -71,6 +81,7 @@ def build_sis_write_request(
                 score=_mean([result.total_score for result in student_results]),
                 percentage=_mean([result.percentage for result in student_results]),
                 feedback=feedback,
+                student_feedback=first_student_feedback(student_results),
                 competency_codes=sorted(covered.get(student_id, set())),
                 graded_at=batch_result.graded_at,
             )
