@@ -24,7 +24,19 @@
     <p class="eyebrow">Ten minutes, then you're done</p>
     <h1 id="hero-title">Exams waiting for <span class="hl">your review</span></h1>
     <p class="hero-note" id="hero-note">Checking your queue&hellip;</p>
+    <div class="hero-actions" id="hero-actions" hidden>
+      <button class="primary" id="guided-start" type="button">Review one by one</button>
+      <span class="hero-actions-note" id="guided-note"></span>
+    </div>
     <div class="card-row" id="review-cards"></div>
+    <div class="guided" id="guided-panel" hidden>
+      <div class="guided-head">
+        <span class="guided-progress" id="guided-progress"></span>
+        <button class="quiet" id="guided-exit" type="button">Back to the list</button>
+      </div>
+      <p class="guided-flash" id="guided-flash" hidden></p>
+      <div class="guided-body" id="guided-body"></div>
+    </div>
     <div class="review-detail" id="review-detail" hidden></div>
     <div class="all-done" id="all-done" hidden>
       <div class="all-done-mark" aria-hidden="true">&#10003;</div>
@@ -38,25 +50,25 @@
     <p class="band-note">Photograph or scan each exam and drop everything here. Grading starts on
       its own.</p>
     <div class="naming-rule">
-      <p class="naming-line"><strong>The file name becomes the student's name in the gradebook.</strong>
-        One file per student &mdash; a multi-page exam goes in one PDF.</p>
+      <p class="naming-line"><strong>You name each exam here, never on your computer.</strong>
+        Pick the files as they are &mdash; every one gets a name box you can change before it is sent.</p>
       <details class="naming-details">
-        <summary>How to name your files</summary>
+        <summary>How the names work</summary>
         <div class="naming-body">
-          <p>GradeSync reads the student from the file name: <code>ana-torres.pdf</code> shows up
-            in the gradebook as <strong>Ana Torres</strong>.</p>
+          <p>When the file is already called something like <code>ana-torres.pdf</code>, we fill the name
+            in for you: <strong>Ana Torres</strong>. Type over it whenever it isn't right.</p>
           <ul>
             <li><span class="mark-do" aria-hidden="true">&#10003;</span>
-              <span>One file per student: <code>ana-torres.pdf</code>, <code>luis-perez.jpg</code></span></li>
+              <span>A photo straight from the camera (<code>IMG_2831.jpg</code>) simply waits for you to
+                type the student's name. The rest of the batch keeps going.</span></li>
             <li><span class="mark-do" aria-hidden="true">&#10003;</span>
               <span>Several pages? Scan them into one PDF, pages in order, and upload that single file.</span></li>
             <li><span class="mark-dont" aria-hidden="true">&#10007;</span>
-              <span><code>ana-torres-p1.jpg</code> + <code>ana-torres-p2.jpg</code> &mdash; two files
-                make two students, &ldquo;Ana Torres P1&rdquo; and &ldquo;Ana Torres P2&rdquo;.</span></li>
+              <span>Two files with the same name are two students &mdash; give one of them its own name.</span></li>
           </ul>
-          <p>Upload a file name that already has a scan and we ask first: replace the saved scan
-            (the exam is re-graded and the old scan is kept) or save it as a different student.
-            Nothing is renamed on its own.</p>
+          <p>Send a name that already has a scan and we ask first: replace the saved scan (the exam is
+            re-graded and the old scan is kept) or save it as a different student. Nothing on your
+            computer is ever renamed.</p>
         </div>
       </details>
     </div>
@@ -82,12 +94,41 @@
         <span class="dropzone-hint">or click to choose files &middot; photos or PDFs, up to 20 MB each</span>
       </div>
     </div>
+
+    <div class="batch-status" id="batch-status" hidden>
+      <p class="batch-status-line" id="batch-status-line"></p>
+      <div class="batch-status-counts" id="batch-status-counts"></div>
+      <button class="linkish" id="batch-status-review" type="button" hidden>Show me the ones waiting for me</button>
+    </div>
+
+    <div class="batch-panel" id="batch-panel" hidden>
+      <div class="batch-head">
+        <div class="batch-headings">
+          <h3 class="batch-title" id="batch-title"></h3>
+          <p class="batch-sub" id="batch-sub"></p>
+        </div>
+        <div class="batch-tools">
+          <button class="quiet" id="batch-start" type="button" hidden>Start sending</button>
+          <button class="quiet" id="batch-retry" type="button" hidden>Retry the ones that failed</button>
+        </div>
+      </div>
+      <div class="batch-bar" id="batch-bar" hidden><span class="batch-bar-fill" id="batch-bar-fill"></span></div>
+      <div class="batch-chips" id="batch-chips"></div>
+      <button class="batch-toggle" id="batch-toggle" type="button" hidden></button>
+    </div>
     <ul class="upload-log" id="upload-log" aria-live="polite"></ul>
   </section>
 
   <section class="band" id="synced-section" aria-labelledby="synced-title">
     <h2 id="synced-title">Recently synced grades</h2>
     <p class="band-note">Already in the gradebook. Nothing for you to do here.</p>
+    <div class="synced-tools" id="synced-tools" hidden>
+      <label class="synced-search">
+        <span>Find a student</span>
+        <input type="search" id="synced-search" placeholder="Start typing a name" autocomplete="off">
+      </label>
+      <span class="synced-count" id="synced-count"></span>
+    </div>
     <div class="synced-list" id="synced-list"></div>
   </section>
 </main>
@@ -101,7 +142,7 @@
     <p class="sheet-help"><strong>Replace scan</strong> re-grades this student's exam with the new
       file &mdash; the old scan stays saved. <strong>This is a different student</strong> keeps both
       by saving this file under another name.</p>
-    <input type="text" id="collision-name-input" placeholder="Student name for the file, like ana-torres" autocomplete="off" spellcheck="false" hidden>
+    <input type="text" id="collision-name-input" placeholder="Student name, like Ana Torres" autocomplete="off" spellcheck="false" hidden>
     <p class="sheet-error" id="collision-error" hidden></p>
     <div class="sheet-actions">
       <button type="button" class="quiet" id="collision-cancel">Cancel</button>
