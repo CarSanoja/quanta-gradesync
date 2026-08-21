@@ -17,6 +17,7 @@ ASSET_MEDIA_TYPES = {
     "sis.js": "text/javascript; charset=utf-8",
     "ingest.js": "text/javascript; charset=utf-8",
     "trace.js": "text/javascript; charset=utf-8",
+    "fleet.js": "text/javascript; charset=utf-8",
 }
 
 

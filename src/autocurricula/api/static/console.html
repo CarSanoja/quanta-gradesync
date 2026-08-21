@@ -37,6 +37,10 @@
       <span class="rail-label">Optimizer</span>
       <span class="rail-hint">prompt evolution</span>
     </button>
+    <button type="button" class="rail-item" data-view="fleet">
+      <span class="rail-label">Fleet</span>
+      <span class="rail-hint">agents, identity, scope</span>
+    </button>
     <button type="button" class="rail-item" data-view="ingest">
       <span class="rail-label">Ingest</span>
       <span class="rail-hint">upload exam scans</span>
@@ -104,6 +108,23 @@
         <div class="panel-body" id="optimizer-cycles"></div>
       </div>
     </section>
+    <section class="view" id="view-fleet">
+      <header class="view-head">
+        <h2>Fleet registry</h2>
+        <p>Every agent in the fleet, derived from the running configuration: model,
+          principal it acts as, least-privilege scope, lifecycle and a hash of its
+          effective definition.</p>
+      </header>
+      <div class="panel">
+        <div class="panel-head"><h3>Fleet summary</h3><span class="counter" id="fleet-count"></span></div>
+        <div class="panel-body" id="fleet-summary"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>Agents</h3></div>
+        <div class="panel-body" id="fleet-agents"></div>
+      </div>
+    </section>
+
     <section class="view" id="view-ingest">
       <header class="view-head">
         <h2>Ingest exams</h2>

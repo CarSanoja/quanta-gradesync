@@ -13,6 +13,7 @@ from autocurricula.api.dependencies import (
     get_container,
     set_container,
 )
+from autocurricula.api.fleet import fleet_router
 from autocurricula.api.ingest import ingest_router
 from autocurricula.api.jobs import jobs_router
 from autocurricula.api.optimizer import optimizer_router
@@ -86,6 +87,7 @@ def create_app() -> FastAPI:
     application.include_router(sis_router)
     application.include_router(ingest_router)
     application.include_router(optimizer_router)
+    application.include_router(fleet_router)
     application.include_router(console_router)
     application.include_router(teacher_router)
     return application

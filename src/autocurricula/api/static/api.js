@@ -90,6 +90,7 @@ export const endpoints = {
   pageImage: (reviewId, index) =>
     `/review/${encodeURIComponent(reviewId)}/page-image?index=${index}`,
   optimizer: () => "/optimizer/report",
+  fleetRegistry: () => "/fleet/registry",
   sisRecords: (jobId, limit = 50) => {
     const params = new URLSearchParams({ limit: String(limit) });
     if (jobId) {

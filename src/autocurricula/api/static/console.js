@@ -17,6 +17,7 @@ import {
   renderReviewDetail,
   renderReviewList,
 } from "./views.js";
+import { renderFleet } from "./fleet.js";
 import { createIngestController } from "./ingest.js";
 import { createSisController } from "./sis.js";
 import { createTraceController } from "./trace.js";
@@ -42,6 +43,9 @@ const dom = {
   optimizerVariants: document.getElementById("optimizer-variants"),
   optimizerCycles: document.getElementById("optimizer-cycles"),
   cyclesCount: document.getElementById("cycles-count"),
+  fleetSummary: document.getElementById("fleet-summary"),
+  fleetAgents: document.getElementById("fleet-agents"),
+  fleetCount: document.getElementById("fleet-count"),
   sisRecords: document.getElementById("sis-records"),
   sisCount: document.getElementById("sis-count"),
   sisPoll: document.getElementById("sis-poll"),
@@ -233,6 +237,15 @@ async function loadOptimizer() {
   renderOptimizer(dom.optimizerVariants, dom.optimizerCycles, report);
 }
 
+async function loadFleet() {
+  const report = await guard(() => getJson(endpoints.fleetRegistry()));
+  if (!report) {
+    return;
+  }
+  dom.fleetCount.textContent = `${report.summary.agent_count} agent${report.summary.agent_count === 1 ? "" : "s"}`;
+  renderFleet(dom.fleetSummary, dom.fleetAgents, report);
+}
+
 async function decide(reviewId, endpoint, verb) {
   const decided = await guard(() => postJson(endpoint(reviewId)));
   if (!decided) {
@@ -275,7 +288,7 @@ async function loadMode() {
 async function refreshAll() {
   dom.refresh.disabled = true;
   await loadMode();
-  await Promise.all([loadJobs(), loadReviews(), loadOptimizer()]);
+  await Promise.all([loadJobs(), loadReviews(), loadOptimizer(), loadFleet()]);
   if (state.view === "sis") {
     await sisController.load();
   }
