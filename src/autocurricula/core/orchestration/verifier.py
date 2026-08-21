@@ -1,9 +1,19 @@
 from autocurricula.agents.evaluator import GradingEvaluator
 from autocurricula.core.memory.manager import MemoryManager
+from autocurricula.core.orchestration.batch_listing import (
+    BatchObjectLister,
+    compare_batch_objects,
+)
 from autocurricula.core.orchestration.context import STAGE_VERIFY, JobContext, StageCallable
 from autocurricula.core.orchestration.goal_checks import (
     evaluate_goal_checks,
+    items_of_kind,
+    missing_files_check,
     pending_items_for_job,
+)
+from autocurricula.core.orchestration.grade_outcome import load_grade_report
+from autocurricula.core.orchestration.incident_reviews import (
+    enqueue_missing_file_reviews,
 )
 from autocurricula.core.orchestration.sis_records import covered_codes_by_student
 from autocurricula.core.review import (
@@ -13,7 +23,7 @@ from autocurricula.core.review import (
 )
 from autocurricula.schemas.common import utc_now
 from autocurricula.schemas.grading import GradingResult
-from autocurricula.schemas.review import ReviewItem
+from autocurricula.schemas.review import ReviewItem, ReviewKind
 from autocurricula.schemas.sis_sync import SISGradeRecord
 from autocurricula.schemas.verification import (
     OUTCOME_RECOVERED,
@@ -32,11 +42,25 @@ def build_verify_step(
     rework_evaluator: GradingEvaluator | None = None,
     confidence_threshold: float = DEFAULT_CONFIDENCE_THRESHOLD,
     max_iterations: int = DEFAULT_VERIFY_MAX_ITERATIONS,
+    batch_lister: BatchObjectLister | None = None,
 ) -> StageCallable:
     gate = ConfidenceGate(confidence_threshold)
 
     async def run(context: JobContext) -> JobContext:
         checks = await evaluate_goal_checks(context, review_store)
+        missing = await compare_batch_objects(
+            context.event, context.batch, batch_lister
+        )
+        if missing.missing:
+            await enqueue_missing_file_reviews(
+                context.job_id,
+                context.batch,
+                context.event.bucket,
+                context.event.exam_batch_prefix,
+                missing.missing,
+                review_store,
+            )
+        checks = [*checks, missing_files_check(missing)]
         attempts, pending_approval, unresolved = await _rework_loop(
             context,
             memory_manager,
@@ -44,6 +68,12 @@ def build_verify_step(
             gate,
             rework_evaluator,
             max_iterations,
+        )
+        grade_report = load_grade_report(context.session)
+        failed_ids = (
+            sorted(failure.submission_id for failure in grade_report.failures)
+            if grade_report is not None
+            else []
         )
         passed = all(check.passed for check in checks) and not unresolved
         report = VerificationReport(
@@ -53,6 +83,8 @@ def build_verify_step(
             rework_attempts=attempts,
             pending_human_approval=sorted(pending_approval),
             unresolved_submission_ids=sorted(unresolved),
+            failed_submission_ids=failed_ids,
+            missing_files=missing,
             verified_at=utc_now(),
         )
         context.complete(STAGE_VERIFY, report)
@@ -71,7 +103,9 @@ async def _rework_loop(
 ) -> tuple[list[ReworkAttempt], list[str], list[str]]:
     pending_items = {
         item.student_id: item
-        for item in await pending_items_for_job(context, review_store)
+        for item in items_of_kind(
+            await pending_items_for_job(context, review_store), ReviewKind.GRADE
+        )
     }
     unresolved_students = set(pending_items)
     attempts: list[ReworkAttempt] = []
