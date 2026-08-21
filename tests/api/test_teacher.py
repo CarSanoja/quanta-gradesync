@@ -214,7 +214,12 @@ async def test_teacher_assets_are_served_from_a_whitelist(client: httpx.AsyncCli
     script = await client.get("/teacher/assets/teacher.js")
     assert script.status_code == 200
     assert script.headers["content-type"].startswith("text/javascript")
-    for asset in ("teacher-upload.js", "teacher-triage.js", "teacher-detail.js"):
+    for asset in (
+        "teacher-upload.js",
+        "teacher-triage.js",
+        "teacher-detail.js",
+        "teacher-stage.js",
+    ):
         module = await client.get(f"/teacher/assets/{asset}")
         assert module.status_code == 200
         assert module.headers["content-type"].startswith("text/javascript")

@@ -21,6 +21,7 @@ ASSET_MEDIA_TYPES = {
     "teacher-upload.js": "text/javascript; charset=utf-8",
     "teacher-triage.js": "text/javascript; charset=utf-8",
     "teacher-detail.js": "text/javascript; charset=utf-8",
+    "teacher-stage.js": "text/javascript; charset=utf-8",
 }
 
 

@@ -38,15 +38,15 @@ function scanSide(review) {
       el("span", { class: "note", text: span.note }),
     ])
   ));
-  const side = el("div", { class: "scan-side" }, [
+  const nodes = [
     frame,
     review.evidence.length ? flags : null,
     el("p", {
       class: "scan-caption",
-      text: "The scanned page, exactly as it was uploaded. Quotes below are the grader's evidence.",
+      text: "The scanned page as it was uploaded, with the lines the grader quoted.",
     }),
-  ]);
-  return { side, frame };
+  ];
+  return { nodes, frame };
 }
 
 function feedbackPoints(points) {
@@ -127,21 +127,21 @@ function decisionSide(review, onDecide) {
   ]);
   approve.addEventListener("click", () => onDecide(review, "approve", [approve, sendBack]));
   sendBack.addEventListener("click", () => onDecide(review, "dismiss", [approve, sendBack]));
-  return el("div", { class: "decision-side" }, [
+  return el("aside", { class: "decision-side" }, [
     el("h3", { text: "Why it needs you" }),
     el("ul", { class: "reason-list" }, review.reasons.map((reason) => el("li", { text: reason }))),
-    el("h3", { text: "The proposed grade" }),
-    grades,
-    el("div", { class: "grade-total" }, [
+    el("div", { class: "grade-total is-lead" }, [
+      el("span", { class: "caption", text: "proposed" }),
       el("span", { class: "points", text: review.score_text }),
       el("span", { class: "percent", text: `${Math.round(review.percentage)}%` }),
     ]),
-    ...studentFeedback(review),
     el("div", { class: "decision-actions" }, [approve, sendBack]),
     el("p", {
       class: "decision-hint",
       text: "Approve puts this grade in the gradebook. The other way records no grade, so this exam comes back to you to grade by hand.",
     }),
+    el("h3", { text: "How the points add up" }),
+    grades,
   ]);
 }
 
@@ -153,7 +153,7 @@ export async function renderDetail(review, host, options) {
   const { onDecide, isOpen, scroll } = options;
   clear(host);
   host.hidden = false;
-  const { side, frame } = scanSide(review);
+  const { nodes, frame } = scanSide(review);
   host.append(
     el("div", { class: "detail-head" }, [
       el("h2", { text: review.student_name }),
@@ -163,7 +163,10 @@ export async function renderDetail(review, host, options) {
       }),
       el("span", { class: "group-tag", "data-group": review.group, text: GROUP_LABELS[review.group] || "" }),
     ]),
-    el("div", { class: "detail-grid" }, [side, decisionSide(review, onDecide)])
+    el("div", { class: "detail-grid" }, [
+      el("div", { class: "detail-main" }, [...nodes, ...studentFeedback(review)]),
+      decisionSide(review, onDecide),
+    ])
   );
   if (scroll) {
     host.scrollIntoView({ behavior: scroll, block: "nearest" });

@@ -2,12 +2,12 @@ import { ApiError, endpoints, getJson, getToken, postJson, setToken } from "/con
 import { clear, el } from "/console/assets/render.js";
 import { prettyName, setupUploads, showProgress, veils, escapeVeil } from "/teacher/assets/teacher-upload.js";
 import { detailButtons, prettySubject, renderDetail, timeAgo } from "/teacher/assets/teacher-detail.js";
+import { heroNote, renderCounts, renderIdle } from "/teacher/assets/teacher-stage.js";
 import { releaseLabel, releaseMessage, renderGroup } from "/teacher/assets/teacher-triage.js";
 
 const SUMMARY_PATH = "/teacher/summary";
 const POLL_MS = 6000;
 const MAX_POLLS = 40;
-const EM_DASH = "—";
 
 const dom = {};
 [
@@ -18,12 +18,23 @@ const dom = {};
   "hold-count", "hold-note", "hold-stack", "hold-reasons", "hold-release", "hold-hint",
   "hold-finder", "hold-search", "hold-list", "hold-more", "hold-empty", "review-section",
   "review-detail", "guided-panel", "guided-progress", "guided-flash", "guided-exit", "guided-body",
+  "stage-idle", "stage-idle-line", "stage-idle-hint", "stage-brief",
   "all-done", "all-done-note", "synced-tools", "synced-search", "synced-count", "synced-list",
   "access-veil", "access-form", "access-input", "access-error", "access-cancel", "release-veil",
   "release-title", "release-message", "release-error", "release-cancel", "release-confirm", "toast",
 ].forEach((id) => {
   dom[id.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())] = document.getElementById(id);
 });
+
+const counts = {
+  strip: dom.countStrip, waiting: dom.countWaiting, synced: dom.countSynced,
+  grading: dom.countGrading, time: dom.countTime,
+};
+
+const idle = {
+  panel: dom.stageIdle, line: dom.stageIdleLine, hint: dom.stageIdleHint,
+  brief: dom.stageBrief,
+};
 
 const groups = {
   judgement: {
@@ -92,50 +103,18 @@ function group(key) {
   return key === "judgement" ? summary.judgement : summary.batch_hold;
 }
 
-function heroNote(summary) {
-  const total = summary.waiting_count;
-  if (!total) return "";
-  const judged = summary.judgement.count;
-  const held = summary.batch_hold.count;
-  if (judged && held) {
-    return `${total} exams are on hold. ${judged} need your judgement one by one; the other `
-      + `${held} are held only by the batch rule and go out together.`;
-  }
-  if (judged) {
-    return judged === 1
-      ? "One exam needs your judgement before its grade goes out."
-      : `${judged} exams need your judgement before their grades go out.`;
-  }
-  return held === 1
-    ? "One exam is held only by the batch rule — nothing is wrong with it."
-    : `${held} exams are held only by the batch rule — nothing is wrong with them.`;
-}
-
-function formatMinutes(minutes) {
-  if (minutes === null || minutes === undefined) return EM_DASH;
-  if (minutes <= 0) return "done";
-  if (minutes < 60) return `${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  const rest = minutes % 60;
-  return rest ? `${hours} h ${rest} min` : `${hours} h`;
-}
-
 function renderCountStrip() {
-  const summary = state.summary;
-  if (!summary) {
-    dom.countStrip.hidden = true;
-    return;
-  }
-  const batch = summary.batch;
-  dom.countWaiting.textContent = String(summary.waiting_count);
-  dom.countSynced.textContent = String(batch ? batch.in_gradebook : state.synced.length);
-  dom.countGrading.textContent = batch ? String(batch.still_grading) : EM_DASH;
-  dom.countTime.textContent = batch ? formatMinutes(batch.minutes_left) : EM_DASH;
-  dom.countStrip.hidden = false;
+  renderCounts(counts, state.summary, state.synced.length);
 }
 
 function handlers() {
   return { onOpen: toggleReview, isOpen: (id) => state.openId === id };
+}
+
+function renderStage() {
+  const summary = state.summary;
+  const waiting = summary ? summary.waiting_count : 0;
+  renderIdle(idle, summary, !guided.active && !state.openId && waiting > 0);
 }
 
 function renderTriage() {
@@ -143,11 +122,13 @@ function renderTriage() {
   if (!summary) {
     return;
   }
-  const busy = guided.active;
-  dom.triage.hidden = busy || summary.waiting_count === 0;
-  dom.allDone.hidden = busy || summary.waiting_count > 0;
+  const nothingWaiting = summary.waiting_count === 0;
+  document.body.dataset.guided = guided.active ? "on" : "off";
+  dom.triage.hidden = nothingWaiting;
+  dom.allDone.hidden = guided.active || !nothingWaiting;
   dom.heroNote.textContent = heroNote(summary);
   dom.heroNote.hidden = !summary.waiting_count;
+  renderStage();
   if (dom.triage.hidden) {
     return;
   }
@@ -160,6 +141,9 @@ function renderTriage() {
   dom.holdHint.textContent = "One decision, one confirmation. Nothing from the other group can ride along.";
   renderGroup(groups.judgement, judged, dom.judgementSearch.value, handlers());
   renderGroup(groups.batch_hold, held, dom.holdSearch.value, handlers());
+  if (guided.active) {
+    groups[guided.group].action.hidden = true;
+  }
 }
 
 async function openDetail(review, host, scroll) {
@@ -180,12 +164,19 @@ function closeDetail() {
 }
 
 async function toggleReview(reviewId) {
-  if (state.openId === reviewId) {
-    closeDetail();
-    return;
-  }
   const review = state.byId.get(reviewId);
   if (!review) {
+    return;
+  }
+  if (guided.active) {
+    if (review.group === guided.group) {
+      await jumpGuided(reviewId);
+      return;
+    }
+    exitGuided();
+  }
+  if (state.openId === reviewId) {
+    closeDetail();
     return;
   }
   state.openId = reviewId;
@@ -237,11 +228,26 @@ function guidedStale() {
   return !dom.guidedBody.childElementCount || !state.byId.has(state.openId);
 }
 
+async function jumpGuided(reviewId) {
+  if (state.openId === reviewId) {
+    return;
+  }
+  const at = guided.queue.indexOf(reviewId);
+  if (at > 0) {
+    guided.queue.splice(at, 1);
+  }
+  if (at !== 0) {
+    guided.queue.unshift(reviewId);
+    guided.total = Math.max(guided.total, guided.queue.length);
+  }
+  await renderGuided();
+}
+
 async function renderGuided() {
   dom.guidedPanel.hidden = false;
-  dom.triage.hidden = true;
   dom.reviewDetail.hidden = true;
   dom.allDone.hidden = true;
+  dom.stageIdle.hidden = true;
   const review = nextGuidedReview();
   dom.guidedFlash.textContent = guided.flash;
   dom.guidedFlash.hidden = !guided.flash;
@@ -253,12 +259,13 @@ async function renderGuided() {
   }
   state.openId = review.review_id;
   dom.guidedProgress.textContent = `Exam ${Math.min(guided.done + 1, guided.total)} of ${guided.total}`;
+  renderTriage();
   await openDetail(review, dom.guidedBody, null);
 }
 
 function startGuided(key) {
   const items = groupItems(key);
-  if (!items.length) {
+  if (!items.length || (guided.active && guided.group === key)) {
     return;
   }
   Object.assign(guided, {
@@ -275,7 +282,8 @@ function startGuided(key) {
   state.openId = null;
   dom.reviewDetail.hidden = true;
   clear(dom.reviewDetail);
-  dom.guidedPanel.scrollIntoView({ behavior: scrollMode(), block: "start" });
+  renderTriage();
+  dom.guidedPanel.scrollIntoView({ behavior: scrollMode(), block: "nearest" });
   renderGuided();
 }
 
