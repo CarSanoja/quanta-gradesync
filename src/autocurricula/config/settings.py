@@ -74,6 +74,15 @@ class Settings(BaseSettings):
 
     sis_base_url: str = ""
     sis_api_token: str = ""
+    sis_audience: str = ""
+
+    runtime_service_account: str = ""
+    sis_writer_service_account: str = ""
+    agent_impersonation_enabled: bool = False
+    agent_impersonation_lifetime_seconds: int = Field(default=3600, ge=60, le=43200)
+
+    gemma_model: str = "gemma-4-31b-it"
+    gemma_api_key: str = ""
 
     resume_stale_after_seconds: float = Field(default=600.0, gt=0.0)
     batch_settle_interval_seconds: float = Field(default=0.0, ge=0.0, le=120.0)
