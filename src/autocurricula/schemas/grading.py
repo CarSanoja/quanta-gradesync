@@ -35,7 +35,7 @@ class GradingResult(FrozenStrictModel):
 
 class GradingBatchResult(FrozenStrictModel):
     job_id: JobId
-    results: list[GradingResult] = Field(min_length=1)
+    results: list[GradingResult] = Field(default_factory=list)
     graded_at: TzAwareDatetime
     model_id: str = Field(min_length=1)
 

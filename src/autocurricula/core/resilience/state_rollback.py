@@ -1,19 +1,38 @@
-from autocurricula.core.resilience.dead_letter_store import (
-    DeadLetterEntry,
-    DeadLetterStatus,
-    DeadLetterStore,
+from autocurricula.core.resilience.dead_letter_store import DeadLetterEntry, DeadLetterStore
+from autocurricula.core.resilience.orphan_ledger import (
+    DLQ_KIND_SIS_WRITE,
+    UNREACHABLE_STATUS,
+    clear_written,
+    known_orphans,
+    park_rejected,
+    park_unreachable,
 )
-from autocurricula.schemas.sis_sync import SISGradeRecord, SISWriteResult
-from autocurricula.tools.sis_connector import SUCCESS_STATUSES, SISConnector
-
-DLQ_KIND_SIS_WRITE = "sis_write"
+from autocurricula.schemas.sis_sync import SISGradeRecord, SISWriteRequest, SISWriteResult
+from autocurricula.tools.sis_connector import SUCCESS_STATUSES, SISConnector, SisWriteError
 
 
 class SyncPartialError(RuntimeError):
-    def __init__(self, merged: SISWriteResult, failed_ids: list[str]) -> None:
-        super().__init__(f"sis write failed for students: {sorted(failed_ids)}")
+    def __init__(
+        self, merged: SISWriteResult, failed_ids: list[str], message: str | None = None
+    ) -> None:
+        ordered = sorted(failed_ids)
+        super().__init__(message or f"sis write failed for students: {ordered}")
         self.merged = merged
-        self.failed_ids = sorted(failed_ids)
+        self.failed_ids = ordered
+
+
+class SyncOutageError(SyncPartialError):
+    def __init__(
+        self, merged: SISWriteResult, failed_ids: list[str], detail: str
+    ) -> None:
+        ordered = sorted(failed_ids)
+        super().__init__(
+            merged,
+            ordered,
+            f"sis unreachable ({detail}); {len(ordered)} records parked as "
+            f"orphans: {ordered}",
+        )
+        self.detail = detail
 
 
 def succeeded_targets(previous: SISWriteResult | None) -> set[str]:
@@ -41,6 +60,7 @@ def retryable_records(
             for record in records
             if record.student_id in pending_targets
             and record.student_id not in exhausted_targets
+            and record.student_id not in already_done
         ]
     return [
         record
@@ -48,6 +68,26 @@ def retryable_records(
         if record.student_id not in already_done
         and record.student_id not in exhausted_targets
     ]
+
+
+def merge_result(
+    job_id: str,
+    previous_ok: set[str],
+    statuses: dict[str, str],
+    quarantined_count: int,
+) -> SISWriteResult:
+    merged_statuses = {student_id: "ok" for student_id in previous_ok}
+    merged_statuses.update(statuses)
+    succeeded = sum(
+        1 for status in merged_statuses.values() if status in SUCCESS_STATUSES
+    )
+    return SISWriteResult(
+        job_id=job_id,
+        per_record_statuses=merged_statuses,
+        succeeded_count=succeeded,
+        failed_count=len(merged_statuses) - succeeded,
+        quarantined_count=quarantined_count,
+    )
 
 
 async def write_with_rollback(
@@ -64,65 +104,36 @@ async def write_with_rollback(
     exhausted = await dead_letter.list_exhausted(job_id, DLQ_KIND_SIS_WRITE)
     targets = retryable_records(records, previous, orphans, exhausted)
     previous_ok = succeeded_targets(previous)
+    known = known_orphans(orphans + exhausted)
     if not targets:
-        return SISWriteResult(
-            job_id=job_id,
-            per_record_statuses={
-                student_id: "ok"
-                for student_id in previous_ok
-            },
-            succeeded_count=len(previous_ok),
-            failed_count=0,
-            quarantined_count=quarantined_count,
+        return merge_result(job_id, previous_ok, {}, quarantined_count)
+    target_ids = [record.student_id for record in targets]
+    try:
+        result = await sis_connector.write_grades(
+            SISWriteRequest(job_id=job_id, records=targets)
         )
-    result = await sis_connector.write_grades(
-        _request(job_id, targets)
+    except SisWriteError as error:
+        detail = f"{type(error).__name__}: {error}"
+        merged = merge_result(
+            job_id,
+            previous_ok,
+            {student_id: UNREACHABLE_STATUS for student_id in target_ids},
+            quarantined_count,
+        )
+        await park_unreachable(
+            dead_letter, job_id, target_ids, known, max_attempts, detail
+        )
+        raise SyncOutageError(merged, target_ids, detail) from error
+    merged = merge_result(
+        job_id, previous_ok, result.per_record_statuses, quarantined_count
     )
+    await clear_written(dead_letter, job_id, known, merged.per_record_statuses)
     failed_ids = sorted(
         student_id
         for student_id, status in result.per_record_statuses.items()
         if status not in SUCCESS_STATUSES
     )
-    merged_statuses = {
-        student_id: "ok" for student_id in previous_ok
-    }
-    merged_statuses.update(result.per_record_statuses)
-    merged = SISWriteResult(
-        job_id=job_id,
-        per_record_statuses=merged_statuses,
-        succeeded_count=sum(
-            1 for status in merged_statuses.values() if status in SUCCESS_STATUSES
-        ),
-        failed_count=len(failed_ids),
-        quarantined_count=quarantined_count,
-    )
     if failed_ids:
-        existing = {entry.target: entry for entry in orphans + exhausted}
-        for student_id in failed_ids:
-            prior = existing.get(student_id)
-            attempts = (prior.attempts + 1) if prior is not None else 1
-            entry = DeadLetterEntry(
-                kind=DLQ_KIND_SIS_WRITE,
-                job_id=job_id,
-                target=student_id,
-                reason="sis write returned non-success status",
-                attempts=attempts,
-                max_attempts=max_attempts,
-                status=(
-                    DeadLetterStatus.EXHAUSTED
-                    if attempts >= max_attempts
-                    else DeadLetterStatus.PENDING
-                ),
-            )
-            await dead_letter.record(entry)
+        await park_rejected(dead_letter, job_id, failed_ids, known, max_attempts)
         raise SyncPartialError(merged, failed_ids)
-    for entry in orphans:
-        if entry.target in merged.per_record_statuses:
-            await dead_letter.resolve(job_id, DLQ_KIND_SIS_WRITE, entry.target)
     return merged
-
-
-def _request(job_id: str, records: list[SISGradeRecord]):
-    from autocurricula.schemas.sis_sync import SISWriteRequest
-
-    return SISWriteRequest(job_id=job_id, records=records)

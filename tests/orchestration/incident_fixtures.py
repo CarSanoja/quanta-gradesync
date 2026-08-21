@@ -11,11 +11,17 @@ from autocurricula.core.orchestration.catalog import (
 )
 from autocurricula.core.orchestration.job_state import LocalCheckpointStore
 from autocurricula.core.orchestration.runner import JobRunner
+from autocurricula.core.resilience import DeadLetterStore
 from autocurricula.core.review import LocalReviewStore
 from autocurricula.schemas.exam import ExamBatch, ExamFile, ExamSubmission
+from autocurricula.schemas.sis_sync import SISWriteRequest, SISWriteResult
 from autocurricula.schemas.verification import VerificationReport
 from autocurricula.tools.gcs_fetcher import LocalStagingFetcher
-from autocurricula.tools.sis_connector import LocalSISConnector
+from autocurricula.tools.sis_connector import (
+    SUCCESS_STATUSES,
+    LocalSISConnector,
+    SisWriteError,
+)
 from tests.orchestration.verifier_fixtures import ConfidenceMapEvaluator
 from tests.review.flow_stack import (
     BUCKET,
@@ -83,6 +89,47 @@ class CrashingEvaluator:
         return await self._delegate.grade(submission, rubric, context)
 
 
+def healthy_evaluator(students: tuple[str, ...], confidence: float = 0.95):
+    return ConfidenceMapEvaluator({student: confidence for student in students})
+
+
+class ScriptedSISConnector:
+    def __init__(
+        self, data_dir: Path, *, outage: bool = False, failing: tuple[str, ...] = ()
+    ) -> None:
+        self._delegate = LocalSISConnector(data_dir=data_dir)
+        self.outage = outage
+        self.failing = set(failing)
+        self.seen_targets: list[list[str]] = []
+
+    async def write_grades(self, request: SISWriteRequest) -> SISWriteResult:
+        self.seen_targets.append([record.student_id for record in request.records])
+        if self.outage:
+            raise SisWriteError("ConnectError: All connection attempts failed")
+        accepted = [
+            record
+            for record in request.records
+            if record.student_id not in self.failing
+        ]
+        statuses = {
+            record.student_id: "error:HTTP_500"
+            for record in request.records
+            if record.student_id in self.failing
+        }
+        if accepted:
+            written = await self._delegate.write_grades(
+                SISWriteRequest(job_id=request.job_id, records=accepted)
+            )
+            statuses.update(written.per_record_statuses)
+        succeeded = sum(1 for status in statuses.values() if status in SUCCESS_STATUSES)
+        return SISWriteResult(
+            job_id=request.job_id,
+            per_record_statuses=statuses,
+            succeeded_count=succeeded,
+            failed_count=len(statuses) - succeeded,
+        )
+
+
 def build_incident_runner(
     settings,
     memory_manager: MemoryManager,
@@ -92,6 +139,8 @@ def build_incident_runner(
     checkpoint_dir: Path | None = None,
     breaker: BatchAnomalyBreaker | None = None,
     verify_max_iterations: int = 0,
+    sis_connector=None,
+    dead_letter: DeadLetterStore | None = None,
 ) -> tuple[JobRunner, LocalReviewStore]:
     store = review_store or LocalReviewStore(data_dir=settings.local_data_dir)
     runner = JobRunner(
@@ -100,7 +149,11 @@ def build_incident_runner(
         grading_evaluator=evaluator,
         auditor=ScriptedAuditor(),
         risk_detector=RiskDetector(),
-        sis_connector=LocalSISConnector(data_dir=settings.local_data_dir),
+        sis_connector=(
+            sis_connector
+            if sis_connector is not None
+            else LocalSISConnector(data_dir=settings.local_data_dir)
+        ),
         checkpoint_store=LocalCheckpointStore(
             data_dir=checkpoint_dir or settings.local_data_dir
         ),
@@ -108,6 +161,7 @@ def build_incident_runner(
         review_store=store,
         sis_breaker=breaker,
         verify_max_iterations=verify_max_iterations,
+        dead_letter=dead_letter,
     )
     return runner, store
 

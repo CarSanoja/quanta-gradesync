@@ -20,7 +20,6 @@ from autocurricula.core.orchestration.context import (
     FetchOutputs,
     JobContext,
     StageCallable,
-    StageExecutionError,
 )
 from autocurricula.core.orchestration.grade_guard_wiring import build_grade_guard
 from autocurricula.core.orchestration.grade_outcome import store_grade_report
@@ -136,7 +135,12 @@ def build_grade_step(
                 len(outputs.batch.submissions),
             )
         if not results:
-            raise StageExecutionError(STAGE_GRADE, "no submissions could be graded")
+            logger.error(
+                "job %s: none of the %d submissions could be graded; the batch "
+                "continues so every exam reaches teacher review",
+                context.job_id,
+                len(outputs.batch.submissions),
+            )
         context.complete(
             STAGE_GRADE,
             GradingBatchResult(

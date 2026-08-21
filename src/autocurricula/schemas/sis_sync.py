@@ -19,7 +19,7 @@ class SISGradeRecord(FrozenStrictModel):
 
 class SISWriteRequest(FrozenStrictModel):
     job_id: JobId
-    records: list[SISGradeRecord] = Field(min_length=1)
+    records: list[SISGradeRecord] = Field(default_factory=list)
 
     @field_validator("records")
     @classmethod

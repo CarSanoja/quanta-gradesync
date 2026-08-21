@@ -5,9 +5,11 @@ from autocurricula.core.harness import BatchAnomalyBreaker
 from autocurricula.core.memory.manager import MemoryManager
 from autocurricula.core.orchestration.goal_checks import (
     CHECK_FAILURES_RESOLVED,
+    CHECK_SIS_AUTO_SYNCED,
     CHECK_SUBMISSIONS_GRADED,
 )
 from autocurricula.core.orchestration.job_state import JobStage
+from autocurricula.core.orchestration.verifier import NO_GRADES_ERROR
 from autocurricula.schemas.review import ReviewKind, ReviewStatus
 from tests.orchestration.incident_fixtures import (
     CrashingEvaluator,
@@ -60,6 +62,41 @@ async def test_crashed_exams_stay_visible_and_widen_the_breaker(tmp_path: Path) 
     assert len(report.failed_submission_ids) == 15
     assert check_named(report, CHECK_FAILURES_RESOLVED).passed is False
     assert check_named(report, CHECK_SUBMISSIONS_GRADED).detail == "1/16 graded"
+
+
+async def test_a_batch_where_every_exam_crashes_still_reaches_the_teacher(
+    tmp_path: Path,
+) -> None:
+    settings = make_settings(tmp_path)
+    memory_manager = MemoryManager.from_settings(settings)
+    students = roster(16)
+    stage_roster(settings, JOB_ID, students)
+    runner, review_store = build_incident_runner(
+        settings,
+        memory_manager,
+        CrashingEvaluator(healthy=()),
+        breaker=BatchAnomalyBreaker(threshold=0.15),
+    )
+
+    record = await runner.process(make_event(JOB_ID))
+
+    assert record.stage == JobStage.FAILED
+    assert NO_GRADES_ERROR in (record.error or "")
+    pending = await review_store.list_pending()
+    failures = [item for item in pending if item.kind == ReviewKind.FAILED_GRADING]
+    assert {item.student_id for item in failures} == set(students)
+    assert all(
+        translate_reasons(item.reasons) == [COULD_NOT_GRADE] for item in failures
+    )
+    assert all(item.document_paths for item in failures)
+    assert synced_records(settings) == []
+
+    report = await verification_report(settings, JOB_ID)
+    assert report.passed is False
+    assert len(report.failed_submission_ids) == 16
+    assert check_named(report, CHECK_SUBMISSIONS_GRADED).detail == "0/16 graded"
+    assert check_named(report, CHECK_FAILURES_RESOLVED).passed is False
+    assert check_named(report, CHECK_SIS_AUTO_SYNCED).passed is True
 
 
 async def test_retry_resolves_the_failure_item_without_duplicating(tmp_path: Path) -> None:

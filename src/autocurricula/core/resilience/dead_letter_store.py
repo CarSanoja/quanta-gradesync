@@ -100,11 +100,13 @@ class LocalDeadLetterStore:
         return await asyncio.to_thread(_read)
 
     async def _save(self, state: dict[str, Any]) -> None:
-        await asyncio.to_thread(
-            self._path.write_text,
-            json.dumps(state, indent=2, sort_keys=True),
-            "utf-8",
-        )
+        payload = json.dumps(state, indent=2, sort_keys=True)
+
+        def _write() -> None:
+            self._path.parent.mkdir(parents=True, exist_ok=True)
+            self._path.write_text(payload, encoding="utf-8")
+
+        await asyncio.to_thread(_write)
 
 
 class FirestoreDeadLetterStore:
