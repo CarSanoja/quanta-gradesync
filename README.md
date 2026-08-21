@@ -12,7 +12,8 @@ not decide alone.
 
 ## The fleet
 
-Eleven specialized agents behind one deterministic harness, built with the
+Ten model-backed agents and one deterministic repair component behind a single
+governing harness, built with the
 Google Agent Development Kit on Gemini 3.5 Flash (deep multimodal reasoning,
 thinking enabled) and Gemini 3.5 Flash-Lite (high-speed structured extraction):
 
@@ -24,10 +25,16 @@ thinking enabled) and Gemini 3.5 Flash-Lite (high-speed structured extraction):
 | 4 | Armor screener | Flash-Lite | Model Armor: detects handwritten prompt injection and forces quarantine |
 | 5 | Second-opinion evaluator | Flash-Lite | Bounded rework loop over quarantined exams (human-in-the-loop stays in charge) |
 | 6 | Fallback evaluator | Flash-Lite | Model failover on timeout or resource exhaustion, confidence discounted |
-| 7 | Schema repair agent | Flash-Lite | Bounded self-repair of malformed structured outputs before dead-lettering |
+| 7 | Schema repair component | deterministic | Bounded self-repair loop: re-invokes the caller's own evaluator with a corrective instruction, then dead-letters. Holds no model and no capability of its own |
 | 8 | Prompt proposer | Flash-Lite | Mutates grading prompts for the tournament |
 | 9 | Calibration evaluator | Flash | Re-grades human-scored samples to score each candidate prompt |
 | 10–11 | Meta-optimizers (grading, audit) | — | Tournament selection with adversarial anti-gaming validation and a composite objective gate (QWK ≥ 0.85 ∧ MAE ≤ 0.4 ∧ \|bias\| < 0.1) |
+
+This table is not a hand-maintained claim: `GET /fleet/registry` derives the
+live catalog from the running configuration — model ids, stage bindings,
+capability scope, identity principal, bound prompt variant and a content hash
+per agent — so documentation drift is detectable rather than assumed. The
+operations console renders it as a Fleet panel.
 
 The harness around them is deterministic and cannot be argued with: permission
 gate (DENY > QUARANTINE > ALLOW), per-exam call budgets, circuit breakers,
