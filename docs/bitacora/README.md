@@ -29,3 +29,4 @@ verification) live in the [requests registry](../solicitudes/README.md).
 | 2026-08-20 | [Implementation 008: roster, resilience, calibration, cold-start](2026-08-20-implementacion-008-roster-resilience-calibration.md) | Implementation |
 | 2026-08-20 | [Implementation 009: teacher scale, adversarial review](2026-08-20-implementacion-009-teacher-scale-adversarial-review.md) | Implementation |
 | 2026-08-20 | [Implementation 010: no silent losses](2026-08-20-implementacion-010-no-silent-losses.md) | Implementation |
+| 2026-08-21 | [Implementation 011: fleet registry, per-agent identity, red-team arena](2026-08-21-implementacion-011-fleet-registry-identity.md) | Implementation |
