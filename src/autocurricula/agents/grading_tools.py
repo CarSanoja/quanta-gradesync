@@ -1,6 +1,7 @@
 from typing import Any
 
 from autocurricula.config.settings import Settings
+from autocurricula.core.armor.metadata import safe_identifier, safe_path
 from autocurricula.core.memory.manager import MemoryManager
 from autocurricula.tools.base import as_function_tool
 from autocurricula.tools.gcs_fetcher import fetch_exam_files as stage_batch_files
@@ -11,6 +12,17 @@ from autocurricula.tools.vector_search import (
 from autocurricula.tools.vector_search import (
     search_rubrics as retrieve_rubric_passages,
 )
+
+
+def prompt_safe_tool_result(result: dict[str, Any]) -> dict[str, Any]:
+    files = result.get("payload", {}).get("files")
+    if not isinstance(files, dict):
+        return result
+    result["payload"]["files"] = {
+        safe_identifier(submission_id): [safe_path(path) for path in paths]
+        for submission_id, paths in files.items()
+    }
+    return result
 
 
 def build_grading_tools(settings: Settings) -> list[Any]:
@@ -25,7 +37,7 @@ def build_grading_tools(settings: Settings) -> list[Any]:
             Tool result with ok, error and a payload holding the staged local paths.
         """
         result = await stage_batch_files(batch)
-        return result.model_dump(mode="json")
+        return prompt_safe_tool_result(result.model_dump(mode="json"))
 
     async def search_rubrics(
         query: str, subject: str = "", top_k: int = DEFAULT_TOP_K

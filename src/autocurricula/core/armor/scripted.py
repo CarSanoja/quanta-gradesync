@@ -12,12 +12,15 @@ INJECTION_PATTERNS = tuple(
         r"ignore\s+(?:the\s+|all\s+|any\s+)?(?:rubric|instructions?|grading)",
         r"disregard\s+(?:the\s+|all\s+)?(?:rubric|instructions?)",
         r"give\s+(?:me\s+|us\s+|him\s+|her\s+)?full\s+marks",
-        r"award\s+(?:a\s+)?(?:full|perfect|maximum)\s+(?:marks?|scores?)",
+        r"(?:award|assign|give|grant|set)\s+(?:me\s+|us\s+|him\s+|her\s+|them\s+)?"
+        r"(?:a\s+|the\s+)?(?:full|perfect|maximum|max)\s+"
+        r"(?:marks?|scores?|grades?|credit)",
         r"system\s+note",
         r"you\s+are\s+(?:the\s+)?(?:grader|grading\s+system|ai|assistant)",
         r"(?:teacher|instructor)\s+(?:has\s+)?already\s+approved",
         r"grade\s+this\s+(?:a\s+|as\s+)?(?:100|perfect)",
-        r"perfect\s+score",
+        r"(?:score|grade|mark)\s+(?:this|it|me|him|her|them)\s+(?:at\s+|as\s+|with\s+)?"
+        r"(?:the\s+)?(?:maximum|max|full|perfect|10|100)",
     )
 )
 

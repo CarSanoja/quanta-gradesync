@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import re
 from pathlib import Path
 from typing import Protocol, runtime_checkable
@@ -6,6 +7,7 @@ from typing import Protocol, runtime_checkable
 from pydantic import Field
 
 from autocurricula.config import Settings
+from autocurricula.core.armor import safe_identifier, scan_identifier
 from autocurricula.core.orchestration.catalog import (
     BatchManifest,
     CatalogError,
@@ -21,6 +23,8 @@ from autocurricula.core.orchestration.catalog_defaults import (
 from autocurricula.schemas.common import StrictBaseModel
 from autocurricula.schemas.events import PubSubJobEvent
 from autocurricula.schemas.exam import ExamBatch, ExamFile, ExamSubmission
+
+logger = logging.getLogger(__name__)
 
 LOT_CODE_PATTERN = re.compile(
     r"^(?P<year>\d{4})_(?P<subject>[A-Za-z0-9\-]+)_(?P<class_id>[A-Za-z0-9\-]+)"
@@ -48,10 +52,17 @@ def parse_lot_code(prefix: str) -> LotCode:
     segment = [part for part in prefix.split("/") if part.strip()]
     if not segment:
         raise CatalogError("batch prefix is empty; cannot infer lot code")
-    match = LOT_CODE_PATTERN.fullmatch(segment[-1].strip())
+    code = segment[-1].strip()
+    match = LOT_CODE_PATTERN.fullmatch(code)
     if match is None:
         raise CatalogError(
             f"lot code {segment[-1]!r} does not follow convention {LOT_CONVENTION}"
+        )
+    hit = scan_identifier(code)
+    if hit is not None:
+        raise CatalogError(
+            f"lot code {code!r} reads as an instruction to the grading system "
+            f"({hit.technique} match on {hit.quote!r}); rename the batch folder"
         )
     return LotCode(
         year=int(match.group("year")),
@@ -80,10 +91,17 @@ def build_submissions(event: PubSubJobEvent, file_names: list[str]) -> list[Exam
         if mime is None:
             continue
         stem = Path(name).stem
+        identity = safe_identifier(stem)
+        if identity != stem:
+            logger.warning(
+                "file name %r is not usable as a student id; grading it as %r",
+                name,
+                identity,
+            )
         submissions.append(
             ExamSubmission(
-                submission_id=stem,
-                student_id=stem,
+                submission_id=identity,
+                student_id=identity,
                 files=[
                     ExamFile(
                         gcs_uri=f"gs://{event.bucket}/{prefix}/{name}",

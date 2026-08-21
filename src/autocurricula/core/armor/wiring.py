@@ -4,7 +4,9 @@ from typing import Any, Protocol, runtime_checkable
 
 from autocurricula.config.settings import Settings, get_settings
 from autocurricula.core.armor.legibility import batch_legibility, confidence_factor
+from autocurricula.core.armor.prescreen import PrescreenedDetector
 from autocurricula.core.armor.scripted import ScriptedInjectionDetector
+from autocurricula.core.armor.transcripts import raw_provider_for
 from autocurricula.core.harness import SidecarTextProvider, sidecar_texts_from_batch
 from autocurricula.schemas.armor import ArmorBatchReport, ArmorVerdict
 from autocurricula.schemas.exam import ExamBatch, ExamSubmission
@@ -21,12 +23,14 @@ class InjectionDetector(Protocol):
 
 def build_injection_detector(settings: Settings, batch: ExamBatch) -> InjectionDetector:
     if settings.local_mode:
-        return ScriptedInjectionDetector(
+        inner: Any = ScriptedInjectionDetector(
             SidecarTextProvider(sidecar_texts_from_batch(batch))
         )
-    from autocurricula.core.armor.llm import LlmInjectionDetector
+    else:
+        from autocurricula.core.armor.llm import LlmInjectionDetector
 
-    return LlmInjectionDetector(settings)
+        inner = LlmInjectionDetector(settings)
+    return PrescreenedDetector(inner, provider=raw_provider_for(batch))
 
 
 def resolve_injection_detector(

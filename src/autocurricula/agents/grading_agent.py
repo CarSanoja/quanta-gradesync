@@ -17,6 +17,7 @@ from autocurricula.agents.prompts.grading_prompts import (
     grading_repair_instruction,
 )
 from autocurricula.config.settings import Settings
+from autocurricula.core.armor.metadata import prompt_safe_submission, safe_path
 from autocurricula.core.evolution.prompt_mutator import PromptVariant
 from autocurricula.schemas.exam import ExamSubmission
 from autocurricula.schemas.grading import GradingResult
@@ -77,7 +78,7 @@ async def build_grading_parts(
     max_inline_bytes: int = MAX_INLINE_FILE_BYTES,
 ) -> list[Any]:
     task = {
-        "submission": submission.model_dump(mode="json"),
+        "submission": prompt_safe_submission(submission),
         "rubric": rubric.model_dump(mode="json"),
         "retrieved_context": context.model_dump(mode="json"),
     }
@@ -85,14 +86,15 @@ async def build_grading_parts(
     parts = [text_part(f"GRADE THIS SUBMISSION\n{payload}")]
     notes: list[str] = []
     for file in submission.files:
+        safe_uri = safe_path(file.gcs_uri)
         if file.local_path is None:
-            notes.append(f"{file.gcs_uri}: not staged inline; call fetch_exam_files")
+            notes.append(f"{safe_uri}: not staged inline; call fetch_exam_files")
             continue
         part = await inline_file_part(
             file.local_path, file.mime_type, max_bytes=max_inline_bytes
         )
         if part is None:
-            notes.append(f"{file.gcs_uri}: exceeds inline byte limit; call fetch_exam_files")
+            notes.append(f"{safe_uri}: exceeds inline byte limit; call fetch_exam_files")
         else:
             parts.append(part)
     if notes:

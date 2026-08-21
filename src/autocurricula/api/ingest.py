@@ -13,6 +13,7 @@ from autocurricula.api.ingest_storage import (
     upload_object_name,
 )
 from autocurricula.api.webhooks import require_push_token
+from autocurricula.core.armor import scan_identifier
 from autocurricula.core.orchestration.manifest_inference import (
     LOT_CODE_PATTERN,
     LOT_CONVENTION,
@@ -45,12 +46,23 @@ def _unprocessable(detail: str) -> HTTPException:
     )
 
 
+def reject_grader_directed(value: str, channel: str) -> None:
+    hit = scan_identifier(value)
+    if hit is None:
+        return
+    raise _unprocessable(
+        f"{channel} {value!r} reads as an instruction to the grading system "
+        f"({hit.technique} match on {hit.quote!r}); rename the file before uploading"
+    )
+
+
 def validate_lot_code(lot_code: str) -> str:
     stripped = lot_code.strip()
     if LOT_CODE_PATTERN.fullmatch(stripped) is None:
         raise _unprocessable(
             f"lot code {stripped!r} does not follow convention {LOT_CONVENTION}"
         )
+    reject_grader_directed(stripped, "lot code")
     return stripped
 
 
@@ -118,6 +130,7 @@ async def ingest_exam(
     name, stem, suffix = validate_file_name(file.filename or "", mode != MODE_RENAME)
     target_name = resolve_target_name(mode, name, suffix, new_student_name)
     student_id = Path(target_name).stem
+    reject_grader_directed(student_id, "file stem")
     payload = await file.read(MAX_UPLOAD_BYTES + 1)
     if len(payload) > MAX_UPLOAD_BYTES:
         raise HTTPException(
