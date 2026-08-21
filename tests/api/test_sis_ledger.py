@@ -380,3 +380,34 @@ async def test_sis_records_reads_firestore_in_gcp_mode(
         "/sis/records?job_id=job-later", headers=ledger_headers
     )
     assert [item["student_id"] for item in filtered.json()["items"]] == ["tomas-vega"]
+
+
+def test_ledger_document_carries_student_feedback():
+    from autocurricula.schemas.feedback import FeedbackBand, FeedbackPoint, StudentFeedback
+    from autocurricula.schemas.common import utc_now
+    from autocurricula.schemas.sis_sync import SISGradeRecord
+    from autocurricula.tools.sis_firestore import build_ledger_document
+
+    feedback = StudentFeedback(
+        band=FeedbackBand.LOWER_SECONDARY,
+        headline="You factored the expression correctly.",
+        strengths=[FeedbackPoint(text="You checked the factor pair by expanding.")],
+        growth=[FeedbackPoint(text="Next time state the time of the maximum.")],
+        next_step="Write the clock time beside the highest temperature.",
+        teacher_note="Confident on factoring; graph reading is the gap.",
+    )
+    record = SISGradeRecord(
+        student_id="ana-torres",
+        subject="Matematicas",
+        score=9.0,
+        percentage=90.0,
+        feedback="Solid work.",
+        graded_at=utc_now(),
+        student_feedback=feedback,
+    )
+
+    doc = build_ledger_document("job-1", record, {}, "2026-08-21T00:00:00Z")
+
+    assert doc["student_feedback"]["headline"] == "You factored the expression correctly."
+    assert doc["student_feedback"]["band"] == "lower_secondary"
+    assert doc["student_feedback"]["teacher_note"]
