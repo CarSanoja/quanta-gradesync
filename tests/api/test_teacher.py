@@ -4,6 +4,14 @@ from pathlib import Path
 import httpx
 
 from autocurricula.api.dependencies import AppContainer
+from autocurricula.api.teacher_triage import (
+    BATCH_HOLD_EMPTY,
+    BATCH_HOLD_NOTE,
+    BATCH_HOLD_TITLE,
+    JUDGEMENT_EMPTY,
+    JUDGEMENT_NOTE,
+    JUDGEMENT_TITLE,
+)
 from autocurricula.api.teacher_views import (
     BATCH_HELD,
     BLURRY_SCAN,
@@ -206,9 +214,10 @@ async def test_teacher_assets_are_served_from_a_whitelist(client: httpx.AsyncCli
     script = await client.get("/teacher/assets/teacher.js")
     assert script.status_code == 200
     assert script.headers["content-type"].startswith("text/javascript")
-    uploads = await client.get("/teacher/assets/teacher-upload.js")
-    assert uploads.status_code == 200
-    assert uploads.headers["content-type"].startswith("text/javascript")
+    for asset in ("teacher-upload.js", "teacher-triage.js", "teacher-detail.js"):
+        module = await client.get(f"/teacher/assets/{asset}")
+        assert module.status_code == 200
+        assert module.headers["content-type"].startswith("text/javascript")
     traversal = await client.get("/teacher/assets/%2e%2e%2fteacher.py")
     assert traversal.status_code == 404
     unknown = await client.get("/teacher/assets/console.js")
@@ -222,10 +231,33 @@ async def test_teacher_summary_requires_the_access_token(client: httpx.AsyncClie
     assert wrong.status_code == 403
 
 
+def empty_group(key: str, title: str, note: str, empty_note: str, bulk: bool) -> dict:
+    return {
+        "key": key,
+        "title": title,
+        "count": 0,
+        "note": note,
+        "empty_note": empty_note,
+        "bulk_releasable": bulk,
+        "reasons": [],
+        "items": [],
+    }
+
+
 async def test_teacher_summary_starts_empty(client: httpx.AsyncClient, auth_headers) -> None:
     response = await client.get("/teacher/summary", headers=auth_headers)
     assert response.status_code == 200
-    assert response.json() == {"waiting": [], "waiting_count": 0, "batch": None}
+    assert response.json() == {
+        "waiting": [],
+        "waiting_count": 0,
+        "judgement": empty_group(
+            "judgement", JUDGEMENT_TITLE, JUDGEMENT_NOTE, JUDGEMENT_EMPTY, False
+        ),
+        "batch_hold": empty_group(
+            "batch_hold", BATCH_HOLD_TITLE, BATCH_HOLD_NOTE, BATCH_HOLD_EMPTY, True
+        ),
+        "batch": None,
+    }
 
 
 async def test_teacher_summary_translates_reasons_and_projects_plain_grades(
@@ -355,3 +387,44 @@ async def test_batch_progress_is_absent_for_an_unknown_batch(
     )
     assert response.status_code == 200
     assert response.json()["batch"] is None
+
+
+async def test_batch_progress_counts_the_grades_the_teacher_released(
+    client: httpx.AsyncClient, container: AppContainer, auth_headers
+) -> None:
+    stage_uploads(container.settings, ["ana-torres.jpg", "luis-perez.jpg", "nora-diaz.jpg"])
+    await container.checkpoint_store.save(make_batch_record())
+    await container.checkpoint_store.save_state(BATCH_JOB_ID, make_synced_state())
+    held = "batch anomaly breaker: quarantine ratio 0.400 exceeds threshold 0.150"
+    for student in ("ana-torres", "nora-diaz"):
+        item = make_review(BATCH_JOB_ID, [held])
+        await container.review_service.store.put(
+            item.model_copy(
+                update={
+                    "review_id": f"{BATCH_JOB_ID}:{student}",
+                    "student_id": student,
+                    "proposed_record": item.proposed_record.model_copy(
+                        update={"student_id": student}
+                    ),
+                }
+            )
+        )
+    before = await client.get(
+        "/teacher/summary", params={"batch": LOT_CODE}, headers=auth_headers
+    )
+    assert before.json()["batch"]["in_gradebook"] == 1
+    released = await client.post(
+        "/review/bulk-approve",
+        json={"job_id": BATCH_JOB_ID},
+        headers=auth_headers,
+    )
+    assert released.json()["released_count"] == 2
+    after = (
+        await client.get(
+            "/teacher/summary", params={"batch": LOT_CODE}, headers=auth_headers
+        )
+    ).json()["batch"]
+    assert after["in_gradebook"] == 3
+    assert after["waiting_for_you"] == 0
+    assert after["still_grading"] == 0
+    assert after["minutes_left"] == 0
