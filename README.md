@@ -42,9 +42,10 @@ coverage maps, and early dropout alerts. Teachers don't "use" an app or learn an
 interface: they drop files in a bucket and get their evenings back. Pure backoffice
 infrastructure.
 
-**Teacher time saved:** from ~12 weekly hours of manual grading to zero
-transcription and ~10 minutes of exception review. **Time-to-feedback:** from a
-14-day grading cycle to under 10 minutes after the scan lands in the bucket.
+**Design targets** (measure against your own baseline in the first term):
+teacher time from ~12 weekly hours of manual grading to zero transcription and
+~10 minutes of exception review; time-to-feedback from a 14-day grading cycle
+to under 10 minutes after the scan lands in the bucket.
 
 ### Input flows
 
