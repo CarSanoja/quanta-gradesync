@@ -7,19 +7,23 @@ from autocurricula.core.armor import (
     resolve_legibility,
 )
 from autocurricula.core.evolution.prompt_mutator import PromptVariant
-from autocurricula.core.harness import (
-    BatchAnomalyBreaker,
-    BreakerTripped,
-)
+from autocurricula.core.harness import BatchAnomalyBreaker
 from autocurricula.core.memory.manager import MemoryManager
 from autocurricula.core.orchestration.context import STAGE_SYNC, JobContext, StageCallable
+from autocurricula.core.orchestration.grade_outcome import load_grade_report
+from autocurricula.core.orchestration.incident_reviews import (
+    enqueue_failure_reviews,
+    resolve_incident_reviews,
+)
 from autocurricula.core.orchestration.sis_records import build_sis_write_request
 from autocurricula.core.orchestration.stages_outcome import TermResolver, default_term
+from autocurricula.core.orchestration.sync_breaker import apply_breaker
 from autocurricula.core.orchestration.sync_governance import (
-    build_provenance,
     build_sis_permission_gate,
+    faithfulness_by_student,
     partition_by_gate,
     partition_records,
+    stamp_provenance,
 )
 from autocurricula.core.orchestration.sync_io import (
     SisSyncError,
@@ -65,6 +69,12 @@ def build_sync_step(
     async def run(context: JobContext) -> JobContext:
         outputs = context.fetch_outputs
         grade_result = context.grade_result
+        grade_report = load_grade_report(context.session)
+        failures = list(grade_report.failures) if grade_report is not None else []
+        failed_students = {failure.student_id for failure in failures}
+        manifest_students = {
+            submission.student_id for submission in outputs.batch.submissions
+        }
         request = build_sis_write_request(
             outputs.batch, grade_result, context.audits.audits
         )
@@ -94,23 +104,25 @@ def build_sync_step(
             request.records, permission, confidences, armor_flagged
         )
         if breaker is not None:
-            quarantined_records, auto_records = _apply_breaker(
-                breaker, len(request.records), quarantined_records, auto_records, reasons
+            quarantined_records, auto_records = apply_breaker(
+                breaker,
+                len(manifest_students),
+                quarantined_records,
+                auto_records,
+                reasons,
+                len(failed_students),
             )
         quarantined_students = {record.student_id for record in quarantined_records}
-        stamped = {
-            record.student_id: record.model_copy(
-                update={
-                    "provenance": build_provenance(
-                        record.student_id,
-                        grade_result,
-                        prompt_variant,
-                        evidence.get(record.student_id, []),
-                    )
-                }
-            )
-            for record in request.records
-        }
+        stamped = stamp_provenance(
+            request.records,
+            grade_result,
+            prompt_variant,
+            evidence,
+            faithfulness_by_student(
+                outputs.batch,
+                grade_report.faithfulness if grade_report is not None else {},
+            ),
+        )
         await enqueue_reviews(
             context.job_id,
             [stamped[record.student_id] for record in quarantined_records],
@@ -118,6 +130,14 @@ def build_sync_step(
             reasons,
             evidence,
             documents,
+        )
+        await enqueue_failure_reviews(
+            context.job_id, outputs.batch, failures, review_store
+        )
+        await resolve_incident_reviews(
+            context.job_id,
+            {record.student_id for record in auto_records} - failed_students,
+            review_store,
         )
         sis_result = await _write_with_state_rollback(
             context,
@@ -174,23 +194,3 @@ async def _write_with_state_rollback(
     except SyncPartialError as partial:
         context.session.set_stage_result(STAGE_SYNC, partial.merged)
         raise
-
-
-def _apply_breaker(
-    breaker: BatchAnomalyBreaker,
-    total: int,
-    quarantined: list[SISGradeRecord],
-    auto: list[SISGradeRecord],
-    reasons: dict[str, list[str]],
-) -> tuple[list[SISGradeRecord], list[SISGradeRecord]]:
-    try:
-        breaker.evaluate(total, len(quarantined))
-    except BreakerTripped as tripped:
-        moved = list(auto)
-        for record in moved:
-            reasons.setdefault(record.student_id, []).insert(
-                0, f"batch anomaly breaker: {tripped}"
-            )
-        logger.warning("%s", tripped)
-        return quarantined + moved, []
-    return quarantined, auto

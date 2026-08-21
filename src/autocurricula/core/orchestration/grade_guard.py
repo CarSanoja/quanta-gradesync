@@ -1,18 +1,13 @@
 import logging
 from typing import Any
 
-from autocurricula.core.armor import (
-    InjectionDetector,
-    resolve_injection_detector,
-    screen_submission,
-)
+from autocurricula.core.armor import InjectionDetector, screen_submission
 from autocurricula.core.harness import (
     PageTextProvider,
-    SidecarTextProvider,
     enforce_result,
-    sidecar_texts_from_batch,
     verify_result,
 )
+from autocurricula.core.orchestration.grade_outcome import GradeOutcome, build_failure
 from autocurricula.core.resilience import (
     DeadLetterEntry,
     DeadLetterStore,
@@ -26,10 +21,16 @@ from autocurricula.schemas.armor import ArmorVerdict
 from autocurricula.schemas.grading import GradingResult
 from autocurricula.schemas.telemetry import (
     ATTR_EVIDENCE_SPAN_MATCH,
+    ATTR_EVIDENCE_SPAN_VERIFICATION,
     ATTR_GEN_AI_CALLS,
     ATTR_GEN_AI_SYSTEM,
     ATTR_GEN_AI_USAGE_INPUT_TOKENS,
     ATTR_GEN_AI_USAGE_OUTPUT_TOKENS,
+    ATTR_SUBMISSION_OUTCOME,
+    OUTCOME_FAILED,
+    OUTCOME_GRADED,
+    VERIFICATION_FAILED,
+    VERIFICATION_UNCHECKED,
 )
 
 logger = logging.getLogger(__name__)
@@ -69,8 +70,9 @@ class GradeGuard:
         self.provider = provider
         self.armor = armor
         self.armor_verdicts: dict[str, ArmorVerdict] = {}
+        self.faithfulness_status: dict[str, str] = {}
 
-    async def grade(self, submission, rubric, retrieved) -> GradingResult | None:
+    async def grade(self, submission, rubric, retrieved) -> GradeOutcome:
         with self.recorder.span(
             f"Grading_{submission.submission_id}",
             stage="GRADE",
@@ -81,18 +83,30 @@ class GradeGuard:
             },
         ) as span:
             with usage_scope() as ledger:
-                result = await self._guarded(submission, rubric, retrieved, span)
+                result, detail = await self._guarded(submission, rubric, retrieved)
             span.set(ATTR_GEN_AI_CALLS, ledger.calls)
             span.set(ATTR_GEN_AI_USAGE_INPUT_TOKENS, ledger.input_tokens)
             span.set(ATTR_GEN_AI_USAGE_OUTPUT_TOKENS, ledger.output_tokens)
             if result is None:
                 span.set("harness.isolated", True)
-                return None
+                span.set(ATTR_SUBMISSION_OUTCOME, OUTCOME_FAILED)
+                return GradeOutcome(
+                    submission_id=submission.submission_id,
+                    student_id=submission.student_id,
+                    failure=build_failure(submission, detail or "grading returned nothing"),
+                )
+            span.set(ATTR_SUBMISSION_OUTCOME, OUTCOME_GRADED)
             if self.armor is not None:
                 await self._screen_armor(submission, span)
             if self.provider is not None:
                 result = self._enforce_faithfulness(submission, result, span)
-            return result
+            else:
+                self.faithfulness_status[submission.submission_id] = VERIFICATION_UNCHECKED
+            return GradeOutcome(
+                submission_id=submission.submission_id,
+                student_id=submission.student_id,
+                result=result,
+            )
 
     async def _screen_armor(self, submission, span: SpanHandle) -> None:
         with self.recorder.span(
@@ -103,24 +117,22 @@ class GradeGuard:
             armor_span.set("armor.severity", verdict.severity.value)
             self.armor_verdicts[submission.submission_id] = verdict
 
-    async def _guarded(self, submission, rubric, retrieved, span: SpanHandle):
+    async def _guarded(
+        self, submission, rubric, retrieved
+    ) -> tuple[GradingResult | None, str]:
         def operation(attempt):
             return self.evaluator.grade(submission, rubric, retrieved)
 
         try:
             if self.repair_agent is not None:
-                return await self.repair_agent.run(operation)
-            return await operation(0)
+                return await self.repair_agent.run(operation), ""
+            return await operation(0), ""
         except RepairBudgetExhausted as exhaustion:
-            await self._dead_letter(
-                submission, f"{type(exhaustion).__name__}: {exhaustion}"
-            )
-            return None
+            detail = f"{type(exhaustion).__name__}: {exhaustion}"
         except Exception as error:
-            await self._dead_letter(
-                submission, f"{type(error).__name__}: {error}"
-            )
-            return None
+            detail = f"{type(error).__name__}: {error}"
+        await self._dead_letter(submission, detail)
+        return None, detail
 
     def _enforce_faithfulness(
         self, submission, result: GradingResult, span: SpanHandle
@@ -129,11 +141,16 @@ class GradeGuard:
             "FaithfulnessVerification", parent=span, stage="GRADE"
         ) as faith:
             report = verify_result(result, self.provider)
-            matched = not report.hallucinated
-            faith.set(ATTR_EVIDENCE_SPAN_MATCH, matched)
-            if matched:
-                return result
-            return enforce_result(result, self.provider)
+            status = report.status
+            self.faithfulness_status[submission.submission_id] = status
+            faith.set(ATTR_EVIDENCE_SPAN_VERIFICATION, status)
+            faith.set("evidence.spans_verified", report.verified_spans)
+            faith.set("evidence.spans_unchecked", report.unchecked_spans)
+            if report.checked:
+                faith.set(ATTR_EVIDENCE_SPAN_MATCH, status != VERIFICATION_FAILED)
+            if status == VERIFICATION_FAILED:
+                return enforce_result(result, self.provider)
+            return result
 
     async def _dead_letter(self, submission, reason: str) -> None:
         logger.warning(
@@ -152,42 +169,3 @@ class GradeGuard:
                 max_attempts=self.dead_letter_max_attempts,
             )
         )
-
-
-def build_grade_guard(
-    *,
-    job_id: str,
-    evaluator: Any,
-    fallback: Any | None,
-    latency_seconds: float,
-    confidence_factor: float,
-    repair_agent: SchemaRepairAgent | None,
-    dead_letter: DeadLetterStore | None,
-    dead_letter_max_attempts: int,
-    model_id: str,
-    recorder: Recorder | None,
-    faithfulness_enabled: bool,
-    batch: Any,
-    armor_detector: InjectionDetector | None = None,
-    armor_enabled: bool | None = None,
-) -> GradeGuard:
-    provider = (
-        SidecarTextProvider(sidecar_texts_from_batch(batch))
-        if faithfulness_enabled
-        else None
-    )
-    armor = resolve_injection_detector(armor_detector, armor_enabled, batch)
-    return GradeGuard(
-        job_id=job_id,
-        evaluator=evaluator,
-        fallback=fallback,
-        latency_seconds=latency_seconds,
-        confidence_factor=confidence_factor,
-        repair_agent=repair_agent,
-        dead_letter=dead_letter,
-        dead_letter_max_attempts=dead_letter_max_attempts,
-        model_id=model_id,
-        recorder=recorder,
-        provider=provider,
-        armor=armor,
-    )

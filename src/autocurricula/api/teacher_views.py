@@ -15,12 +15,16 @@ INJECTION_FOUND = (
 BLURRY_SCAN = "This scan is blurry — please confirm the grade yourself."
 NO_QUOTE = "The grade doesn't quote anything from the page — please double-check it."
 NOT_SURE = "The grading wasn't sure about this one — please confirm it yourself."
+COULD_NOT_GRADE = "This exam could not be graded — it needs manual grading."
+LATE_SCAN = "This scan arrived after grading started — it has not been graded."
 FALLBACK_REASON = "This exam is waiting for your decision before the grade goes out."
 
 REASON_TRANSLATIONS: tuple[tuple[str, str], ...] = (
     ("batch anomaly", BATCH_HELD),
     ("prompt injection", INJECTION_FOUND),
     ("legibility", BLURRY_SCAN),
+    ("could not be graded", COULD_NOT_GRADE),
+    ("arrived after grading started", LATE_SCAN),
     ("no cited evidence", NO_QUOTE),
     ("below threshold", NOT_SURE),
 )

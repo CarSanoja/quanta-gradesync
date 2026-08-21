@@ -16,7 +16,8 @@ from autocurricula.core.orchestration.context import (
     StageCallable,
     StageExecutionError,
 )
-from autocurricula.core.orchestration.grade_guard import build_grade_guard
+from autocurricula.core.orchestration.grade_guard_wiring import build_grade_guard
+from autocurricula.core.orchestration.grade_outcome import store_grade_report
 from autocurricula.core.resilience import (
     DeadLetterStore,
     SchemaRepairAgent,
@@ -99,15 +100,30 @@ def build_grade_step(
             armor_enabled=armor_enabled,
         )
 
-        graded_results = await asyncio.gather(
+        outcomes = await asyncio.gather(
             *(
                 guard.grade(submission, outputs.rubric, retrieved)
                 for submission in outputs.batch.submissions
             )
         )
-        results = [result for result in graded_results if result is not None]
+        results = [outcome.result for outcome in outcomes if outcome.result is not None]
+        failures = [outcome.failure for outcome in outcomes if outcome.failed]
+        store_grade_report(
+            context.session,
+            context.job_id,
+            len(outputs.batch.submissions),
+            failures,
+            guard.faithfulness_status,
+        )
         if guard.armor is not None:
             store_armor_report(context.session, context.job_id, guard.armor_verdicts)
+        if failures:
+            logger.warning(
+                "job %s: %d of %d submissions could not be graded",
+                context.job_id,
+                len(failures),
+                len(outputs.batch.submissions),
+            )
         if not results:
             raise StageExecutionError(STAGE_GRADE, "no submissions could be graded")
         context.complete(

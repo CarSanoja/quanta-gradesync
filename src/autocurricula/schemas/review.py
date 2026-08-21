@@ -13,6 +13,13 @@ class ReviewStatus(str, Enum):
     PENDING = "pending"
     APPROVED = "approved"
     DISMISSED = "dismissed"
+    RESOLVED = "resolved"
+
+
+class ReviewKind(str, Enum):
+    GRADE = "grade"
+    FAILED_GRADING = "failed_grading"
+    MISSING_FILE = "missing_file"
 
 
 def build_review_id(job_id: str, student_id: str) -> str:
@@ -24,6 +31,7 @@ class ReviewItem(FrozenStrictModel):
     job_id: JobId
     student_id: StudentId
     subject: str = Field(min_length=1)
+    kind: ReviewKind = ReviewKind.GRADE
     reasons: list[str] = Field(min_length=1)
     evidence: list[EvidenceSpan] = Field(default_factory=list)
     document_paths: list[str] = Field(default_factory=list)
