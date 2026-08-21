@@ -1,9 +1,10 @@
 from datetime import UTC, datetime
+from pathlib import Path
 
 import httpx
 
 from autocurricula.api.dependencies import AppContainer
-from autocurricula.api.teacher import (
+from autocurricula.api.teacher_views import (
     BATCH_HELD,
     BLURRY_SCAN,
     FALLBACK_REASON,
@@ -15,8 +16,11 @@ from autocurricula.api.teacher import (
     translate_reason,
     translate_reasons,
 )
+from autocurricula.config.settings import Settings
 from autocurricula.core.memory.session_memory import SessionState
+from autocurricula.core.orchestration.job_state import JobRecord, JobStage
 from autocurricula.schemas.common import utc_now
+from autocurricula.schemas.events import PubSubJobEvent
 from autocurricula.schemas.exam import ExamBatch, ExamFile, ExamSubmission
 from autocurricula.schemas.grading import (
     CriterionScore,
@@ -26,9 +30,11 @@ from autocurricula.schemas.grading import (
 )
 from autocurricula.schemas.review import ReviewItem
 from autocurricula.schemas.rubric import MasteryLevel, Rubric, RubricCriterion
-from autocurricula.schemas.sis_sync import SISGradeRecord
+from autocurricula.schemas.sis_sync import SISGradeRecord, SISWriteResult
 
 SUBJECT = "matematicas"
+LOT_CODE = "2026_Matematicas_10A_Parcial1"
+BATCH_JOB_ID = "uploads-2026-matematicas-10a-parcial1"
 GRADED_AT = datetime(2026, 8, 19, 11, 0, tzinfo=UTC)
 MASTERY = {level: f"{level.value} response" for level in MasteryLevel}
 
@@ -200,6 +206,9 @@ async def test_teacher_assets_are_served_from_a_whitelist(client: httpx.AsyncCli
     script = await client.get("/teacher/assets/teacher.js")
     assert script.status_code == 200
     assert script.headers["content-type"].startswith("text/javascript")
+    uploads = await client.get("/teacher/assets/teacher-upload.js")
+    assert uploads.status_code == 200
+    assert uploads.headers["content-type"].startswith("text/javascript")
     traversal = await client.get("/teacher/assets/%2e%2e%2fteacher.py")
     assert traversal.status_code == 404
     unknown = await client.get("/teacher/assets/console.js")
@@ -216,7 +225,7 @@ async def test_teacher_summary_requires_the_access_token(client: httpx.AsyncClie
 async def test_teacher_summary_starts_empty(client: httpx.AsyncClient, auth_headers) -> None:
     response = await client.get("/teacher/summary", headers=auth_headers)
     assert response.status_code == 200
-    assert response.json() == {"waiting": [], "waiting_count": 0}
+    assert response.json() == {"waiting": [], "waiting_count": 0, "batch": None}
 
 
 async def test_teacher_summary_translates_reasons_and_projects_plain_grades(
@@ -258,3 +267,91 @@ async def test_teacher_summary_survives_a_missing_job_checkpoint(
     item = response.json()["waiting"][0]
     assert item["reasons"] == [NO_QUOTE]
     assert item["criteria"] == []
+
+
+def stage_uploads(settings: Settings, names: list[str]) -> None:
+    directory = (
+        Path(settings.gcs_local_staging_dir)
+        / "local-exams"
+        / "uploads"
+        / "batches"
+        / LOT_CODE
+    )
+    directory.mkdir(parents=True, exist_ok=True)
+    for name in names:
+        (directory / name).write_bytes(b"scan bytes")
+
+
+def make_batch_record() -> JobRecord:
+    event = PubSubJobEvent(
+        job_id=BATCH_JOB_ID,
+        bucket="local-exams",
+        exam_batch_prefix=f"uploads/batches/{LOT_CODE}",
+        class_id="10A",
+        subject=SUBJECT,
+        triggered_at=utc_now(),
+    )
+    return JobRecord(job_id=BATCH_JOB_ID, event=event, stage=JobStage.COMPLETED)
+
+
+def make_synced_state() -> SessionState:
+    state = make_state(BATCH_JOB_ID)
+    state.stage_results["sync"] = SISWriteResult(
+        job_id=BATCH_JOB_ID,
+        per_record_statuses={"luis-perez": "ok"},
+        succeeded_count=1,
+        failed_count=0,
+        quarantined_count=1,
+    ).model_dump(mode="json")
+    return state
+
+
+async def test_batch_progress_counts_the_upload_before_grading_starts(
+    client: httpx.AsyncClient, container: AppContainer, auth_headers
+) -> None:
+    stage_uploads(container.settings, ["ana-torres.jpg", "luis-perez.jpg"])
+    response = await client.get(
+        "/teacher/summary", params={"batch": LOT_CODE}, headers=auth_headers
+    )
+    assert response.status_code == 200
+    batch = response.json()["batch"]
+    assert batch["received"] == 2
+    assert batch["still_grading"] == 2
+    assert batch["settled"] is False
+    assert batch["headline"] == (
+        "We received 2 exams for Parcial1. "
+        "Grading starts on its own — nothing for you to do yet."
+    )
+
+
+async def test_batch_progress_speaks_in_gradebook_terms(
+    client: httpx.AsyncClient, container: AppContainer, auth_headers
+) -> None:
+    stage_uploads(container.settings, ["ana-torres.jpg", "luis-perez.jpg"])
+    await container.checkpoint_store.save(make_batch_record())
+    await container.checkpoint_store.save_state(BATCH_JOB_ID, make_synced_state())
+    await container.review_service.store.put(
+        make_review(BATCH_JOB_ID, ["crit-a confidence 0.620 below threshold 0.85"])
+    )
+    response = await client.get(
+        "/teacher/summary", params={"batch": LOT_CODE}, headers=auth_headers
+    )
+    batch = response.json()["batch"]
+    assert batch["in_gradebook"] == 1
+    assert batch["waiting_for_you"] == 1
+    assert batch["still_grading"] == 0
+    assert batch["settled"] is True
+    assert batch["headline"] == (
+        "We received 2 exams for Parcial1. Grading has started — "
+        "1 is already in the gradebook and 1 is waiting for your review."
+    )
+
+
+async def test_batch_progress_is_absent_for_an_unknown_batch(
+    client: httpx.AsyncClient, auth_headers
+) -> None:
+    response = await client.get(
+        "/teacher/summary", params={"batch": "2026_Ghost_10A_Parcial9"}, headers=auth_headers
+    )
+    assert response.status_code == 200
+    assert response.json()["batch"] is None
