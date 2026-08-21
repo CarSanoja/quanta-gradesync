@@ -30,3 +30,4 @@ verification) live in the [requests registry](../solicitudes/README.md).
 | 2026-08-20 | [Implementation 009: teacher scale, adversarial review](2026-08-20-implementacion-009-teacher-scale-adversarial-review.md) | Implementation |
 | 2026-08-20 | [Implementation 010: no silent losses](2026-08-20-implementacion-010-no-silent-losses.md) | Implementation |
 | 2026-08-21 | [Implementation 011: fleet registry, per-agent identity, red-team arena](2026-08-21-implementacion-011-fleet-registry-identity.md) | Implementation |
+| 2026-08-21 | [Implementation 012: repaying measured technical debt](2026-08-21-implementacion-012-technical-debt.md) | Implementation |
