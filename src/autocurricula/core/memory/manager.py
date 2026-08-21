@@ -3,6 +3,10 @@ from __future__ import annotations
 from typing import Any
 
 from autocurricula.config.settings import Settings
+from autocurricula.core.memory.fact_store import (
+    AssessmentFactStore,
+    build_assessment_fact_store,
+)
 from autocurricula.core.memory.outcome_writers import (
     merge_student_percentage,
     write_class_snapshots,
@@ -23,6 +27,7 @@ from autocurricula.schemas.exam import ExamBatch
 from autocurricula.schemas.grading import GradingBatchResult
 from autocurricula.schemas.memory import (
     EpisodicStudentProfile,
+    FactSource,
     RetrievedContext,
 )
 from autocurricula.schemas.rubric import Rubric
@@ -65,10 +70,14 @@ class VectorSearchFacade:
 
 class MemoryManager:
     def __init__(
-        self, vector_memory: VectorMemory, persistent_store: PersistentStore
+        self,
+        vector_memory: VectorMemory,
+        persistent_store: PersistentStore,
+        fact_store: AssessmentFactStore,
     ) -> None:
         self._vector_memory = vector_memory
         self._persistent_store = persistent_store
+        self._fact_store = fact_store
         self._l2 = VectorSearchFacade(vector_memory)
 
     @classmethod
@@ -76,6 +85,7 @@ class MemoryManager:
         return cls(
             vector_memory=build_vector_memory(settings),
             persistent_store=build_persistent_store(settings),
+            fact_store=build_assessment_fact_store(settings),
         )
 
     @property
@@ -85,6 +95,10 @@ class MemoryManager:
     @property
     def persistent_store(self) -> PersistentStore:
         return self._persistent_store
+
+    @property
+    def fact_store(self) -> AssessmentFactStore:
+        return self._fact_store
 
     @property
     def l2(self) -> VectorSearchFacade:
@@ -110,10 +124,22 @@ class MemoryManager:
         return await self._persistent_store.get_profile(student_id)
 
     async def persist_student_percentage(
-        self, student_id: str, term: str, percentage: float
+        self,
+        student_id: str,
+        term: str,
+        percentage: float,
+        *,
+        job_id: str,
+        source: FactSource = FactSource.HUMAN_APPROVAL,
     ) -> None:
         await merge_student_percentage(
-            self._persistent_store, student_id, term, percentage
+            self._persistent_store,
+            self._fact_store,
+            student_id,
+            term,
+            percentage,
+            job_id=job_id,
+            source=source,
         )
 
     async def persist_outcomes(
@@ -124,7 +150,7 @@ class MemoryManager:
         rubric: Rubric | None = None,
     ) -> int:
         written = await write_profiles(
-            self._persistent_store, batch, batch_result, term
+            self._persistent_store, self._fact_store, batch, batch_result, term
         )
         if rubric is not None:
             written += await write_class_snapshots(

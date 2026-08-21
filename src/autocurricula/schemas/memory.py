@@ -1,8 +1,17 @@
+from enum import Enum
 from typing import Annotated
 
 from pydantic import Field, field_validator
 
-from autocurricula.schemas.common import ClassId, FrozenStrictModel, StudentId, TzAwareDatetime
+from autocurricula.schemas.common import (
+    ClassId,
+    FrozenStrictModel,
+    JobId,
+    StudentId,
+    TzAwareDatetime,
+)
+
+FACT_KEY_SEPARATOR = "::"
 
 
 class RetrievedChunk(FrozenStrictModel):
@@ -21,6 +30,27 @@ class TermSnapshot(FrozenStrictModel):
     avg_percentage: float = Field(ge=0, le=100)
     submissions_count: int = Field(ge=0)
     risk_history: list[Annotated[float, Field(ge=0, le=1)]] = Field(default_factory=list)
+
+
+class FactSource(str, Enum):
+    BATCH_SYNC = "batch_sync"
+    HUMAN_APPROVAL = "human_approval"
+    HUMAN_OVERRIDE = "human_override"
+
+
+class AssessmentFact(FrozenStrictModel):
+    fact_id: str = Field(min_length=1)
+    student_id: StudentId
+    job_id: JobId
+    term: str = Field(min_length=1)
+    avg_percentage: float = Field(ge=0, le=100)
+    submissions_count: int = Field(ge=1)
+    source: FactSource
+    recorded_at: TzAwareDatetime
+
+
+def assessment_fact_id(job_id: str, student_id: str) -> str:
+    return f"{job_id}{FACT_KEY_SEPARATOR}{student_id}"
 
 
 class EpisodicStudentProfile(FrozenStrictModel):

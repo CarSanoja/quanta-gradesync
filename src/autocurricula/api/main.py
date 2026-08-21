@@ -16,6 +16,7 @@ from autocurricula.api.dependencies import (
 from autocurricula.api.fleet import fleet_router
 from autocurricula.api.ingest import ingest_router
 from autocurricula.api.jobs import jobs_router
+from autocurricula.api.labels import labels_router
 from autocurricula.api.optimizer import optimizer_router
 from autocurricula.api.readiness import (
     BackendUnavailable,
@@ -82,6 +83,7 @@ def create_app() -> FastAPI:
     application.include_router(health_router)
     application.include_router(pubsub_router)
     application.include_router(review_router)
+    application.include_router(labels_router)
     application.include_router(jobs_router)
     application.include_router(trace_router)
     application.include_router(sis_router)

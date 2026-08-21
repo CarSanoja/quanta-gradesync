@@ -13,6 +13,7 @@ class ReviewStatus(str, Enum):
     PENDING = "pending"
     APPROVED = "approved"
     DISMISSED = "dismissed"
+    OVERRIDDEN = "overridden"
     RESOLVED = "resolved"
 
 
@@ -38,5 +39,7 @@ class ReviewItem(FrozenStrictModel):
     proposed_record: SISGradeRecord
     status: ReviewStatus = ReviewStatus.PENDING
     rework_notes: list[str] = Field(default_factory=list)
+    corrected_record: SISGradeRecord | None = None
+    reviewer_note: str | None = None
     created_at: TzAwareDatetime
     decided_at: TzAwareDatetime | None = None

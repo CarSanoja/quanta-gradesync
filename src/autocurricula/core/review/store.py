@@ -6,7 +6,6 @@ from typing import Any, Protocol, runtime_checkable
 from pydantic import ValidationError
 
 from autocurricula.config import Settings, get_firestore_client
-from autocurricula.schemas.common import utc_now
 from autocurricula.schemas.review import ReviewItem, ReviewStatus
 
 
@@ -32,7 +31,12 @@ def parse_item(payload: str | bytes) -> ReviewItem:
 
 class LocalReviewStore:
     def __init__(self, data_dir: Path) -> None:
-        self._dir = Path(data_dir) / "reviews"
+        self._data_dir = Path(data_dir)
+        self._dir = self._data_dir / "reviews"
+
+    @property
+    def data_dir(self) -> Path:
+        return self._data_dir
 
     async def put(self, item: ReviewItem) -> None:
         await asyncio.to_thread(self._write, item)
@@ -68,6 +72,10 @@ class FirestoreReviewStore:
         self._client = client if client is not None else get_firestore_client()
         if self._client is None:
             raise RuntimeError("firestore review store requires a configured client")
+
+    @property
+    def client(self) -> Any:
+        return self._client
 
     async def put(self, item: ReviewItem) -> None:
         def _write() -> None:

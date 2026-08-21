@@ -1,17 +1,16 @@
+from autocurricula.core.memory.fact_store import AssessmentFactStore
 from autocurricula.core.memory.persistent_memory import PersistentStore
+from autocurricula.core.memory.term_projection import record_assessment
+from autocurricula.schemas.common import utc_now
 from autocurricula.schemas.exam import ExamBatch
 from autocurricula.schemas.grading import GradingBatchResult
-from autocurricula.schemas.memory import (
-    ClassCompetencySnapshot,
-    EpisodicStudentProfile,
-    TermSnapshot,
-)
+from autocurricula.schemas.memory import ClassCompetencySnapshot, FactSource
 from autocurricula.schemas.rubric import Rubric
-from autocurricula.schemas.common import utc_now
 
 
 async def write_profiles(
     store: PersistentStore,
+    fact_store: AssessmentFactStore,
     batch: ExamBatch,
     batch_result: GradingBatchResult,
     term: str,
@@ -26,20 +25,18 @@ async def write_profiles(
         if student_id is None:
             continue
         percentages_by_student.setdefault(student_id, []).append(result.percentage)
+    recorded_at = batch_result.graded_at
     for student_id, percentages in percentages_by_student.items():
-        profile = await store.get_profile(student_id)
-        previous_terms = profile.terms if profile is not None else []
-        previous = next((item for item in previous_terms if item.term == term), None)
-        snapshot = TermSnapshot(
+        await record_assessment(
+            store,
+            fact_store,
+            student_id=student_id,
+            job_id=batch_result.job_id,
             term=term,
             avg_percentage=sum(percentages) / len(percentages),
             submissions_count=len(percentages),
-            risk_history=previous.risk_history if previous else [],
-        )
-        terms = [item for item in previous_terms if item.term != term]
-        terms.append(snapshot)
-        await store.put_profile(
-            EpisodicStudentProfile(student_id=student_id, terms=terms)
+            source=FactSource.BATCH_SYNC,
+            recorded_at=recorded_at,
         )
     return len(percentages_by_student)
 
@@ -90,24 +87,22 @@ async def write_class_snapshots(
 
 
 async def merge_student_percentage(
-    store: PersistentStore, student_id: str, term: str, percentage: float
+    store: PersistentStore,
+    fact_store: AssessmentFactStore,
+    student_id: str,
+    term: str,
+    percentage: float,
+    *,
+    job_id: str,
+    source: FactSource = FactSource.HUMAN_APPROVAL,
 ) -> None:
-    profile = await store.get_profile(student_id)
-    previous_terms = profile.terms if profile is not None else []
-    previous = next((item for item in previous_terms if item.term == term), None)
-    if previous is None:
-        snapshot = TermSnapshot(
-            term=term, avg_percentage=percentage, submissions_count=1, risk_history=[]
-        )
-    else:
-        count = previous.submissions_count + 1
-        total = previous.avg_percentage * previous.submissions_count + percentage
-        snapshot = TermSnapshot(
-            term=term,
-            avg_percentage=total / count,
-            submissions_count=count,
-            risk_history=previous.risk_history,
-        )
-    terms = [item for item in previous_terms if item.term != term]
-    terms.append(snapshot)
-    await store.put_profile(EpisodicStudentProfile(student_id=student_id, terms=terms))
+    await record_assessment(
+        store,
+        fact_store,
+        student_id=student_id,
+        job_id=job_id,
+        term=term,
+        avg_percentage=percentage,
+        submissions_count=1,
+        source=source,
+    )
