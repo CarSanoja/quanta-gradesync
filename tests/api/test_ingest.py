@@ -347,3 +347,58 @@ async def test_sample_batch_copies_the_demo_objects_server_side(
         )
     again = await ingest_client.post("/ingest/sample-batch", headers=ingest_headers)
     assert again.json()["destination_prefix"] != payload["destination_prefix"]
+
+
+async def test_rename_mode_accepts_a_camera_file_name(
+    ingest_client: httpx.AsyncClient,
+    ingest_container: AppContainer,
+    ingest_headers: dict[str, str],
+) -> None:
+    raw = "WhatsApp Image 2026-08-12 at 10.03.21.jpeg"
+    rejected = await ingest_client.post(
+        "/ingest/exam", headers=ingest_headers, **upload_body(name=raw)
+    )
+    assert rejected.status_code == 422
+    stored = await ingest_client.post(
+        "/ingest/exam",
+        headers=ingest_headers,
+        **upload_body(name=raw, mode="rename", new_student_name="ana-torres"),
+    )
+    assert stored.status_code == 200
+    payload = stored.json()
+    assert payload["student_id"] == "ana-torres"
+    assert payload["object"] == f"uploads/batches/{LOT}/ana-torres.jpeg"
+    staged = (
+        Path(ingest_container.settings.gcs_local_staging_dir)
+        / "local-exams"
+        / payload["object"]
+    )
+    assert staged.read_bytes() == JPEG_BYTES
+
+
+async def test_rename_mode_still_demands_a_usable_student_name(
+    ingest_client: httpx.AsyncClient, ingest_headers: dict[str, str]
+) -> None:
+    blank = await ingest_client.post(
+        "/ingest/exam",
+        headers=ingest_headers,
+        **upload_body(name="IMG_2831.jpg", mode="rename", new_student_name="   "),
+    )
+    assert blank.status_code == 422
+    unusable = await ingest_client.post(
+        "/ingest/exam",
+        headers=ingest_headers,
+        **upload_body(name="IMG_2831.jpg", mode="rename", new_student_name="ana torres"),
+    )
+    assert unusable.status_code == 422
+
+
+async def test_rename_mode_keeps_rejecting_ungradable_extensions(
+    ingest_client: httpx.AsyncClient, ingest_headers: dict[str, str]
+) -> None:
+    response = await ingest_client.post(
+        "/ingest/exam",
+        headers=ingest_headers,
+        **upload_body(name="notes.txt", mode="rename", new_student_name="ana-torres"),
+    )
+    assert response.status_code == 415

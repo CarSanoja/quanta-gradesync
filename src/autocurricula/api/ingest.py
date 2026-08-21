@@ -29,7 +29,7 @@ async def require_ingest_token(
 ingest_router = APIRouter(tags=["ingest"], dependencies=[Depends(require_ingest_token)])
 
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024
-MAX_BATCH_OBJECTS = 40
+MAX_BATCH_OBJECTS = 200
 
 MODE_NEW = "new"
 MODE_REPLACE = "replace"
@@ -54,7 +54,7 @@ def validate_lot_code(lot_code: str) -> str:
     return stripped
 
 
-def validate_file_name(raw_name: str) -> tuple[str, str, str]:
+def validate_file_name(raw_name: str, stem_is_student_id: bool = True) -> tuple[str, str, str]:
     name = Path(raw_name.replace("\\", "/")).name.strip()
     if not name or name.startswith("."):
         raise _unprocessable("upload needs a plain file name; the stem is the student id")
@@ -68,7 +68,7 @@ def validate_file_name(raw_name: str) -> tuple[str, str, str]:
             ),
         )
     stem = Path(name).stem
-    if not STUDENT_NAME_PATTERN.fullmatch(stem):
+    if stem_is_student_id and not STUDENT_NAME_PATTERN.fullmatch(stem):
         raise _unprocessable(
             f"file stem {stem!r} is not a valid student id "
             "(letters, digits, dot, dash, underscore)"
@@ -115,7 +115,7 @@ async def ingest_exam(
     if mode not in UPLOAD_MODES:
         raise _unprocessable(f"mode must be one of {sorted(UPLOAD_MODES)}")
     lot = validate_lot_code(lot_code)
-    name, stem, suffix = validate_file_name(file.filename or "")
+    name, stem, suffix = validate_file_name(file.filename or "", mode != MODE_RENAME)
     target_name = resolve_target_name(mode, name, suffix, new_student_name)
     student_id = Path(target_name).stem
     payload = await file.read(MAX_UPLOAD_BYTES + 1)
