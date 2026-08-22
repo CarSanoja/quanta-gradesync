@@ -1,0 +1,249 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1680 1230" font-family="Helvetica, Arial, sans-serif">
+  <rect width="1680" height="1230" fill="#ffffff"/>
+  <text x="38" y="52" font-size="27" font-weight="bold" fill="#202124">AutoCurricula &amp; GradeSync Engine — One Job, Seven Stages</text>
+  <text x="38" y="76" font-size="14" fill="#5f6368">Level 3: what enters and leaves each stage, which model it runs, where the checkpoint lands, and the exact place it is allowed to refuse. Timings are one measured 8-exam batch.</text>
+  <rect x="38" y="108" width="1605" height="56" rx="8" fill="#fef7e0" stroke="#f9ab00"/>
+  <text x="840" y="131" font-size="12.5" font-weight="bold" fill="#7f5c00" text-anchor="middle">Trigger — OBJECT_FINALIZE on the batch prefix → Pub/Sub push → POST /webhooks/pubsub (OIDC, audience-pinned, plus a shared token)</text>
+  <text x="840" y="151" font-size="11.5" fill="#7f5c00" text-anchor="middle">All seven stages run inside that one HTTP request. The delivery is acknowledged only once the job record reaches completed — a failure anywhere below is a 5xx, and Pub/Sub retries it.</text>
+  <g font-size="14" font-weight="bold" text-anchor="middle">
+    <rect x="38" y="188" width="219" height="44" rx="7" fill="#1a73e8"/><text x="147" y="217" fill="#fff">Fetch</text>
+    <rect x="269" y="188" width="219" height="44" rx="7" fill="#1a73e8"/><text x="378" y="217" fill="#fff">Grade</text>
+    <rect x="500" y="188" width="219" height="44" rx="7" fill="#1a73e8"/><text x="609" y="217" fill="#fff">Audit</text>
+    <rect x="731" y="188" width="219" height="44" rx="7" fill="#1a73e8"/><text x="840" y="217" fill="#fff">Risk</text>
+    <rect x="962" y="188" width="219" height="44" rx="7" fill="#1a73e8"/><text x="1071" y="217" fill="#fff">Sync</text>
+    <rect x="1193" y="188" width="219" height="44" rx="7" fill="#1a73e8"/><text x="1302" y="217" fill="#fff">Verify</text>
+    <rect x="1424" y="188" width="219" height="44" rx="7" fill="#1a73e8"/><text x="1533" y="217" fill="#fff">Optimize</text>
+  </g>
+  <text x="147" y="252" font-size="13" font-weight="bold" fill="#202124" text-anchor="middle">3 697 ms</text>
+  <rect x="38" y="260" width="219" height="9" rx="2" fill="#e8f0fe"/>
+  <rect x="38" y="260" width="28.8" height="9" rx="2" fill="#1a73e8"/>
+  <text x="378" y="252" font-size="13" font-weight="bold" fill="#202124" text-anchor="middle">28 102 ms</text>
+  <rect x="269" y="260" width="219" height="9" rx="2" fill="#e8f0fe"/>
+  <rect x="269" y="260" width="219.0" height="9" rx="2" fill="#1a73e8"/>
+  <text x="609" y="252" font-size="13" font-weight="bold" fill="#202124" text-anchor="middle">3 242 ms</text>
+  <rect x="500" y="260" width="219" height="9" rx="2" fill="#e8f0fe"/>
+  <rect x="500" y="260" width="25.3" height="9" rx="2" fill="#1a73e8"/>
+  <text x="840" y="252" font-size="13" font-weight="bold" fill="#202124" text-anchor="middle">1 573 ms</text>
+  <rect x="731" y="260" width="219" height="9" rx="2" fill="#e8f0fe"/>
+  <rect x="731" y="260" width="12.3" height="9" rx="2" fill="#1a73e8"/>
+  <text x="1071" y="252" font-size="13" font-weight="bold" fill="#202124" text-anchor="middle">3 296 ms</text>
+  <rect x="962" y="260" width="219" height="9" rx="2" fill="#e8f0fe"/>
+  <rect x="962" y="260" width="25.7" height="9" rx="2" fill="#1a73e8"/>
+  <text x="1302" y="252" font-size="13" font-weight="bold" fill="#202124" text-anchor="middle">307 ms</text>
+  <rect x="1193" y="260" width="219" height="9" rx="2" fill="#e8f0fe"/>
+  <rect x="1193" y="260" width="2.5" height="9" rx="2" fill="#1a73e8"/>
+  <text x="1533" y="252" font-size="13" font-weight="bold" fill="#202124" text-anchor="middle">0.3 ms</text>
+  <rect x="1424" y="260" width="219" height="9" rx="2" fill="#e8f0fe"/>
+  <rect x="1424" y="260" width="2.5" height="9" rx="2" fill="#1a73e8"/>
+  <text x="38" y="296" font-size="11.5" font-weight="bold" fill="#5f6368" letter-spacing="0.8">WHAT ENTERS THE STAGE · WHAT LEAVES IT</text>
+  <text x="1643" y="296" font-size="11" fill="#80868b" text-anchor="end" font-style="italic">bar above = share of the 40.2 s of stage time; grade alone is 70 % of it</text>
+  <rect x="38" y="306" width="219" height="148" rx="7" fill="#ffffff" stroke="#dadce0"/>
+  <text x="48" y="328" font-size="10.8" fill="#3c4043" font-weight="bold">in — the push event: bucket,</text>
+  <text x="48" y="344" font-size="10.8" fill="#3c4043">batch prefix, class, subject</text>
+  <text x="48" y="360" font-size="10.8" fill="#3c4043" font-weight="bold">out — ExamBatch (8 submissions),</text>
+  <text x="48" y="376" font-size="10.8" fill="#3c4043">Rubric, CurriculumStandard</text>
+  <text x="48" y="408" font-size="10.8" fill="#3c4043">batch.json when the coordinator</text>
+  <text x="48" y="424" font-size="10.8" fill="#3c4043">wrote one; otherwise inferred</text>
+  <text x="48" y="440" font-size="10.8" fill="#3c4043">from the lot code + catalog file</text>
+  <rect x="269" y="306" width="219" height="148" rx="7" fill="#ffffff" stroke="#dadce0"/>
+  <text x="279" y="328" font-size="10.8" fill="#3c4043" font-weight="bold">in — page images, the rubric,</text>
+  <text x="279" y="344" font-size="10.8" fill="#3c4043">and L2 context from vector search</text>
+  <text x="279" y="360" font-size="10.8" fill="#3c4043" font-weight="bold">out — one GradingResult per</text>
+  <text x="279" y="376" font-size="10.8" fill="#3c4043">exam: criterion scores, self-</text>
+  <text x="279" y="392" font-size="10.8" fill="#3c4043">reported confidence, verbatim</text>
+  <text x="279" y="408" font-size="10.8" fill="#3c4043">EvidenceSpans, and feedback in</text>
+  <text x="279" y="424" font-size="10.8" fill="#3c4043">the band for the grade level</text>
+  <rect x="500" y="306" width="219" height="148" rx="7" fill="#ffffff" stroke="#dadce0"/>
+  <text x="510" y="328" font-size="10.8" fill="#3c4043" font-weight="bold">in — the grading results and</text>
+  <text x="510" y="344" font-size="10.8" fill="#3c4043">the ministry standard CO/2026.1</text>
+  <text x="510" y="360" font-size="10.8" fill="#3c4043" font-weight="bold">out — one CurriculumAuditResult</text>
+  <text x="510" y="376" font-size="10.8" fill="#3c4043">per exam: which competency codes</text>
+  <text x="510" y="392" font-size="10.8" fill="#3c4043">the work covered, which it did not</text>
+  <text x="510" y="424" font-size="10.8" fill="#3c4043">julian-pardo covered only MAT.10.1,</text>
+  <text x="510" y="440" font-size="10.8" fill="#3c4043">matching his empty graph work</text>
+  <rect x="731" y="306" width="219" height="148" rx="7" fill="#ffffff" stroke="#dadce0"/>
+  <text x="741" y="328" font-size="10.8" fill="#3c4043" font-weight="bold">in — each student's L3 profile</text>
+  <text x="741" y="344" font-size="10.8" fill="#3c4043">plus this batch's results</text>
+  <text x="741" y="360" font-size="10.8" fill="#3c4043" font-weight="bold">out — one RiskAssessment per</text>
+  <text x="741" y="376" font-size="10.8" fill="#3c4043">student: z-scores against their</text>
+  <text x="741" y="392" font-size="10.8" fill="#3c4043">own history, longitudinal slope,</text>
+  <text x="741" y="408" font-size="10.8" fill="#3c4043">dropout early warning</text>
+  <text x="741" y="440" font-size="10.8" fill="#3c4043">no LLM opinion enters this stage</text>
+  <rect x="962" y="306" width="219" height="148" rx="7" fill="#ffffff" stroke="#dadce0"/>
+  <text x="972" y="328" font-size="10.8" fill="#3c4043" font-weight="bold">in — grades, audits, legibility</text>
+  <text x="972" y="344" font-size="10.8" fill="#3c4043">factors, armor verdicts</text>
+  <text x="972" y="360" font-size="10.8" fill="#3c4043" font-weight="bold">out — SISWriteResult: what was</text>
+  <text x="972" y="376" font-size="10.8" fill="#3c4043">written, what was quarantined</text>
+  <text x="972" y="408" font-size="10.8" fill="#3c4043">quarantined records become review</text>
+  <text x="972" y="424" font-size="10.8" fill="#3c4043">items carrying the page, the</text>
+  <text x="972" y="440" font-size="10.8" fill="#3c4043">quoted line and the reason</text>
+  <rect x="1193" y="306" width="219" height="148" rx="7" fill="#ffffff" stroke="#dadce0"/>
+  <text x="1203" y="328" font-size="10.8" fill="#3c4043" font-weight="bold">in — everything the job has</text>
+  <text x="1203" y="344" font-size="10.8" fill="#3c4043">produced so far</text>
+  <text x="1203" y="360" font-size="10.8" fill="#3c4043" font-weight="bold">out — VerificationReport: goal</text>
+  <text x="1203" y="376" font-size="10.8" fill="#3c4043">checks, pending_human_approval,</text>
+  <text x="1203" y="392" font-size="10.8" fill="#3c4043">unresolved, missing files</text>
+  <text x="1203" y="424" font-size="10.8" fill="#3c4043">re-grades quarantined exams with</text>
+  <text x="1203" y="440" font-size="10.8" fill="#3c4043">a second opinion — still one click</text>
+  <rect x="1424" y="306" width="219" height="148" rx="7" fill="#ffffff" stroke="#dadce0"/>
+  <text x="1434" y="328" font-size="10.8" fill="#3c4043" font-weight="bold">in — the evolved prompt registry</text>
+  <text x="1434" y="344" font-size="10.8" fill="#3c4043">and the calibration set</text>
+  <text x="1434" y="360" font-size="10.8" fill="#3c4043" font-weight="bold">out — OptimizerReport: a</text>
+  <text x="1434" y="376" font-size="10.8" fill="#3c4043">promoted variant, or none at all</text>
+  <text x="1434" y="408" font-size="10.8" fill="#3c4043">candidates are proposed, scored</text>
+  <text x="1434" y="424" font-size="10.8" fill="#3c4043">against human marks, and — in</text>
+  <text x="1434" y="440" font-size="10.8" fill="#3c4043">every measured run — rejected</text>
+  <text x="38" y="486" font-size="11.5" font-weight="bold" fill="#5f6368" letter-spacing="0.8">WHICH MODEL RUNS HERE, AND WHAT IT COST IN THIS RUN</text>
+  <rect x="38" y="496" width="219" height="130" rx="7" fill="#f1f3f4" stroke="#9aa0a6"/>
+  <text x="48" y="518" font-size="10.8" fill="#3c4043" font-weight="bold">no model — 0 LLM calls, $0</text>
+  <text x="48" y="550" font-size="10.8" fill="#3c4043">GCS download, manifest inference,</text>
+  <text x="48" y="566" font-size="10.8" fill="#3c4043">upload-settle poll before the</text>
+  <text x="48" y="582" font-size="10.8" fill="#3c4043">batch is read</text>
+  <rect x="269" y="496" width="219" height="130" rx="7" fill="#e6f4ea" stroke="#188038"/>
+  <text x="279" y="518" font-size="10.8" fill="#0d652d" font-weight="bold">gemini-3.5-flash, thinking on</text>
+  <text x="279" y="534" font-size="10.8" fill="#0d652d">8 calls, one per exam, concurrent</text>
+  <text x="279" y="550" font-size="10.8" fill="#0d652d">31 284 in / 28 581 out tokens</text>
+  <text x="279" y="566" font-size="10.8" fill="#0d652d">$0.30415 — 97 % of batch cost</text>
+  <text x="279" y="582" font-size="10.8" fill="#0d652d">16.2–26.3 s per exam</text>
+  <text x="279" y="598" font-size="10.8" fill="#0d652d">flash-lite also screens each</text>
+  <text x="279" y="614" font-size="10.8" fill="#0d652d">page (added after this run)</text>
+  <rect x="500" y="496" width="219" height="130" rx="7" fill="#e6f4ea" stroke="#188038"/>
+  <text x="510" y="518" font-size="10.8" fill="#0d652d" font-weight="bold">gemini-3.5-flash-lite</text>
+  <text x="510" y="534" font-size="10.8" fill="#0d652d">8 calls, one per exam, concurrent</text>
+  <text x="510" y="550" font-size="10.8" fill="#0d652d">13 744 in / 1 787 out tokens</text>
+  <text x="510" y="566" font-size="10.8" fill="#0d652d">$0.00859 — 2.7 % of the batch</text>
+  <rect x="731" y="496" width="219" height="130" rx="7" fill="#f1f3f4" stroke="#9aa0a6"/>
+  <text x="741" y="518" font-size="10.8" fill="#3c4043" font-weight="bold">no model — deterministic</text>
+  <text x="741" y="550" font-size="10.8" fill="#3c4043">z-scores and longitudinal slopes,</text>
+  <text x="741" y="566" font-size="10.8" fill="#3c4043">computed in process</text>
+  <text x="741" y="582" font-size="10.8" fill="#3c4043">0 calls, $0</text>
+  <rect x="962" y="496" width="219" height="130" rx="7" fill="#f1f3f4" stroke="#9aa0a6"/>
+  <text x="972" y="518" font-size="10.8" fill="#3c4043" font-weight="bold">no model — 0 calls, $0</text>
+  <text x="972" y="550" font-size="10.8" fill="#3c4043">every decision in this stage is a</text>
+  <text x="972" y="566" font-size="10.8" fill="#3c4043">rule the model cannot argue with</text>
+  <rect x="1193" y="496" width="219" height="130" rx="7" fill="#e6f4ea" stroke="#188038"/>
+  <text x="1203" y="518" font-size="10.8" fill="#0d652d" font-weight="bold">gemini-3.5-flash-lite, only if</text>
+  <text x="1203" y="534" font-size="10.8" fill="#0d652d">something needs re-grading</text>
+  <text x="1203" y="550" font-size="10.8" fill="#0d652d">0 calls in this run</text>
+  <text x="1203" y="566" font-size="10.8" fill="#0d652d">14 calls and $0.0366 in the</text>
+  <text x="1203" y="582" font-size="10.8" fill="#0d652d">quarantine probe on this batch</text>
+  <rect x="1424" y="496" width="219" height="130" rx="7" fill="#e6f4ea" stroke="#188038"/>
+  <text x="1434" y="518" font-size="10.8" fill="#0d652d" font-weight="bold">flash-lite proposer + flash</text>
+  <text x="1434" y="534" font-size="10.8" fill="#0d652d">calibration evaluator</text>
+  <text x="1434" y="550" font-size="10.8" fill="#0d652d">0 calls here — nothing to evolve</text>
+  <text x="1434" y="566" font-size="10.8" fill="#0d652d">a full tournament measured at</text>
+  <text x="1434" y="582" font-size="10.8" fill="#0d652d">19 calls, 124.9 s, $0.6296</text>
+  <text x="38" y="658" font-size="11.5" font-weight="bold" fill="#5f6368" letter-spacing="0.8">CHECKPOINT WRITTEN TO FIRESTORE THE MOMENT THE STAGE SUCCEEDS</text>
+  <text x="1643" y="658" font-size="11" fill="#80868b" text-anchor="end" font-style="italic">resume re-reads this and replays finished stages instead of re-running them</text>
+  <rect x="38" y="668" width="219" height="48" rx="7" fill="#e8f0fe" stroke="#aecbfa"/>
+  <text x="147" y="689" font-size="11.5" font-weight="bold" fill="#174ea6" text-anchor="middle">stage: fetched</text>
+  <text x="147" y="706" font-size="10.5" fill="#174ea6" text-anchor="middle" font-style="italic">job record + session state</text>
+  <rect x="269" y="668" width="219" height="48" rx="7" fill="#e8f0fe" stroke="#aecbfa"/>
+  <text x="378" y="689" font-size="11.5" font-weight="bold" fill="#174ea6" text-anchor="middle">stage: graded</text>
+  <text x="378" y="706" font-size="10.5" fill="#174ea6" text-anchor="middle" font-style="italic">job record + session state</text>
+  <rect x="500" y="668" width="219" height="48" rx="7" fill="#e8f0fe" stroke="#aecbfa"/>
+  <text x="609" y="689" font-size="11.5" font-weight="bold" fill="#174ea6" text-anchor="middle">stage: audited</text>
+  <text x="609" y="706" font-size="10.5" fill="#174ea6" text-anchor="middle" font-style="italic">job record + session state</text>
+  <rect x="731" y="668" width="219" height="48" rx="7" fill="#e8f0fe" stroke="#aecbfa"/>
+  <text x="840" y="689" font-size="11.5" font-weight="bold" fill="#174ea6" text-anchor="middle">stage: risk_assessed</text>
+  <text x="840" y="706" font-size="10.5" fill="#174ea6" text-anchor="middle" font-style="italic">job record + session state</text>
+  <rect x="962" y="668" width="219" height="48" rx="7" fill="#e8f0fe" stroke="#aecbfa"/>
+  <text x="1071" y="689" font-size="11.5" font-weight="bold" fill="#174ea6" text-anchor="middle">stage: synced</text>
+  <text x="1071" y="706" font-size="10.5" fill="#174ea6" text-anchor="middle" font-style="italic">job record + session state</text>
+  <rect x="1193" y="668" width="219" height="48" rx="7" fill="#e8f0fe" stroke="#aecbfa"/>
+  <text x="1302" y="689" font-size="11.5" font-weight="bold" fill="#174ea6" text-anchor="middle">stage: verified</text>
+  <text x="1302" y="706" font-size="10.5" fill="#174ea6" text-anchor="middle" font-style="italic">job record + session state</text>
+  <rect x="1424" y="668" width="219" height="48" rx="7" fill="#e8f0fe" stroke="#aecbfa"/>
+  <text x="1533" y="689" font-size="11.5" font-weight="bold" fill="#174ea6" text-anchor="middle">stage: optimized</text>
+  <text x="1533" y="706" font-size="10.5" fill="#174ea6" text-anchor="middle" font-style="italic">and then: completed</text>
+  <text x="38" y="748" font-size="11.5" font-weight="bold" fill="#5f6368" letter-spacing="0.8">WHERE THIS STAGE REFUSES, OR FAILS ON PURPOSE</text>
+  <rect x="38" y="758" width="219" height="258" rx="7" fill="#fce8e6" stroke="#d93025"/>
+  <text x="48" y="780" font-size="10.6" fill="#a50e0e">Capability gate: exam-fetcher may</text>
+  <text x="48" y="795" font-size="10.6" fill="#a50e0e">only read GCS. A denial fails the</text>
+  <text x="48" y="810" font-size="10.6" fill="#a50e0e">stage and stages nothing at all.</text>
+  <text x="48" y="833" font-size="10.6" fill="#a50e0e">A lot code disagreeing with the</text>
+  <text x="48" y="848" font-size="10.6" fill="#a50e0e">event attributes fails the batch</text>
+  <text x="48" y="863" font-size="10.6" fill="#a50e0e">loudly rather than guessing.</text>
+  <text x="48" y="886" font-size="10.6" fill="#a50e0e">A file name written as an</text>
+  <text x="48" y="901" font-size="10.6" fill="#a50e0e">instruction to the grader becomes</text>
+  <text x="48" y="916" font-size="10.6" fill="#a50e0e">redacted-&lt;digest&gt; before it can</text>
+  <text x="48" y="931" font-size="10.6" fill="#a50e0e">reach a prompt.</text>
+  <rect x="269" y="758" width="219" height="258" rx="7" fill="#fce8e6" stroke="#d93025"/>
+  <text x="279" y="780" font-size="10.6" fill="#a50e0e">Armor fails closed: if the</text>
+  <text x="279" y="795" font-size="10.6" fill="#a50e0e">screener cannot run the stage</text>
+  <text x="279" y="810" font-size="10.6" fill="#a50e0e">raises — an unscreened page is</text>
+  <text x="279" y="825" font-size="10.6" fill="#a50e0e">never treated as clean.</text>
+  <text x="279" y="848" font-size="10.6" fill="#a50e0e">Schema repair: 2 bounded retries,</text>
+  <text x="279" y="863" font-size="10.6" fill="#a50e0e">then that exam is dead-lettered</text>
+  <text x="279" y="878" font-size="10.6" fill="#a50e0e">and the other seven keep going.</text>
+  <text x="279" y="901" font-size="10.6" fill="#a50e0e">Primary slower than 90 s →</text>
+  <text x="279" y="916" font-size="10.6" fill="#a50e0e">flash-lite, confidence x 0.9.</text>
+  <text x="279" y="939" font-size="10.6" fill="#a50e0e">A quoted line that is not on the</text>
+  <text x="279" y="954" font-size="10.6" fill="#a50e0e">page zeroes the confidence.</text>
+  <rect x="500" y="758" width="219" height="258" rx="7" fill="#fce8e6" stroke="#d93025"/>
+  <text x="510" y="780" font-size="10.6" fill="#a50e0e">The auditor principal holds only</text>
+  <text x="510" y="795" font-size="10.6" fill="#a50e0e">llm.invoke and firestore.read.</text>
+  <text x="510" y="818" font-size="10.6" fill="#a50e0e">A denial raises: the stage fails,</text>
+  <text x="510" y="833" font-size="10.6" fill="#a50e0e">nothing is half-written, and</text>
+  <text x="510" y="848" font-size="10.6" fill="#a50e0e">Pub/Sub redelivers into a</text>
+  <text x="510" y="863" font-size="10.6" fill="#a50e0e">checkpoint that already holds the</text>
+  <text x="510" y="878" font-size="10.6" fill="#a50e0e">paid grading work.</text>
+  <rect x="731" y="758" width="219" height="258" rx="7" fill="#fce8e6" stroke="#d93025"/>
+  <text x="741" y="780" font-size="10.6" fill="#a50e0e">Nothing to refuse — no model</text>
+  <text x="741" y="795" font-size="10.6" fill="#a50e0e">runs and no external write</text>
+  <text x="741" y="810" font-size="10.6" fill="#a50e0e">happens here.</text>
+  <text x="741" y="833" font-size="10.6" fill="#a50e0e">A student with no graded result</text>
+  <text x="741" y="848" font-size="10.6" fill="#a50e0e">in this batch is skipped, never</text>
+  <text x="741" y="863" font-size="10.6" fill="#a50e0e">invented.</text>
+  <text x="741" y="886" font-size="10.6" fill="#a50e0e">Deliberately boring: an early-</text>
+  <text x="741" y="901" font-size="10.6" fill="#a50e0e">warning flag a family will be</text>
+  <text x="741" y="916" font-size="10.6" fill="#a50e0e">told about is arithmetic, not</text>
+  <text x="741" y="931" font-size="10.6" fill="#a50e0e">a judgement.</text>
+  <rect x="962" y="758" width="219" height="258" rx="7" fill="#fce8e6" stroke="#d93025"/>
+  <text x="972" y="780" font-size="10.6" fill="#a50e0e">confidence &lt; 0.85 → quarantine</text>
+  <text x="972" y="803" font-size="10.6" fill="#a50e0e">legibility 0.19 x 0.50 → effective</text>
+  <text x="972" y="818" font-size="10.6" fill="#a50e0e">0.49 → quarantined in production</text>
+  <text x="972" y="841" font-size="10.6" fill="#a50e0e">armor detection → quarantine,</text>
+  <text x="972" y="856" font-size="10.6" fill="#a50e0e">whatever the confidence says</text>
+  <text x="972" y="879" font-size="10.6" fill="#a50e0e">permission gate DENY outside the</text>
+  <text x="972" y="894" font-size="10.6" fill="#a50e0e">manifest — blocked in memory,</text>
+  <text x="972" y="909" font-size="10.6" fill="#a50e0e">before the network call</text>
+  <text x="972" y="932" font-size="10.6" fill="#a50e0e">breaker: over 15 % quarantined</text>
+  <text x="972" y="947" font-size="10.6" fill="#a50e0e">suspends the batch (0.250 &gt; 0.150</text>
+  <text x="972" y="962" font-size="10.6" fill="#a50e0e">→ all 8 held)</text>
+  <text x="972" y="985" font-size="10.6" fill="#a50e0e">rejected record → dead_letter,</text>
+  <text x="972" y="1000" font-size="10.6" fill="#a50e0e">3 attempts, orphans only on retry</text>
+  <rect x="1193" y="758" width="219" height="258" rx="7" fill="#fce8e6" stroke="#d93025"/>
+  <text x="1203" y="780" font-size="10.6" fill="#a50e0e">Rework is bounded: 2 iterations,</text>
+  <text x="1203" y="795" font-size="10.6" fill="#a50e0e">stopping on convergence or on</text>
+  <text x="1203" y="810" font-size="10.6" fill="#a50e0e">no progress.</text>
+  <text x="1203" y="833" font-size="10.6" fill="#a50e0e">A recovered exam is still marked</text>
+  <text x="1203" y="848" font-size="10.6" fill="#a50e0e">pending_human_approval — the loop</text>
+  <text x="1203" y="863" font-size="10.6" fill="#a50e0e">cannot approve for the teacher.</text>
+  <text x="1203" y="886" font-size="10.6" fill="#a50e0e">Objects that never reached a</text>
+  <text x="1203" y="901" font-size="10.6" fill="#a50e0e">grade become review items: a</text>
+  <text x="1203" y="916" font-size="10.6" fill="#a50e0e">missing exam is never a silent</text>
+  <text x="1203" y="931" font-size="10.6" fill="#a50e0e">loss.</text>
+  <text x="1203" y="954" font-size="10.6" fill="#a50e0e">If nothing could be graded the</text>
+  <text x="1203" y="969" font-size="10.6" fill="#a50e0e">stage raises and the delivery is</text>
+  <text x="1203" y="984" font-size="10.6" fill="#a50e0e">left unacknowledged.</text>
+  <rect x="1424" y="758" width="219" height="258" rx="7" fill="#fce8e6" stroke="#d93025"/>
+  <text x="1434" y="780" font-size="10.6" fill="#a50e0e">Anti-gaming validator: constant</text>
+  <text x="1434" y="795" font-size="10.6" fill="#a50e0e">outputs, variance collapse,</text>
+  <text x="1434" y="810" font-size="10.6" fill="#a50e0e">contact with the ground truth.</text>
+  <text x="1434" y="833" font-size="10.6" fill="#a50e0e">Objective gate: QWK &#8805; 0.85 and</text>
+  <text x="1434" y="848" font-size="10.6" fill="#a50e0e">MAE &#8804; 0.4 and |bias| &lt; 0.1.</text>
+  <text x="1434" y="871" font-size="10.6" fill="#a50e0e">Ties lose — the improvement must</text>
+  <text x="1434" y="886" font-size="10.6" fill="#a50e0e">be strictly positive.</text>
+  <text x="1434" y="909" font-size="10.6" fill="#a50e0e">Measured: 3 candidates, 0</text>
+  <text x="1434" y="924" font-size="10.6" fill="#a50e0e">promoted; the baseline held at</text>
+  <text x="1434" y="939" font-size="10.6" fill="#a50e0e">MAE 0.208 / QWK 0.845. This run</text>
+  <text x="1434" y="954" font-size="10.6" fill="#a50e0e">proves the rejection machinery.</text>
+  <rect x="38" y="1046" width="1605" height="104" rx="8" fill="#f8f9fa" stroke="#dadce0"/>
+  <text x="840" y="1069" font-size="12.5" font-weight="bold" fill="#3c4043" text-anchor="middle">What a failure costs, and what the whole batch cost</text>
+  <text x="840" y="1090" font-size="11.5" fill="#3c4043" text-anchor="middle">Any stage that raises marks the job record failed, answers 5xx and leaves the delivery unacknowledged. Pub/Sub redelivers, and every stage already checkpointed replays from Firestore instead of re-running.</text>
+  <text x="840" y="1109" font-size="11.5" fill="#3c4043" text-anchor="middle">Measured on the SIS-outage scenario: first delivery 41.0 s, the two that resumed 2.3 s and 8.0 s. A duplicate delivery of a completed job answers duplicate — zero SIS writes, zero recompute.</text>
+  <text x="840" y="1134" font-size="12" font-weight="bold" fill="#174ea6" text-anchor="middle">One 8-exam batch end to end: 43.9 s wall clock · 40.2 s summed across the stages (the gap is the checkpoint writes) · 16 LLM calls · 45 028 in / 30 368 out tokens · $0.31275 = $0.0391 per exam</text>
+  <text x="38" y="1180" font-size="11" fill="#80868b">Stage timings, token counts and costs: docs/reports/e2e-2026-08-19.md (job e2e-2026-08-19-matematicas-10a-parcial1, trace 9c41e77b20f5a3d6). Legibility, armor and breaker figures: production run</text>
+  <text x="38" y="1198" font-size="11" fill="#80868b">demo-72c3033a-… in docs/reports/production-validation-2026-08-20.md. Resume and duplicate figures: docs/reports/resilience-2026-08-20.md. Optimizer figures: docs/reports/calibration-2026-08-20.md.</text>
+</svg>

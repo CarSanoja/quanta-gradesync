@@ -1,0 +1,233 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1680 1080" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#8430ce"/>
+    </marker>
+  </defs>
+  <rect width="1680" height="1080" fill="#ffffff"/>
+
+  <text x="40" y="52" font-size="27" font-weight="bold" fill="#202124">The teacher&#8217;s path — seven screens, and nothing else</text>
+  <text x="40" y="78" font-size="14" fill="#5f6368">The whole product as she experiences it. Every line below is wording the surface actually renders — the words are the interface, and there is nothing behind them to learn.</text>
+
+  <!-- ================= SCREEN 1 ================= -->
+  <rect x="40" y="150" width="500" height="300" rx="12" fill="#ffffff" stroke="#8430ce" stroke-width="1.5"/>
+  <rect x="40" y="150" width="500" height="34" rx="12" fill="#f3e8fd"/>
+  <rect x="40" y="172" width="500" height="12" fill="#f3e8fd"/>
+  <line x1="40" y1="184" x2="540" y2="184" stroke="#8430ce" stroke-width="1"/>
+  <circle cx="64" cy="167" r="11" fill="#8430ce"/>
+  <text x="64" y="171" font-size="12" font-weight="bold" fill="#ffffff" text-anchor="middle">1</text>
+  <text x="84" y="172" font-size="13" font-weight="bold" fill="#5b2c8d">Nothing pending — the default, and the goal</text>
+  <text x="60" y="216" font-size="19" font-weight="bold" fill="#202124">Nothing needs you.</text>
+  <text x="60" y="240" font-size="11.5" fill="#3c4043">All 16 exams from Midterm 1 are in the gradebook, and your students</text>
+  <text x="60" y="256" font-size="11.5" fill="#3c4043">can see their feedback. When something needs your decision, it will</text>
+  <text x="60" y="272" font-size="11.5" fill="#3c4043">be waiting here.</text>
+  <rect x="60" y="286" width="460" height="94" rx="10" fill="#faf6ff" stroke="#8430ce" stroke-dasharray="5 4"/>
+  <text x="290" y="310" font-size="12.5" font-weight="bold" fill="#5b2c8d" text-anchor="middle">Drop your scans here</text>
+  <text x="290" y="329" font-size="11" fill="#5b2c8d" text-anchor="middle">Photos or PDFs, as many as you like. You never have to rename a</text>
+  <text x="290" y="344" font-size="11" fill="#5b2c8d" text-anchor="middle">file on your computer — you can type each name on this page.</text>
+  <rect x="175" y="352" width="230" height="22" rx="11" fill="#1a73e8"/>
+  <text x="290" y="367" font-size="11" font-weight="bold" fill="#ffffff" text-anchor="middle">Choose files from your computer</text>
+  <text x="60" y="402" font-size="11" fill="#5f6368">Last sent this morning — 16 exams, Midterm 1.</text>
+  <text x="335" y="402" font-size="11" font-weight="bold" fill="#1a73e8">See those grades</text>
+  <text x="60" y="430" font-size="10.5" fill="#80868b" font-style="italic">The screen she should see on almost every day of the term.</text>
+
+  <!-- ================= SCREEN 2 ================= -->
+  <rect x="590" y="150" width="500" height="300" rx="12" fill="#ffffff" stroke="#8430ce" stroke-width="1.5"/>
+  <rect x="590" y="150" width="500" height="34" rx="12" fill="#f3e8fd"/>
+  <rect x="590" y="172" width="500" height="12" fill="#f3e8fd"/>
+  <line x1="590" y1="184" x2="1090" y2="184" stroke="#8430ce" stroke-width="1"/>
+  <circle cx="614" cy="167" r="11" fill="#8430ce"/>
+  <text x="614" y="171" font-size="12" font-weight="bold" fill="#ffffff" text-anchor="middle">2</text>
+  <text x="634" y="172" font-size="13" font-weight="bold" fill="#5b2c8d">Files arriving — the two questions she is asked</text>
+  <text x="610" y="212" font-size="17" font-weight="bold" fill="#202124">Your scans are arriving</text>
+  <text x="610" y="232" font-size="10.5" fill="#5f6368">Which assessment is this?</text>
+  <rect x="610" y="238" width="145" height="26" rx="6" fill="#ffffff" stroke="#dadce0"/>
+  <text x="622" y="255" font-size="11" fill="#202124">Mathematics</text>
+  <rect x="765" y="238" width="145" height="26" rx="6" fill="#ffffff" stroke="#dadce0"/>
+  <text x="777" y="255" font-size="11" fill="#202124">10A</text>
+  <rect x="920" y="238" width="150" height="26" rx="6" fill="#ffffff" stroke="#dadce0"/>
+  <text x="932" y="255" font-size="11" fill="#202124">Midterm 1</text>
+  <text x="610" y="286" font-size="11.5" fill="#3c4043">9 of 16 files have arrived.</text>
+  <rect x="610" y="294" width="460" height="8" rx="4" fill="#e8eaed"/>
+  <rect x="610" y="294" width="259" height="8" rx="4" fill="#8430ce"/>
+  <rect x="610" y="314" width="225" height="106" rx="8" fill="#fdf7ff" stroke="#8430ce"/>
+  <text x="622" y="334" font-size="11.5" font-weight="bold" fill="#5b2c8d">Two files look like one exam</text>
+  <text x="622" y="351" font-size="10.5" fill="#3c4043">IMG_0421 and IMG_0422 look like</text>
+  <text x="622" y="365" font-size="10.5" fill="#3c4043">pages of the same exam.</text>
+  <rect x="622" y="372" width="201" height="20" rx="10" fill="#1a73e8"/>
+  <text x="722" y="386" font-size="10.5" font-weight="bold" fill="#ffffff" text-anchor="middle">One exam — I&#8217;ll send them as one PDF</text>
+  <rect x="622" y="396" width="201" height="20" rx="10" fill="#ffffff" stroke="#1a73e8"/>
+  <text x="722" y="410" font-size="10.5" font-weight="bold" fill="#1a73e8" text-anchor="middle">Two different students</text>
+  <rect x="845" y="314" width="225" height="106" rx="8" fill="#fdf7ff" stroke="#8430ce"/>
+  <text x="857" y="334" font-size="11.5" font-weight="bold" fill="#5b2c8d">3 files still need a name</text>
+  <text x="857" y="351" font-size="10.5" fill="#3c4043">These came from a camera, so we</text>
+  <text x="857" y="365" font-size="10.5" fill="#3c4043">cannot tell whose they are.</text>
+  <text x="857" y="384" font-size="10.5" fill="#5f6368">IMG_0417.jpg &#8212; whose exam is this?</text>
+  <rect x="857" y="392" width="201" height="22" rx="6" fill="#ffffff" stroke="#dadce0"/>
+  <text x="867" y="407" font-size="10.5" fill="#80868b">Type the student&#8217;s name</text>
+  <text x="610" y="438" font-size="10.5" fill="#80868b" font-style="italic">The only work the system asks of her — and only when the camera named the file.</text>
+
+  <!-- ================= SCREEN 3 ================= -->
+  <rect x="1140" y="150" width="500" height="300" rx="12" fill="#ffffff" stroke="#8430ce" stroke-width="1.5"/>
+  <rect x="1140" y="150" width="500" height="34" rx="12" fill="#f3e8fd"/>
+  <rect x="1140" y="172" width="500" height="12" fill="#f3e8fd"/>
+  <line x1="1140" y1="184" x2="1640" y2="184" stroke="#8430ce" stroke-width="1"/>
+  <circle cx="1164" cy="167" r="11" fill="#8430ce"/>
+  <text x="1164" y="171" font-size="12" font-weight="bold" fill="#ffffff" text-anchor="middle">3</text>
+  <text x="1184" y="172" font-size="13" font-weight="bold" fill="#5b2c8d">Grading in progress — in plain counts</text>
+  <text x="1160" y="216" font-size="19" font-weight="bold" fill="#202124">We received 16 exams.</text>
+  <text x="1160" y="252" font-size="13" font-weight="bold" fill="#1a73e8">&#10003;</text>
+  <text x="1184" y="252" font-size="12" fill="#202124">9 are already in the gradebook</text>
+  <text x="1160" y="278" font-size="13" font-weight="bold" fill="#d93025">!</text>
+  <text x="1184" y="278" font-size="12" fill="#202124">2 are waiting for you</text>
+  <text x="1160" y="304" font-size="13" fill="#80868b">&#9684;</text>
+  <text x="1184" y="304" font-size="12" fill="#202124">5 are still being graded</text>
+  <rect x="1160" y="324" width="250" height="26" rx="13" fill="#1a73e8"/>
+  <text x="1285" y="341" font-size="11.5" font-weight="bold" fill="#ffffff" text-anchor="middle">Review the 2 waiting for you</text>
+  <text x="1160" y="382" font-size="11" fill="#5f6368">This page keeps itself up to date. You can close it and come back</text>
+  <text x="1160" y="398" font-size="11" fill="#5f6368">— grading carries on without you.</text>
+  <text x="1160" y="430" font-size="10.5" fill="#80868b" font-style="italic">Counts, not stages. There is no job to watch and no progress to interpret.</text>
+
+  <line x1="544" y1="300" x2="586" y2="300" stroke="#8430ce" stroke-width="2" marker-end="url(#arrp)"/>
+  <line x1="1094" y1="300" x2="1136" y2="300" stroke="#8430ce" stroke-width="2" marker-end="url(#arrp)"/>
+
+  <path d="M1390 450 L1390 480 L230 480 L230 508" fill="none" stroke="#8430ce" stroke-width="2" marker-end="url(#arrp)"/>
+  <text x="810" y="472" font-size="11" fill="#5b2c8d" text-anchor="middle">only when something was held — on a clean batch screen 4 never appears, and she goes straight to 6</text>
+
+  <!-- ================= SCREEN 4 ================= -->
+  <rect x="40" y="512" width="380" height="360" rx="12" fill="#ffffff" stroke="#8430ce" stroke-width="1.5"/>
+  <rect x="40" y="512" width="380" height="34" rx="12" fill="#f3e8fd"/>
+  <rect x="40" y="534" width="380" height="12" fill="#f3e8fd"/>
+  <line x1="40" y1="546" x2="420" y2="546" stroke="#8430ce" stroke-width="1"/>
+  <circle cx="64" cy="529" r="11" fill="#8430ce"/>
+  <text x="64" y="533" font-size="12" font-weight="bold" fill="#ffffff" text-anchor="middle">4</text>
+  <text x="84" y="534" font-size="13" font-weight="bold" fill="#5b2c8d">The fork — two groups, two ways out</text>
+  <text x="60" y="578" font-size="17" font-weight="bold" fill="#202124">We held 63 exams for you.</text>
+  <text x="60" y="597" font-size="10.5" fill="#80868b" font-style="italic">a bigger day than the one above: 100 students, and the precaution</text>
+  <text x="60" y="611" font-size="10.5" fill="#80868b" font-style="italic">rule tripped across the whole batch</text>
+  <text x="60" y="634" font-size="11.5" fill="#3c4043">Almost all of them are fine. They are in two</text>
+  <text x="60" y="650" font-size="11.5" fill="#3c4043">separate groups, settled in two different ways.</text>
+  <rect x="60" y="662" width="340" height="88" rx="8" fill="#fce8e6" stroke="#d93025"/>
+  <text x="74" y="682" font-size="12" font-weight="bold" fill="#a50e0e">3 need your judgement</text>
+  <text x="74" y="699" font-size="10.5" fill="#a50e0e">Something on these pages the system will not</text>
+  <text x="74" y="713" font-size="10.5" fill="#a50e0e">decide on its own. You look at them one at a time.</text>
+  <rect x="74" y="720" width="200" height="20" rx="10" fill="#1a73e8"/>
+  <text x="174" y="734" font-size="10.5" font-weight="bold" fill="#ffffff" text-anchor="middle">Review these one at a time</text>
+  <rect x="60" y="760" width="340" height="82" rx="8" fill="#fdf7ff" stroke="#8430ce"/>
+  <text x="74" y="780" font-size="12" font-weight="bold" fill="#5b2c8d">60 were held as a precaution</text>
+  <text x="74" y="797" font-size="10.5" fill="#3c4043">Nothing was found wrong with these — they were</text>
+  <text x="74" y="811" font-size="10.5" fill="#3c4043">held only because they arrived with the rest.</text>
+  <rect x="74" y="818" width="200" height="20" rx="10" fill="#202124"/>
+  <text x="174" y="832" font-size="10.5" font-weight="bold" fill="#ffffff" text-anchor="middle">Put all 60 in the gradebook</text>
+  <text x="60" y="858" font-size="10.5" fill="#80868b" font-style="italic">No exam with a reason of its own can leave in the bulk release.</text>
+
+  <!-- ================= SCREEN 5 ================= -->
+  <rect x="454" y="512" width="520" height="400" rx="12" fill="#ffffff" stroke="#8430ce" stroke-width="1.5"/>
+  <rect x="454" y="512" width="520" height="34" rx="12" fill="#f3e8fd"/>
+  <rect x="454" y="534" width="520" height="12" fill="#f3e8fd"/>
+  <line x1="454" y1="546" x2="974" y2="546" stroke="#8430ce" stroke-width="1"/>
+  <circle cx="478" cy="529" r="11" fill="#8430ce"/>
+  <text x="478" y="533" font-size="12" font-weight="bold" fill="#ffffff" text-anchor="middle">5</text>
+  <text x="498" y="534" font-size="13" font-weight="bold" fill="#5b2c8d">The ones that need judgement — one at a time</text>
+  <text x="474" y="570" font-size="10.5" fill="#5f6368">Exam 1 of 3 waiting</text>
+  <text x="954" y="570" font-size="10.5" font-weight="bold" fill="#1a73e8" text-anchor="end">Stop for now — the rest keep waiting</text>
+  <text x="474" y="594" font-size="17" font-weight="bold" fill="#202124">Camila R&#237;os</text>
+
+  <rect x="474" y="606" width="170" height="206" rx="6" fill="#f8f9fa" stroke="#dadce0"/>
+  <g stroke="#dadce0" stroke-width="1">
+    <line x1="492" y1="640" x2="626" y2="640"/><line x1="492" y1="664" x2="626" y2="664"/>
+    <line x1="492" y1="688" x2="600" y2="688"/><line x1="492" y1="712" x2="626" y2="712"/>
+    <line x1="492" y1="736" x2="626" y2="736"/><line x1="492" y1="760" x2="580" y2="760"/>
+  </g>
+  <text x="559" y="628" font-size="10.5" fill="#80868b" text-anchor="middle">her scanned page</text>
+  <text x="559" y="790" font-size="10.5" fill="#80868b" text-anchor="middle">the quoted line highlighted</text>
+  <rect x="494" y="822" width="130" height="22" rx="11" fill="#ffffff" stroke="#1a73e8"/>
+  <text x="559" y="837" font-size="10.5" font-weight="bold" fill="#1a73e8" text-anchor="middle">See it bigger</text>
+  <text x="474" y="866" font-size="10.5" fill="#80868b" font-style="italic">One page, one reason, one</text>
+  <text x="474" y="880" font-size="10.5" fill="#80868b" font-style="italic">quote, three answers. Two of</text>
+  <text x="474" y="894" font-size="10.5" fill="#80868b" font-style="italic">them are a single keystroke.</text>
+
+  <text x="664" y="620" font-size="10.5" font-weight="bold" fill="#80868b" letter-spacing="1">WHY THIS ONE STOPPED</text>
+  <text x="664" y="639" font-size="11.5" fill="#a50e0e">This scan is blurry — please confirm</text>
+  <text x="664" y="654" font-size="11.5" fill="#a50e0e">the grade yourself.</text>
+  <text x="664" y="676" font-size="10.5" fill="#5f6368">The grader read this from the page:</text>
+  <rect x="664" y="684" width="290" height="42" rx="6" fill="#f8f9fa" stroke="#dadce0"/>
+  <rect x="664" y="684" width="4" height="42" fill="#8430ce"/>
+  <text x="680" y="704" font-size="11.5" font-style="italic" fill="#202124">&#8220;84 / (4/3) = 63 km/h&#8221;</text>
+  <text x="680" y="719" font-size="10.5" fill="#80868b">page 1</text>
+  <text x="664" y="748" font-size="10.5" font-weight="bold" fill="#80868b" letter-spacing="1">THE MARKS WE PROPOSE</text>
+  <text x="664" y="768" font-size="11.5" fill="#3c4043">factoring</text>
+  <text x="954" y="768" font-size="11.5" fill="#202124" text-anchor="end">&#8722;   3 of 4   +</text>
+  <text x="664" y="786" font-size="11.5" fill="#3c4043">graph-reading</text>
+  <text x="954" y="786" font-size="11.5" fill="#202124" text-anchor="end">&#8722;   2 of 3   +</text>
+  <text x="664" y="804" font-size="11.5" fill="#3c4043">word-problem</text>
+  <text x="954" y="804" font-size="11.5" fill="#202124" text-anchor="end">&#8722;   2 of 3   +</text>
+  <text x="664" y="826" font-size="11.5" font-weight="bold" fill="#202124">Total: 7 of 10 points &#183; 70%</text>
+  <text x="664" y="842" font-size="10.5" fill="#5b2c8d">&#9656; What Camila will see</text>
+  <text x="820" y="842" font-size="10.5" fill="#5b2c8d">&#9656; A note only for you</text>
+  <rect x="664" y="850" width="175" height="24" rx="12" fill="#1a73e8"/>
+  <text x="751" y="866" font-size="10.5" font-weight="bold" fill="#ffffff" text-anchor="middle">Put it in the gradebook   A</text>
+  <rect x="847" y="850" width="107" height="24" rx="12" fill="#ffffff" stroke="#1a73e8"/>
+  <text x="900" y="866" font-size="10.5" font-weight="bold" fill="#1a73e8" text-anchor="middle">Change the marks</text>
+  <rect x="664" y="880" width="175" height="24" rx="12" fill="#ffffff" stroke="#5f6368"/>
+  <text x="751" y="896" font-size="10.5" font-weight="bold" fill="#3c4043" text-anchor="middle">I&#8217;ll grade this one myself   S</text>
+
+  <!-- ================= SCREEN 6 ================= -->
+  <rect x="1008" y="512" width="320" height="270" rx="12" fill="#ffffff" stroke="#8430ce" stroke-width="1.5"/>
+  <rect x="1008" y="512" width="320" height="34" rx="12" fill="#f3e8fd"/>
+  <rect x="1008" y="534" width="320" height="12" fill="#f3e8fd"/>
+  <line x1="1008" y1="546" x2="1328" y2="546" stroke="#8430ce" stroke-width="1"/>
+  <circle cx="1032" cy="529" r="11" fill="#8430ce"/>
+  <text x="1032" y="533" font-size="12" font-weight="bold" fill="#ffffff" text-anchor="middle">6</text>
+  <text x="1052" y="534" font-size="13" font-weight="bold" fill="#5b2c8d">Settled</text>
+  <text x="1028" y="588" font-size="20" font-weight="bold" fill="#8430ce">&#10003;</text>
+  <text x="1028" y="618" font-size="16" font-weight="bold" fill="#202124">Midterm 1 is finished.</text>
+  <text x="1028" y="640" font-size="11.5" fill="#3c4043">Every exam is in the gradebook and</text>
+  <text x="1028" y="656" font-size="11.5" fill="#3c4043">your students can see their feedback.</text>
+  <text x="1028" y="672" font-size="11.5" fill="#3c4043">There is nothing left waiting for you.</text>
+  <line x1="1028" y1="686" x2="1308" y2="686" stroke="#e8eaed"/>
+  <text x="1028" y="706" font-size="11.5" fill="#3c4043">Graded automatically</text>
+  <text x="1308" y="706" font-size="11.5" font-weight="bold" fill="#202124" text-anchor="end">14 exams</text>
+  <text x="1028" y="726" font-size="11.5" fill="#3c4043">Decided by you</text>
+  <text x="1308" y="726" font-size="11.5" font-weight="bold" fill="#202124" text-anchor="end">2 exams</text>
+  <rect x="1028" y="738" width="120" height="24" rx="12" fill="#1a73e8"/>
+  <text x="1088" y="754" font-size="10.5" font-weight="bold" fill="#ffffff" text-anchor="middle">See the grades</text>
+  <rect x="1156" y="738" width="132" height="24" rx="12" fill="#ffffff" stroke="#1a73e8"/>
+  <text x="1222" y="754" font-size="10.5" font-weight="bold" fill="#1a73e8" text-anchor="middle">Send more scans</text>
+
+  <!-- ================= SCREEN 7 ================= -->
+  <rect x="1362" y="512" width="278" height="230" rx="12" fill="#ffffff" stroke="#8430ce" stroke-width="1.5"/>
+  <rect x="1362" y="512" width="278" height="34" rx="12" fill="#f3e8fd"/>
+  <rect x="1362" y="534" width="278" height="12" fill="#f3e8fd"/>
+  <line x1="1362" y1="546" x2="1640" y2="546" stroke="#8430ce" stroke-width="1"/>
+  <circle cx="1386" cy="529" r="11" fill="#8430ce"/>
+  <text x="1386" y="533" font-size="12" font-weight="bold" fill="#ffffff" text-anchor="middle">7</text>
+  <text x="1406" y="534" font-size="13" font-weight="bold" fill="#5b2c8d">The gradebook</text>
+  <text x="1382" y="578" font-size="16" font-weight="bold" fill="#202124">Recent grades</text>
+  <text x="1382" y="600" font-size="10.5" fill="#5f6368">Search by student name</text>
+  <rect x="1382" y="606" width="238" height="26" rx="6" fill="#ffffff" stroke="#dadce0"/>
+  <text x="1394" y="623" font-size="11" fill="#80868b">Ana, Camila, Juli&#225;n…</text>
+  <line x1="1382" y1="646" x2="1620" y2="646" stroke="#e8eaed"/>
+  <text x="1382" y="668" font-size="11.5" font-weight="bold" fill="#202124">Camila R&#237;os</text>
+  <text x="1620" y="668" font-size="11.5" font-weight="bold" fill="#202124" text-anchor="end">7 of 10 &#183; 70%</text>
+  <text x="1382" y="684" font-size="10.5" fill="#5f6368">Mathematics &#183; Midterm 1 &#183; in the gradebook 4 min ago</text>
+  <text x="1620" y="700" font-size="10.5" fill="#5f6368" text-anchor="end">MAT.10.1 &#183; MAT.10.2</text>
+  <text x="1382" y="726" font-size="10.5" fill="#80868b" font-style="italic">Where a parent&#8217;s question gets answered.</text>
+
+  <line x1="424" y1="692" x2="450" y2="692" stroke="#8430ce" stroke-width="2" marker-end="url(#arrp)"/>
+  <line x1="978" y1="647" x2="1004" y2="647" stroke="#8430ce" stroke-width="2" marker-end="url(#arrp)"/>
+  <line x1="1332" y1="627" x2="1358" y2="627" stroke="#8430ce" stroke-width="2" marker-end="url(#arrp)"/>
+  <path d="M230 872 L230 940 L1168 940 L1168 786" fill="none" stroke="#8430ce" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrp)"/>
+  <text x="700" y="932" font-size="11" fill="#5b2c8d" text-anchor="middle">the sixty leave together on one confirmation — they never pass through screen 5</text>
+
+  <!-- ================= FOOTER ================= -->
+  <rect x="40" y="968" width="1600" height="92" rx="10" fill="#f8f9fa" stroke="#dadce0"/>
+  <text x="58" y="1012" font-size="26" font-weight="bold" fill="#8430ce">63 &#8594; 4</text>
+  <text x="58" y="1034" font-size="10.5" fill="#5f6368">held exams become decisions:</text>
+  <text x="58" y="1048" font-size="10.5" fill="#5f6368">three judgements, one confirmation</text>
+  <line x1="330" y1="988" x2="330" y2="1040" stroke="#dadce0"/>
+  <text x="356" y="996" font-size="12.5" font-weight="bold" fill="#202124">What she never sees</text>
+  <text x="356" y="1016" font-size="11" fill="#3c4043">job ids &#183; stage names (fetch, grade, audit, risk, sync, verify, optimize) &#183; confidence numbers and the 0.85 gate &#183; model names &#183; prompt versions &#183; trace ids &#183; checkpoint state</text>
+  <text x="356" y="1032" font-size="11" fill="#3c4043">quarantine ratios and the 15 % circuit breaker &#183; dead-letter entries &#183; token counts and cost. Everything the other two diagrams describe happens without her, and none of its vocabulary reaches this surface.</text>
+  <text x="356" y="1050" font-size="10.5" fill="#80868b" font-style="italic">Wording from the shipped teacher surface · the triage claim from implementation 013 · Camila&#8217;s reason, quoted line and marks from the measured runs.</text>
+</svg>

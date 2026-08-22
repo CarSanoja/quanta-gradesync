@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1680 980" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#5f6368"/>
+    </marker>
+    <marker id="arrp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#8430ce"/>
+    </marker>
+    <marker id="arrb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#1a73e8"/>
+    </marker>
+    <marker id="arrg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#188038"/>
+    </marker>
+  </defs>
+  <rect width="1680" height="980" fill="#ffffff"/>
+
+  <text x="40" y="52" font-size="27" font-weight="bold" fill="#202124">AutoCurricula &amp; GradeSync Engine — System Context</text>
+  <text x="40" y="76" font-size="14" fill="#5f6368">Level 1: the school around the engine. Four people, three outside systems, and what each one gives and gets. No internal components.</text>
+
+  <!-- ENGINE -->
+  <rect x="600" y="170" width="480" height="390" rx="12" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2.5"/>
+  <text x="840" y="204" font-size="16" font-weight="bold" fill="#174ea6" text-anchor="middle">AutoCurricula &amp; GradeSync Engine</text>
+  <text x="840" y="226" font-size="12" fill="#174ea6" text-anchor="middle" font-style="italic">nothing to launch, nothing to chat with — the upload is the trigger</text>
+
+  <g font-size="12.5" fill="#3c4043" text-anchor="middle">
+    <text x="840" y="262">Reads every scanned page, grades it against the school's own</text>
+    <text x="840" y="281">rubric, and quotes the exact line of the student's work that</text>
+    <text x="840" y="300">justifies each score.</text>
+    <text x="840" y="328">Checks each grade against the ministry curriculum, flags</text>
+    <text x="840" y="347">students whose trajectory is slipping, and writes the result</text>
+    <text x="840" y="366">into the school system.</text>
+    <text x="840" y="394" font-weight="bold" fill="#a50e0e">It escalates instead of guessing.</text>
+    <text x="840" y="413">An illegible page, an instruction written on the exam to fool</text>
+    <text x="840" y="432">the grader, or a batch that looks wrong stops and waits for</text>
+    <text x="840" y="451">a teacher — it is never silently graded.</text>
+  </g>
+
+  <rect x="612" y="472" width="456" height="70" rx="8" fill="#ffffff" stroke="#aecbfa"/>
+  <text x="840" y="492" font-size="11" fill="#174ea6" text-anchor="middle" font-weight="bold">Measured, not promised</text>
+  <text x="840" y="510" font-size="11" fill="#3c4043" text-anchor="middle">8-exam batch: 43.9 s from the upload event to a completed job · $0.0391/exam</text>
+  <text x="840" y="527" font-size="11" fill="#3c4043" text-anchor="middle">agreement with human markers QWK 0.845 / MAE 0.208 · 503 offline tests</text>
+
+  <!-- FRONT OFFICE -->
+  <rect x="40" y="180" width="280" height="140" rx="10" fill="#f3e8fd" stroke="#8430ce"/>
+  <text x="180" y="210" font-size="15" font-weight="bold" fill="#5b2c8d" text-anchor="middle">Front office</text>
+  <g font-size="11.5" fill="#5b2c8d" text-anchor="middle">
+    <text x="180" y="234">Scans the exam batch the same</text>
+    <text x="180" y="251">afternoon and drops the files in</text>
+    <text x="180" y="268">the school's shared folder.</text>
+    <text x="180" y="292" font-style="italic">No form to fill, no login,</text>
+    <text x="180" y="308" font-style="italic">no application to learn.</text>
+  </g>
+  <line x1="322" y1="250" x2="596" y2="250" stroke="#8430ce" stroke-width="2" marker-end="url(#arrp)"/>
+  <text x="459" y="228" font-size="11" fill="#5f6368" text-anchor="middle">a folder of scanned pages</text>
+  <text x="459" y="243" font-size="11" fill="#5f6368" text-anchor="middle">folder = the exam, file name = the student</text>
+
+  <!-- COORDINATOR -->
+  <rect x="40" y="400" width="280" height="140" rx="10" fill="#f3e8fd" stroke="#8430ce"/>
+  <text x="180" y="430" font-size="15" font-weight="bold" fill="#5b2c8d" text-anchor="middle">Academic coordinator</text>
+  <g font-size="11.5" fill="#5b2c8d" text-anchor="middle">
+    <text x="180" y="454">Publishes the rubric for each</text>
+    <text x="180" y="471">assessment and binds every</text>
+    <text x="180" y="488">subject to its curriculum</text>
+    <text x="180" y="505">standard.</text>
+    <text x="180" y="528" font-style="italic">One file, once a term.</text>
+  </g>
+  <line x1="322" y1="470" x2="596" y2="470" stroke="#8430ce" stroke-width="2" marker-end="url(#arrp)"/>
+  <text x="459" y="448" font-size="11" fill="#5f6368" text-anchor="middle">rubrics + subject-to-curriculum bindings,</text>
+  <text x="459" y="463" font-size="11" fill="#5f6368" text-anchor="middle">set once and applied to every batch</text>
+
+  <!-- TEACHER -->
+  <rect x="1360" y="180" width="280" height="140" rx="10" fill="#f3e8fd" stroke="#8430ce"/>
+  <text x="1500" y="210" font-size="15" font-weight="bold" fill="#5b2c8d" text-anchor="middle">Teacher</text>
+  <g font-size="11.5" fill="#5b2c8d" text-anchor="middle">
+    <text x="1500" y="234">Sees only the exams the engine</text>
+    <text x="1500" y="251">refused to decide alone — the</text>
+    <text x="1500" y="268">page, the quoted line, and the</text>
+    <text x="1500" y="285">reason it stopped.</text>
+    <text x="1500" y="308" font-style="italic">Approves or dismisses in one click.</text>
+  </g>
+  <line x1="1084" y1="232" x2="1356" y2="232" stroke="#8430ce" stroke-width="2" marker-end="url(#arrp)"/>
+  <text x="1220" y="211" font-size="11" fill="#5f6368" text-anchor="middle">only the exceptions: of a 16-exam batch,</text>
+  <text x="1220" y="226" font-size="11" fill="#5f6368" text-anchor="middle">14 synced without a human touching them</text>
+  <line x1="1356" y1="288" x2="1084" y2="288" stroke="#8430ce" stroke-width="2" marker-end="url(#arrp)"/>
+  <text x="1220" y="305" font-size="11" fill="#5f6368" text-anchor="middle">a decision on the two that stopped —</text>
+  <text x="1220" y="320" font-size="11" fill="#5f6368" text-anchor="middle">kept as a label the engine learns from</text>
+
+  <!-- FAMILIES -->
+  <rect x="1360" y="400" width="280" height="140" rx="10" fill="#f3e8fd" stroke="#8430ce"/>
+  <text x="1500" y="430" font-size="15" font-weight="bold" fill="#5b2c8d" text-anchor="middle">Families &amp; auditors</text>
+  <g font-size="11.5" fill="#5b2c8d" text-anchor="middle">
+    <text x="1500" y="454">Ask months later why a grade</text>
+    <text x="1500" y="471">is what it is — a parent</text>
+    <text x="1500" y="488">complaint, a term audit, an</text>
+    <text x="1500" y="505">appeal against a mark.</text>
+    <text x="1500" y="528" font-style="italic">The record has to survive it.</text>
+  </g>
+  <line x1="1356" y1="440" x2="1084" y2="440" stroke="#8430ce" stroke-width="2" marker-end="url(#arrp)"/>
+  <text x="1220" y="431" font-size="11" fill="#5f6368" text-anchor="middle">a question about one grade</text>
+  <line x1="1084" y1="492" x2="1356" y2="492" stroke="#8430ce" stroke-width="2" marker-end="url(#arrp)"/>
+  <text x="1220" y="509" font-size="11" fill="#5f6368" text-anchor="middle">the student's own handwriting quoted back,</text>
+  <text x="1220" y="524" font-size="11" fill="#5f6368" text-anchor="middle">plus a signed receipt of how it was graded</text>
+
+  <!-- MINISTRY STANDARD -->
+  <rect x="80" y="680" width="380" height="150" rx="10" fill="#f1f3f4" stroke="#9aa0a6"/>
+  <text x="270" y="710" font-size="15" font-weight="bold" fill="#3c4043" text-anchor="middle">Ministry curriculum standard</text>
+  <g font-size="11.5" fill="#3c4043" text-anchor="middle">
+    <text x="270" y="736">The national competency framework the school is</text>
+    <text x="270" y="753">inspected against — for this batch, CO/2026.1.</text>
+    <text x="270" y="781">Not a system to integrate with: a published</text>
+    <text x="270" y="798">document the coordinator binds to each subject,</text>
+    <text x="270" y="815">and every grade is cross-referenced to it.</text>
+  </g>
+  <path d="M 270 676 L 270 615 L 716 615 L 716 564" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="493" y="606" font-size="11" fill="#5f6368" text-anchor="middle">the competency codes every grade is audited against</text>
+
+  <!-- SCHOOL SIS -->
+  <rect x="650" y="680" width="380" height="150" rx="10" fill="#e8f0fe" stroke="#1a73e8"/>
+  <text x="840" y="710" font-size="15" font-weight="bold" fill="#174ea6" text-anchor="middle">School information system</text>
+  <g font-size="11.5" fill="#174ea6" text-anchor="middle">
+    <text x="840" y="736">The school's own system of record — the grade</text>
+    <text x="840" y="753">book that families and the ministry read.</text>
+    <text x="840" y="781">Nobody retypes anything into it, and a grade is</text>
+    <text x="840" y="798">written once: re-delivering the same batch never</text>
+    <text x="840" y="815">produces a second mark for the same student.</text>
+  </g>
+  <line x1="840" y1="564" x2="840" y2="676" stroke="#1a73e8" stroke-width="2" marker-end="url(#arrb)"/>
+  <text x="826" y="648" font-size="11" fill="#5f6368" text-anchor="end">each cleared grade, with its competency codes</text>
+
+  <!-- GOOGLE CLOUD -->
+  <rect x="1220" y="680" width="380" height="150" rx="10" fill="#e6f4ea" stroke="#188038"/>
+  <text x="1410" y="710" font-size="15" font-weight="bold" fill="#0d652d" text-anchor="middle">Google Cloud</text>
+  <g font-size="11.5" fill="#0d652d" text-anchor="middle">
+    <text x="1410" y="736">The whole engine is one deployed service: Cloud</text>
+    <text x="1410" y="753">Run, Cloud Storage, Pub/Sub, Firestore, Secret</text>
+    <text x="1410" y="770">Manager, and Vertex AI running Gemini 3.5 Flash</text>
+    <text x="1410" y="787">and Flash-Lite.</text>
+    <text x="1410" y="815" font-style="italic">An idle school costs nothing: it scales to zero.</text>
+  </g>
+  <path d="M 964 564 L 964 615 L 1410 615 L 1410 676" fill="none" stroke="#188038" stroke-width="2" marker-end="url(#arrg)" marker-start="url(#arrg)"/>
+  <text x="1187" y="606" font-size="11" fill="#5f6368" text-anchor="middle">the pages, the models, the state and the audit trail</text>
+
+  <text x="40" y="905" font-size="12" font-weight="bold" fill="#3c4043">What is deliberately not on this diagram</text>
+  <text x="40" y="925" font-size="11.5" fill="#5f6368">Every internal component. This level answers only: who touches the engine, what they hand it, and what they get back. The deployable units are in containers.svg;</text>
+  <text x="40" y="943" font-size="11.5" fill="#5f6368">the seven stages of a single grading job are in pipeline.svg.</text>
+</svg>

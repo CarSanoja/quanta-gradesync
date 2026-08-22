@@ -1,0 +1,220 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1680 1060" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#5f6368"/>
+    </marker>
+    <marker id="arrb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#1a73e8"/>
+    </marker>
+    <marker id="arrr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#d93025"/>
+    </marker>
+    <marker id="arrp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#8430ce"/>
+    </marker>
+  </defs>
+  <rect width="1680" height="1060" fill="#ffffff"/>
+
+  <text x="40" y="52" font-size="27" font-weight="bold" fill="#202124">The cold loop — improving the grader without being able to cheat it</text>
+  <text x="40" y="76" font-size="14" fill="#5f6368">Human decisions become labels, labels become ground truth, the proposer mutates a prompt — and every candidate is re-scored against exactly the same samples before three refusals decide it.</text>
+  <text x="40" y="97" font-size="12.5" fill="#5f6368">Run live on 2026-08-20 with real Gemini on both sides: 19 calls, 124.9 s, $0.6296. Three candidates proposed. Three rejected. Nothing promoted — which is what this diagram is about.</text>
+
+  <!-- ================= ROW 1 — ground truth supply ================= -->
+  <rect x="40" y="126" width="380" height="150" rx="10" fill="#f3e8fd" stroke="#8430ce" stroke-width="1.5"/>
+  <text x="58" y="152" font-size="13.5" font-weight="bold" fill="#5b2c8d">1 · Teacher decisions</text>
+  <text x="58" y="172" font-size="12" fill="#5b2c8d">In the review queue, on a card that already</text>
+  <text x="58" y="188" font-size="12" fill="#5b2c8d">shows the page and the cited excerpt.</text>
+  <text x="58" y="212" font-size="11.5" fill="#5b2c8d">approve — confirms the machine score</text>
+  <text x="58" y="228" font-size="11.5" fill="#5b2c8d">override — replaces it with the teacher's</text>
+  <text x="58" y="244" font-size="11.5" fill="#5b2c8d">dismiss — rejects it, and carries no score</text>
+  <text x="58" y="262" font-size="10.5" fill="#5b2c8d" font-style="italic">The exception review a teacher was doing anyway.</text>
+
+  <rect x="446" y="126" width="380" height="150" rx="10" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1.5"/>
+  <text x="464" y="152" font-size="13.5" font-weight="bold" fill="#174ea6">2 · Label</text>
+  <text x="464" y="172" font-size="12" fill="#174ea6">One per decision, not one per criterion.</text>
+  <text x="464" y="196" font-size="11.5" fill="#174ea6">machine score · human score · ceiling, per</text>
+  <text x="464" y="212" font-size="11.5" fill="#174ea6">criterion · machine and human percentages</text>
+  <text x="464" y="228" font-size="11.5" fill="#174ea6">· the prompt variant id and its version SHA</text>
+  <text x="464" y="244" font-size="11.5" fill="#174ea6">· the reviewer's note · a timestamp</text>
+  <text x="464" y="262" font-size="10.5" fill="#5f6368" font-style="italic">label_id is review_id:decision — a redelivery overwrites.</text>
+
+  <rect x="852" y="126" width="380" height="150" rx="10" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1.5"/>
+  <text x="870" y="152" font-size="13.5" font-weight="bold" fill="#174ea6">3 · Calibration sample</text>
+  <text x="870" y="172" font-size="12" fill="#174ea6">A criterion is usable only when it carries</text>
+  <text x="870" y="188" font-size="12" fill="#174ea6">both a human score and a ceiling.</text>
+  <text x="870" y="212" font-size="11.5" fill="#0d652d">approve and override qualify.</text>
+  <text x="870" y="232" font-size="11.5" fill="#a50e0e">dismiss is deliberately excluded: a</text>
+  <text x="870" y="248" font-size="11.5" fill="#a50e0e">rejection is not a grade.</text>
+  <text x="870" y="264" font-size="10.5" fill="#5f6368" font-style="italic">The most informative click is the one it refuses to use.</text>
+
+  <rect x="1258" y="126" width="382" height="150" rx="10" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2"/>
+  <text x="1276" y="152" font-size="13.5" font-weight="bold" fill="#174ea6">4 · The calibration set — human ground truth</text>
+  <text x="1276" y="174" font-size="12" fill="#174ea6">Every candidate in a cycle is scored against</text>
+  <text x="1276" y="190" font-size="12" fill="#174ea6">exactly this set. Never a subset — scoring a</text>
+  <text x="1276" y="206" font-size="12" fill="#174ea6">subset is itself a rejection reason.</text>
+  <rect x="1276" y="220" width="346" height="34" rx="6" fill="#ffffff" stroke="#aecbfa"/>
+  <text x="1290" y="241" font-size="12" font-weight="bold" fill="#174ea6">live run: 4 human-graded students · 12 criterion pairs</text>
+  <text x="1276" y="264" font-size="10.5" fill="#5f6368" font-style="italic">4 mastery buckets · the whole loop's only source of truth.</text>
+
+  <g stroke="#5f6368" stroke-width="2">
+    <line x1="420" y1="201" x2="442" y2="201" marker-end="url(#arr)"/>
+    <line x1="826" y1="201" x2="848" y2="201" marker-end="url(#arr)"/>
+    <line x1="1232" y1="201" x2="1254" y2="201" marker-end="url(#arr)"/>
+    <line x1="1380" y1="276" x2="1380" y2="312" marker-end="url(#arr)"/>
+  </g>
+
+  <!-- ================= ROW 2 — the tournament (right to left) ================= -->
+  <rect x="1258" y="316" width="382" height="150" rx="10" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1.5"/>
+  <text x="1276" y="342" font-size="13.5" font-weight="bold" fill="#174ea6">5 · The active variant</text>
+  <text x="1276" y="362" font-size="12" fill="#174ea6">grading-v1 · v1 · manual seed</text>
+  <text x="1276" y="382" font-size="12" fill="#174ea6">Re-evaluated on the same set at the start of</text>
+  <text x="1276" y="398" font-size="12" fill="#174ea6">every cycle, so the bar is measured, not stored.</text>
+  <rect x="1276" y="410" width="346" height="34" rx="6" fill="#ffffff" stroke="#aecbfa"/>
+  <text x="1290" y="431" font-size="12" font-weight="bold" fill="#174ea6">baseline  QWK 0.845 · MAE 0.208 · bias −0.042</text>
+  <text x="1276" y="454" font-size="10.5" fill="#5f6368" font-style="italic">Identical variants are served from a run cache, not re-billed.</text>
+
+  <rect x="852" y="316" width="380" height="150" rx="10" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1.5"/>
+  <text x="870" y="342" font-size="13.5" font-weight="bold" fill="#174ea6">6 · Prompt proposer</text>
+  <text x="870" y="362" font-size="12" fill="#0d652d">gemini-3.5-flash-lite</text>
+  <text x="870" y="386" font-size="11.5" fill="#174ea6">Sees the current instruction, its metrics and</text>
+  <text x="870" y="402" font-size="11.5" fill="#174ea6">summaries of the failing samples.</text>
+  <text x="870" y="424" font-size="11.5" fill="#a50e0e">It never sees the expected scores.</text>
+  <text x="870" y="448" font-size="10.5" fill="#5f6368" font-style="italic">3 proposals, all schema-valid first try, 4.1–5.0 s, $0.0110</text>
+
+  <rect x="446" y="316" width="380" height="150" rx="10" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1.5"/>
+  <text x="464" y="342" font-size="13.5" font-weight="bold" fill="#174ea6">7 · Three candidate variants</text>
+  <text x="464" y="362" font-size="12" fill="#174ea6">Per cycle, de-duplicated by content key.</text>
+  <text x="464" y="386" font-size="11.5" fill="#174ea6">a0 — added an anti-prompt-defence rule and</text>
+  <text x="464" y="402" font-size="11.5" fill="#174ea6">kept both seed few-shots</text>
+  <text x="464" y="422" font-size="11.5" fill="#174ea6">a1 · a2 — added robustness text and replaced</text>
+  <text x="464" y="438" font-size="11.5" fill="#174ea6">the seed few-shots with a fabricated example</text>
+  <text x="464" y="456" font-size="10.5" fill="#5f6368" font-style="italic">Rationales are logged, so a mutation is never anonymous.</text>
+
+  <rect x="40" y="316" width="380" height="150" rx="10" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1.5"/>
+  <text x="58" y="342" font-size="13.5" font-weight="bold" fill="#174ea6">8 · Calibration evaluator</text>
+  <text x="58" y="362" font-size="12" fill="#0d652d">gemini-3.5-flash</text>
+  <text x="58" y="386" font-size="11.5" fill="#174ea6">Re-grades the same four page images for</text>
+  <text x="58" y="402" font-size="11.5" fill="#174ea6">every candidate, through the production</text>
+  <text x="58" y="418" font-size="11.5" fill="#174ea6">grading path — same schema, same repair.</text>
+  <text x="58" y="440" font-size="11.5" font-weight="bold" fill="#a50e0e">Ground truth never enters a grading call.</text>
+  <text x="58" y="456" font-size="10.5" fill="#5f6368" font-style="italic">16 grading calls · 23.2–32.9 s per variant · $0.6186</text>
+
+  <g stroke="#5f6368" stroke-width="2">
+    <line x1="1254" y1="391" x2="1236" y2="391" marker-end="url(#arr)"/>
+    <line x1="848" y1="391" x2="830" y2="391" marker-end="url(#arr)"/>
+    <line x1="442" y1="391" x2="424" y2="391" marker-end="url(#arr)"/>
+    <line x1="230" y1="466" x2="230" y2="502" marker-end="url(#arr)"/>
+  </g>
+
+  <!-- ================= ROW 3 — the three refusals, then the registry ================= -->
+  <rect x="40" y="506" width="380" height="170" rx="10" fill="#fce8e6" stroke="#d93025" stroke-width="1.5"/>
+  <text x="58" y="532" font-size="13.5" font-weight="bold" fill="#a50e0e">9 · Anti-gaming validator</text>
+  <text x="58" y="554" font-size="11.5" fill="#3c4043">Rejects a candidate that games the metric:</text>
+  <text x="58" y="572" font-size="11.5" fill="#3c4043">· constant output — no spread across samples</text>
+  <text x="58" y="588" font-size="11.5" fill="#3c4043">· variance collapse — score std under 0.80 ×</text>
+  <text x="58" y="604" font-size="11.5" fill="#3c4043">  the ground-truth std with no agreement gain</text>
+  <text x="58" y="620" font-size="11.5" fill="#3c4043">· ground-truth contact — metrics improving</text>
+  <text x="58" y="636" font-size="11.5" fill="#3c4043">  while only part of the set was evaluated</text>
+  <text x="58" y="652" font-size="10.5" fill="#a50e0e" font-style="italic">Blind spot found in the run: it reads score distributions,</text>
+  <text x="58" y="666" font-size="10.5" fill="#a50e0e" font-style="italic">not few-shot text — see the note under the table.</text>
+
+  <rect x="446" y="506" width="380" height="170" rx="10" fill="#fce8e6" stroke="#d93025" stroke-width="2"/>
+  <text x="464" y="532" font-size="13.5" font-weight="bold" fill="#a50e0e">10 · Strict improvement rule</text>
+  <text x="464" y="554" font-size="11.5" fill="#3c4043">A candidate must beat the active prompt's MAE</text>
+  <text x="464" y="570" font-size="11.5" fill="#3c4043">by more than the threshold. A tie loses.</text>
+  <text x="464" y="596" font-size="11.5" fill="#3c4043">Conservative by design, and expensive at small</text>
+  <text x="464" y="612" font-size="11.5" fill="#3c4043">N: on 4 students one half-point step is the</text>
+  <text x="464" y="628" font-size="11.5" fill="#3c4043">whole decision margin, ΔMAE 0.042.</text>
+  <rect x="464" y="642" width="344" height="24" rx="5" fill="#ffffff" stroke="#f0b7b2"/>
+  <text x="478" y="659" font-size="12" font-weight="bold" fill="#a50e0e">this is where all three candidates died</text>
+
+  <rect x="852" y="506" width="380" height="170" rx="10" fill="#fce8e6" stroke="#d93025" stroke-width="1.5"/>
+  <text x="870" y="532" font-size="13.5" font-weight="bold" fill="#a50e0e">11 · Composite objective gate</text>
+  <rect x="870" y="544" width="344" height="26" rx="5" fill="#ffffff" stroke="#f0b7b2"/>
+  <text x="884" y="562" font-size="12.5" font-weight="bold" fill="#a50e0e">QWK ≥ 0.85  ∧  MAE ≤ 0.4  ∧  |bias| &lt; 0.1</text>
+  <text x="870" y="590" font-size="11.5" fill="#3c4043">An absolute floor, not a relative one: a variant</text>
+  <text x="870" y="606" font-size="11.5" fill="#3c4043">may beat the incumbent and still be refused.</text>
+  <text x="870" y="628" font-size="11.5" fill="#3c4043">It only sees candidates that already beat the</text>
+  <text x="870" y="644" font-size="11.5" fill="#3c4043">active prompt, so it decided nothing this run.</text>
+  <text x="870" y="666" font-size="10.5" fill="#a50e0e" font-style="italic">Measured against the baseline directly it fails QWK by 0.005.</text>
+
+  <rect x="1258" y="506" width="382" height="170" rx="10" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1.5"/>
+  <text x="1276" y="532" font-size="13.5" font-weight="bold" fill="#174ea6">12 · Prompt registry</text>
+  <text x="1276" y="554" font-size="11.5" fill="#174ea6">A winner is registered as v+1 with its own</text>
+  <text x="1276" y="570" font-size="11.5" fill="#174ea6">version SHA and becomes the active variant;</text>
+  <text x="1276" y="586" font-size="11.5" fill="#174ea6">the previous version is never destroyed.</text>
+  <text x="1276" y="610" font-size="11.5" fill="#174ea6">The same SHA is stamped on every grade that</text>
+  <text x="1276" y="626" font-size="11.5" fill="#174ea6">prompt produces, so a record names the exact</text>
+  <text x="1276" y="642" font-size="11.5" fill="#174ea6">text that graded it.</text>
+  <rect x="1276" y="644" width="346" height="24" rx="5" fill="#ffffff" stroke="#aecbfa"/>
+  <text x="1290" y="661" font-size="12" font-weight="bold" fill="#174ea6">0 promotions — still grading-v1 v1</text>
+
+  <g stroke="#5f6368" stroke-width="2">
+    <line x1="420" y1="591" x2="442" y2="591" marker-end="url(#arr)"/>
+    <line x1="826" y1="591" x2="848" y2="591" marker-end="url(#arr)"/>
+    <line x1="1232" y1="591" x2="1254" y2="591" marker-end="url(#arr)"/>
+  </g>
+
+  <line x1="1520" y1="502" x2="1520" y2="470" stroke="#1a73e8" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrb)"/>
+  <text x="1508" y="490" font-size="10.5" fill="#5f6368" font-style="italic" text-anchor="end">promote → the next cycle · never fired in this run</text>
+
+  <!-- rejection exits -->
+  <g stroke="#80868b" stroke-width="2">
+    <line x1="230" y1="676" x2="230" y2="712" marker-end="url(#arr)"/>
+    <line x1="1042" y1="676" x2="1042" y2="712" marker-end="url(#arr)"/>
+  </g>
+  <line x1="636" y1="676" x2="636" y2="712" stroke="#d93025" stroke-width="2.5" marker-end="url(#arrr)"/>
+  <text x="242" y="700" font-size="10.5" fill="#5f6368" font-style="italic">0 rejected for gaming</text>
+  <text x="648" y="700" font-size="11" fill="#a50e0e" font-weight="bold">3 of 3 rejected</text>
+  <text x="1054" y="700" font-size="10.5" fill="#5f6368" font-style="italic">decided nothing this run</text>
+
+  <!-- ================= ROW 4 — the measured run ================= -->
+  <rect x="40" y="716" width="1600" height="214" rx="10" fill="#f8f9fa" stroke="#5f6368" stroke-width="1.5"/>
+  <text x="58" y="744" font-size="15" font-weight="bold" fill="#202124">The live run — 2026-08-20, real proposer and real multimodal evaluations, every rejection reason logged</text>
+  <text x="58" y="764" font-size="11.5" fill="#5f6368">3 candidates per cycle · max 3 cycles · convergence minimum improvement 0.01 · variance-collapse ratio 0.20 · metrics threshold 0.0</text>
+
+  <line x1="58" y1="778" x2="1622" y2="778" stroke="#dadce0"/>
+  <text x="66" y="796" font-size="11" font-weight="bold" fill="#5f6368">candidate</text>
+  <text x="600" y="796" font-size="11" font-weight="bold" fill="#5f6368" text-anchor="end">MAE</text>
+  <text x="690" y="796" font-size="11" font-weight="bold" fill="#5f6368" text-anchor="end">QWK</text>
+  <text x="790" y="796" font-size="11" font-weight="bold" fill="#5f6368" text-anchor="end">bias</text>
+  <text x="920" y="796" font-size="11" font-weight="bold" fill="#5f6368" text-anchor="end">MAE improvement</text>
+  <text x="950" y="796" font-size="11" font-weight="bold" fill="#5f6368">verdict</text>
+  <line x1="58" y1="804" x2="1622" y2="804" stroke="#dadce0"/>
+
+  <text x="66" y="824" font-size="11.5" font-weight="bold" fill="#3c4043">grading-v1 · v1 (active, manual seed)</text>
+  <text x="600" y="824" font-size="11.5" font-weight="bold" fill="#3c4043" text-anchor="end">0.208</text>
+  <text x="690" y="824" font-size="11.5" font-weight="bold" fill="#3c4043" text-anchor="end">0.845</text>
+  <text x="790" y="824" font-size="11.5" font-weight="bold" fill="#3c4043" text-anchor="end">−0.042</text>
+  <text x="920" y="824" font-size="11.5" fill="#80868b" text-anchor="end">—</text>
+  <text x="950" y="824" font-size="11.5" fill="#3c4043">the bar every candidate has to clear — 8 of its 12 criterion scores already match the human exactly</text>
+
+  <text x="66" y="846" font-size="11.5" fill="#3c4043">llm-proposer:grading-v1:v1:a0</text>
+  <text x="600" y="846" font-size="11.5" fill="#3c4043" text-anchor="end">0.208</text>
+  <text x="690" y="846" font-size="11.5" fill="#3c4043" text-anchor="end">0.845</text>
+  <text x="790" y="846" font-size="11.5" fill="#3c4043" text-anchor="end">−0.042</text>
+  <text x="920" y="846" font-size="11.5" fill="#3c4043" text-anchor="end">0.000</text>
+  <text x="950" y="846" font-size="11.5" fill="#a50e0e">REJECTED — "mae improvement 0.000000 did not clear threshold 0.000000": an exact tie, and a tie loses</text>
+
+  <text x="66" y="868" font-size="11.5" fill="#3c4043">llm-proposer:grading-v1:v1:a1</text>
+  <text x="600" y="868" font-size="11.5" fill="#3c4043" text-anchor="end">0.250</text>
+  <text x="690" y="868" font-size="11.5" fill="#3c4043" text-anchor="end">0.800</text>
+  <text x="790" y="868" font-size="11.5" fill="#3c4043" text-anchor="end">0.000</text>
+  <text x="920" y="868" font-size="11.5" fill="#a50e0e" text-anchor="end">−0.042</text>
+  <text x="950" y="868" font-size="11.5" fill="#a50e0e">REJECTED — moved tomas-vega's graph-reading from 1.0 to 1.5 against a human 1.0, so MAE got worse</text>
+
+  <text x="66" y="890" font-size="11.5" fill="#3c4043">llm-proposer:grading-v1:v1:a2</text>
+  <text x="600" y="890" font-size="11.5" fill="#3c4043" text-anchor="end">0.250</text>
+  <text x="690" y="890" font-size="11.5" fill="#3c4043" text-anchor="end">0.800</text>
+  <text x="790" y="890" font-size="11.5" fill="#3c4043" text-anchor="end">0.000</text>
+  <text x="920" y="890" font-size="11.5" fill="#a50e0e" text-anchor="end">−0.042</text>
+  <text x="950" y="890" font-size="11.5" fill="#a50e0e">REJECTED — same regression; both replaced the seed few-shots with a fabricated example</text>
+
+  <text x="58" y="918" font-size="12" font-weight="bold" fill="#a50e0e">No candidate accepted → the tournament returned no winner → the convergence loop stopped after cycle 1. Cycles 2 and 3 never ran, and their cost was never spent.</text>
+
+  <text x="40" y="962" font-size="12" font-weight="bold" fill="#3c4043">What the run does not prove</text>
+  <text x="40" y="982" font-size="11.5" fill="#5f6368">· 4 students and 12 criterion pairs are too few for a stable QWK: one half-point change moved it 0.845 → 0.800, nine times the 0.005 that separates the baseline from the gate.</text>
+  <text x="40" y="1000" font-size="11.5" fill="#5f6368">· Selection and evaluation happen on the same samples. No holdout split exists yet, so a promotion here would not be an out-of-sample result.</text>
+  <text x="40" y="1018" font-size="11.5" fill="#5f6368">· The validator's blind spot is real: a1 and a2 embedded the calibration student julian-pardo in a few-shot with his true factoring score. It did not pay off, and it went unchecked.</text>
+  <text x="40" y="1036" font-size="11.5" fill="#5f6368">· The optimize stage inside the hot path swallows FileNotFoundError / OSError / ValueError, so this loop has never run inside a production job — the measured run was driven by a script.</text>
+</svg>
