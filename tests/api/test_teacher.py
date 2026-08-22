@@ -203,8 +203,9 @@ async def test_teacher_page_is_public_html(client: httpx.AsyncClient) -> None:
     response = await client.get("/teacher")
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/html")
-    assert "Exams waiting for" in response.text
+    assert "GradeSync" in response.text
     assert "Access code" in response.text
+    assert "/teacher/assets/teacher.js" in response.text
 
 
 async def test_teacher_assets_are_served_from_a_whitelist(client: httpx.AsyncClient) -> None:
@@ -215,10 +216,16 @@ async def test_teacher_assets_are_served_from_a_whitelist(client: httpx.AsyncCli
     assert script.status_code == 200
     assert script.headers["content-type"].startswith("text/javascript")
     for asset in (
+        "teacher-actions.js",
+        "teacher-dialogs.js",
+        "teacher-filenames.js",
+        "teacher-format.js",
+        "teacher-held.js",
+        "teacher-review.js",
+        "teacher-screens.js",
+        "teacher-state.js",
         "teacher-upload.js",
-        "teacher-triage.js",
-        "teacher-detail.js",
-        "teacher-stage.js",
+        "teacher-uploading.js",
     ):
         module = await client.get(f"/teacher/assets/{asset}")
         assert module.status_code == 200
@@ -262,6 +269,7 @@ async def test_teacher_summary_starts_empty(client: httpx.AsyncClient, auth_head
             "batch_hold", BATCH_HOLD_TITLE, BATCH_HOLD_NOTE, BATCH_HOLD_EMPTY, True
         ),
         "batch": None,
+        "batches": [],
     }
 
 
@@ -289,6 +297,12 @@ async def test_teacher_summary_translates_reasons_and_projects_plain_grades(
     criterion = item["criteria"][0]
     assert criterion["title"] == "Factor the quadratic expression"
     assert criterion["score_text"] == "2 of 4 points"
+    assert criterion["criterion_id"] == "crit-a"
+    assert criterion["score"] == 2.0
+    assert criterion["max_score"] == 4.0
+    assert item["total_text"] == "2 of 4 points"
+    assert item["max_score"] == 4.0
+    assert item["can_edit_marks"] is True
     assert "confidence" not in criterion
     assert "0.62" not in response.text
 
@@ -304,6 +318,9 @@ async def test_teacher_summary_survives_a_missing_job_checkpoint(
     item = response.json()["waiting"][0]
     assert item["reasons"] == [NO_QUOTE]
     assert item["criteria"] == []
+    assert item["can_edit_marks"] is False
+    assert item["max_score"] == 4.0
+    assert item["total_text"] == "2 of 4 points"
 
 
 def stage_uploads(settings: Settings, names: list[str]) -> None:
@@ -433,3 +450,42 @@ async def test_batch_progress_counts_the_grades_the_teacher_released(
     assert after["waiting_for_you"] == 0
     assert after["still_grading"] == 0
     assert after["minutes_left"] == 0
+
+
+async def test_summary_lists_recent_batches_without_a_batch_query(
+    client: httpx.AsyncClient, container: AppContainer, auth_headers
+) -> None:
+    stage_uploads(container.settings, ["ana-torres.jpg", "luis-perez.jpg"])
+    await container.checkpoint_store.save(make_batch_record())
+    await container.checkpoint_store.save_state(BATCH_JOB_ID, make_synced_state())
+    response = await client.get("/teacher/summary", headers=auth_headers)
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["batch"] is None
+    assert len(payload["batches"]) == 1
+    recent = payload["batches"][0]
+    assert recent["lot_code"] == LOT_CODE
+    assert recent["job_id"] == BATCH_JOB_ID
+    assert recent["assessment"] == "Parcial1"
+    assert recent["started_at"] is not None
+    assert recent["decided_by_you"] == 0
+    assert recent["graded_automatically"] == 1
+
+
+async def test_summary_counts_the_grades_the_teacher_decided_herself(
+    client: httpx.AsyncClient, container: AppContainer, auth_headers
+) -> None:
+    stage_uploads(container.settings, ["ana-torres.jpg", "luis-perez.jpg"])
+    await container.checkpoint_store.save(make_batch_record())
+    await container.checkpoint_store.save_state(BATCH_JOB_ID, make_synced_state())
+    held = "batch anomaly breaker: quarantine ratio 0.400 exceeds threshold 0.150"
+    await container.review_service.store.put(make_review(BATCH_JOB_ID, [held]))
+    released = await client.post(
+        "/review/bulk-approve", json={"job_id": BATCH_JOB_ID}, headers=auth_headers
+    )
+    assert released.json()["released_count"] == 1
+    payload = await client.get("/teacher/summary", headers=auth_headers)
+    recent = payload.json()["batches"][0]
+    assert recent["decided_by_you"] == 1
+    assert recent["graded_automatically"] == 1
+    assert recent["in_gradebook"] == 2

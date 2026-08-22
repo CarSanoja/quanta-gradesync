@@ -3,285 +3,83 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GradeSync — Your review</title>
+<title>GradeSync — Nothing needs you</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9C%8F%EF%B8%8F%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="/teacher/assets/teacher.css">
 </head>
 <body>
+<a class="skip-link" href="#screen">Skip to the main content</a>
+
 <header class="masthead">
-  <div class="wordmark">
-    <span class="wordmark-dot" aria-hidden="true"></span>
-    <span class="wordmark-text">GradeSync <em>for teachers</em></span>
+  <div class="brand">
+    <span class="wordmark">GradeSync</span>
+    <span class="context" id="context-line"></span>
   </div>
-  <div class="masthead-actions">
-    <button class="quiet" id="refresh-button" type="button">Refresh</button>
-    <button class="quiet" id="access-button" type="button">Access code</button>
-  </div>
+  <nav class="masthead-actions" aria-label="Sections">
+    <button class="ghost" id="nav-grades" type="button">Recent grades</button>
+    <button class="ghost" id="nav-home" type="button">Send scans</button>
+  </nav>
 </header>
 
-<main class="page">
-  <section class="hero" id="review-section" aria-labelledby="hero-title">
-    <div class="hero-band">
-      <div class="hero-heading">
-        <p class="eyebrow">Ten minutes, then you're done</p>
-        <h1 id="hero-title">Exams waiting for <span class="hl">your review</span></h1>
-        <p class="hero-note" id="hero-note">Checking your queue&hellip;</p>
-      </div>
-
-      <dl class="count-strip" id="count-strip" hidden>
-        <div class="count-figure">
-          <dt>waiting for you</dt>
-          <dd id="count-waiting">0</dd>
-        </div>
-        <div class="count-figure">
-          <dt>in the gradebook</dt>
-          <dd id="count-synced">0</dd>
-        </div>
-        <div class="count-figure">
-          <dt>still grading</dt>
-          <dd id="count-grading">0</dd>
-        </div>
-        <div class="count-figure">
-          <dt>time left</dt>
-          <dd id="count-time">&mdash;</dd>
-        </div>
-      </dl>
-    </div>
-
-    <div class="workbench" id="workbench">
-      <aside class="queue-rail" id="triage" aria-label="Exams waiting for you" hidden>
-        <article class="triage-card" id="judgement-card" data-group="judgement"
-          aria-labelledby="judgement-title">
-          <header class="triage-head">
-            <div class="triage-headings">
-              <p class="triage-kicker">Group one</p>
-              <h2 class="triage-title" id="judgement-title">Needs your judgement</h2>
-              <p class="triage-count" id="judgement-count"></p>
-              <p class="triage-note" id="judgement-note"></p>
-            </div>
-            <div class="stack" id="judgement-stack" aria-hidden="true"></div>
-          </header>
-          <ul class="reason-breakdown" id="judgement-reasons"></ul>
-          <div class="triage-actions">
-            <button class="primary" id="judgement-start" type="button">Review one at a time</button>
-            <span class="triage-hint" id="judgement-hint"></span>
-          </div>
-          <label class="finder" id="judgement-finder" hidden>
-            <span>Find a student</span>
-            <input type="search" id="judgement-search" placeholder="Start typing a name"
-              autocomplete="off" spellcheck="false">
-          </label>
-          <ul class="queue-list" id="judgement-list"></ul>
-          <p class="queue-more" id="judgement-more" hidden></p>
-          <p class="triage-empty" id="judgement-empty" hidden></p>
-        </article>
-
-        <article class="triage-card" id="hold-card" data-group="batch-hold"
-          aria-labelledby="hold-title">
-          <header class="triage-head">
-            <div class="triage-headings">
-              <p class="triage-kicker">Group two</p>
-              <h2 class="triage-title" id="hold-title">Held only by the batch rule</h2>
-              <p class="triage-count" id="hold-count"></p>
-              <p class="triage-note" id="hold-note"></p>
-            </div>
-            <div class="stack" id="hold-stack" aria-hidden="true"></div>
-          </header>
-          <ul class="reason-breakdown" id="hold-reasons"></ul>
-          <div class="triage-actions">
-            <button class="primary" id="hold-release" type="button">Release all</button>
-            <span class="triage-hint" id="hold-hint"></span>
-          </div>
-          <label class="finder" id="hold-finder" hidden>
-            <span>Find a student</span>
-            <input type="search" id="hold-search" placeholder="Start typing a name"
-              autocomplete="off" spellcheck="false">
-          </label>
-          <ul class="queue-list" id="hold-list"></ul>
-          <p class="queue-more" id="hold-more" hidden></p>
-          <p class="triage-empty" id="hold-empty" hidden></p>
-        </article>
-      </aside>
-
-      <div class="stage" id="stage">
-        <div class="guided" id="guided-panel" hidden>
-          <div class="guided-head">
-            <span class="guided-progress" id="guided-progress"></span>
-            <div class="guided-tools">
-              <span class="shortcut-hint" id="guided-shortcuts">
-                <kbd>A</kbd> approve &middot; <kbd>S</kbd> I'll grade it myself
-              </span>
-              <button class="quiet" id="guided-exit" type="button">Back to the triage</button>
-            </div>
-          </div>
-          <p class="guided-flash" id="guided-flash" hidden></p>
-          <div class="guided-body" id="guided-body"></div>
-        </div>
-        <div class="review-detail" id="review-detail" hidden></div>
-        <div class="stage-idle" id="stage-idle" hidden>
-          <p class="stage-idle-line" id="stage-idle-line"></p>
-          <p class="stage-idle-hint" id="stage-idle-hint"></p>
-          <div class="stage-brief" id="stage-brief"></div>
-        </div>
-        <div class="all-done" id="all-done" hidden>
-          <div class="all-done-mark" aria-hidden="true">&#10003;</div>
-          <h2>Nothing waiting &mdash; your grading is done.</h2>
-          <p id="all-done-note"></p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="band" id="upload-section" aria-labelledby="upload-title">
-    <h2 id="upload-title">Upload scans</h2>
-    <p class="band-note">Photograph or scan each exam and drop everything here. Grading starts on
-      its own.</p>
-    <div class="naming-rule">
-      <p class="naming-line"><strong>You name each exam here, never on your computer.</strong>
-        Pick the files as they are &mdash; every one gets a name box you can change before it is sent.</p>
-      <details class="naming-details">
-        <summary>How the names work</summary>
-        <div class="naming-body">
-          <p>When the file is already called something like <code>ana-torres.pdf</code>, we fill the name
-            in for you: <strong>Ana Torres</strong>. Type over it whenever it isn't right.</p>
-          <ul>
-            <li><span class="mark-do" aria-hidden="true">&#10003;</span>
-              <span>A photo straight from the camera (<code>IMG_2831.jpg</code>) simply waits for you to
-                type the student's name. The rest of the batch keeps going.</span></li>
-            <li><span class="mark-do" aria-hidden="true">&#10003;</span>
-              <span>Several pages? Scan them into one PDF, pages in order, and upload that single file.</span></li>
-            <li><span class="mark-dont" aria-hidden="true">&#10007;</span>
-              <span>Two files with the same name are two students &mdash; give one of them its own name.</span></li>
-          </ul>
-          <p>Send a name that already has a scan and we ask first: replace the saved scan (the exam is
-            re-graded and the old scan is kept) or save it as a different student. Nothing on your
-            computer is ever renamed.</p>
-        </div>
-      </details>
-    </div>
-    <div class="upload-grid">
-      <div class="upload-fields">
-        <label class="field">
-          <span>Subject</span>
-          <input type="text" id="subject-input" placeholder="Mathematics" autocomplete="off">
-        </label>
-        <label class="field">
-          <span>Class</span>
-          <input type="text" id="class-input" placeholder="10A" autocomplete="off">
-        </label>
-        <label class="field">
-          <span>Assessment name</span>
-          <input type="text" id="assessment-input" placeholder="Midterm 1" autocomplete="off">
-        </label>
-      </div>
-      <div class="dropzone" id="dropzone" tabindex="0" role="button"
-        aria-label="Drop exam scans or click to choose files">
-        <span class="dropzone-art" aria-hidden="true">&#8686;</span>
-        <strong>Drop the scans here</strong>
-        <span class="dropzone-hint">or click to choose files &middot; photos or PDFs, up to 20 MB each</span>
-      </div>
-    </div>
-
-    <div class="batch-status" id="batch-status" hidden>
-      <p class="batch-status-line" id="batch-status-line"></p>
-      <div class="batch-status-counts" id="batch-status-counts"></div>
-      <button class="linkish" id="batch-status-review" type="button" hidden>Show me the ones waiting for me</button>
-    </div>
-
-    <div class="batch-panel" id="batch-panel" hidden>
-      <div class="batch-head">
-        <div class="batch-headings">
-          <h3 class="batch-title" id="batch-title"></h3>
-          <p class="batch-sub" id="batch-sub"></p>
-        </div>
-        <div class="batch-tools">
-          <button class="quiet" id="batch-start" type="button" hidden>Start sending</button>
-          <button class="quiet" id="batch-retry" type="button" hidden>Retry the ones that failed</button>
-        </div>
-      </div>
-      <div class="batch-bar" id="batch-bar" hidden><span class="batch-bar-fill" id="batch-bar-fill"></span></div>
-      <div class="batch-chips" id="batch-chips"></div>
-      <button class="batch-toggle" id="batch-toggle" type="button" hidden></button>
-    </div>
-    <ul class="upload-log" id="upload-log" aria-live="polite"></ul>
-  </section>
-
-  <section class="band" id="synced-section" aria-labelledby="synced-title">
-    <h2 id="synced-title">Recently synced grades</h2>
-    <p class="band-note">Already in the gradebook. Nothing for you to do here.</p>
-    <div class="synced-tools" id="synced-tools" hidden>
-      <label class="synced-search">
-        <span>Find a student</span>
-        <input type="search" id="synced-search" placeholder="Start typing a name" autocomplete="off">
-      </label>
-      <span class="synced-count" id="synced-count"></span>
-    </div>
-    <div class="synced-list" id="synced-list"></div>
-  </section>
-</main>
-
-<footer class="footnote"><span>Grades only reach the gradebook after the checks pass &mdash; or after you approve
-  them yourself.</span></footer>
-
-<div class="veil" id="collision-veil" hidden>
-  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="collision-title">
-    <h3 id="collision-title">This student already has a scan</h3>
-    <p id="collision-message"></p>
-    <p class="sheet-help"><strong>Replace scan</strong> re-grades this student's exam with the new
-      file &mdash; the old scan stays saved. <strong>This is a different student</strong> keeps both
-      by saving this file under another name.</p>
-    <input type="text" id="collision-name-input" placeholder="Student name, like Ana Torres" autocomplete="off" spellcheck="false" hidden>
-    <p class="sheet-error" id="collision-error" hidden></p>
-    <div class="sheet-actions">
-      <button type="button" class="quiet" id="collision-cancel">Cancel</button>
-      <button type="button" class="quiet" id="collision-different">This is a different student</button>
-      <button type="button" class="primary" id="collision-replace">Replace scan</button>
-    </div>
-  </div>
+<div class="alert" id="alert" role="alert" hidden>
+  <span id="alert-text"></span>
+  <button class="linkish" id="alert-retry" type="button">Try again</button>
 </div>
 
-<div class="veil" id="pages-veil" hidden>
-  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="pages-title">
-    <h3 id="pages-title">These look like pages of one exam</h3>
-    <p id="pages-message"></p>
-    <ul class="pages-groups" id="pages-groups"></ul>
-    <p class="sheet-help">One file = one student. For a multi-page exam, combine the pages into a
-      single PDF &mdash; pages in order &mdash; and upload that one file.</p>
-    <div class="sheet-actions">
-      <button type="button" class="quiet" id="pages-separate">Upload as separate students</button>
-      <button type="button" class="primary" id="pages-combine">I'll combine them first</button>
-    </div>
-  </div>
-</div>
+<main id="screen" tabindex="-1"></main>
 
 <div class="veil" id="access-veil" hidden>
   <form class="sheet" id="access-form" role="dialog" aria-modal="true" aria-labelledby="access-title">
-    <h3 id="access-title">Access code</h3>
+    <h2 id="access-title">Access code</h2>
     <p>Enter the access code from your school's GradeSync setup. It stays on this device.</p>
-    <input type="password" id="access-input" placeholder="Access code" aria-label="Access code" autocomplete="off">
+    <label class="field" for="access-input"><span>Access code</span></label>
+    <input type="password" id="access-input" autocomplete="off" spellcheck="false">
     <p class="sheet-error" id="access-error" hidden></p>
     <div class="sheet-actions">
       <button type="button" class="quiet" id="access-cancel">Cancel</button>
-      <button type="submit" class="primary">Open my review</button>
+      <button type="submit" class="primary">Open my page</button>
     </div>
   </form>
 </div>
 
-<div class="veil" id="release-veil" hidden>
-  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="release-title">
-    <h3 id="release-title">Release these grades?</h3>
-    <p id="release-message"></p>
-    <ul class="release-facts">
-      <li>Every grade keeps the quote from that student's own page, exactly as it was cited.</li>
-      <li>Each one is written to the gradebook on its own, under your name, one entry per student.</li>
-      <li>You can still change any single grade afterwards.</li>
-      <li>Exams that need your judgement are not part of this &mdash; they stay in group one.</li>
-    </ul>
-    <p class="sheet-error" id="release-error" hidden></p>
+<div class="veil" id="confirm-veil" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+    <h2 id="confirm-title"></h2>
+    <p id="confirm-body"></p>
+    <p id="confirm-aside"></p>
+    <p class="sheet-error" id="confirm-error" hidden></p>
     <div class="sheet-actions">
-      <button type="button" class="quiet" id="release-cancel">Not yet</button>
-      <button type="button" class="primary" id="release-confirm">Release them</button>
+      <button type="button" class="primary" id="confirm-yes"></button>
+      <button type="button" class="quiet" id="confirm-no">Not yet</button>
     </div>
+  </div>
+</div>
+
+<div class="veil" id="collision-veil" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="collision-title">
+    <h2 id="collision-title">This student already has a scan</h2>
+    <p id="collision-message"></p>
+    <p class="sheet-help"><strong>Replace the scan</strong> grades this student's exam again with
+      the new file — the old scan stays saved. <strong>This is a different student</strong> keeps
+      both by saving this file under another name.</p>
+    <input type="text" id="collision-name-input" placeholder="Student name, like Ana Torres"
+      aria-label="Save this scan under another student name" autocomplete="off" spellcheck="false" hidden>
+    <p class="sheet-error" id="collision-error" hidden></p>
+    <div class="sheet-actions">
+      <button type="button" class="primary" id="collision-replace">Replace the scan</button>
+      <button type="button" class="quiet" id="collision-different">This is a different student</button>
+      <button type="button" class="quiet" id="collision-cancel">Keep the saved scan</button>
+    </div>
+  </div>
+</div>
+
+<div class="veil zoom-veil" id="zoom-veil" hidden>
+  <div class="zoom-sheet" role="dialog" aria-modal="true" aria-labelledby="zoom-title">
+    <div class="zoom-head">
+      <h2 id="zoom-title"></h2>
+      <button type="button" class="quiet" id="zoom-close">Close</button>
+    </div>
+    <div class="zoom-body" id="zoom-body"></div>
   </div>
 </div>
 

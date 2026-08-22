@@ -23,6 +23,7 @@ from autocurricula.core.review.triage import judgement_reasons, triage_group
 from autocurricula.schemas.common import StrictBaseModel, TzAwareDatetime
 from autocurricula.schemas.grading import CriterionScore, GradingBatchResult, GradingResult
 from autocurricula.schemas.review import ReviewItem
+from autocurricula.schemas.sis_sync import SISGradeRecord
 
 
 def display_name(student_id: str) -> str:
@@ -42,7 +43,10 @@ class TeacherEvidenceView(StrictBaseModel):
 
 
 class TeacherCriterionView(StrictBaseModel):
+    criterion_id: str
     title: str
+    score: float
+    max_score: float | None = None
     score_text: str
     comment: str
 
@@ -59,11 +63,15 @@ class TeacherReviewView(StrictBaseModel):
     waiting_since: TzAwareDatetime
     reasons: list[str] = Field(min_length=1)
     evidence: list[TeacherEvidenceView] = Field(default_factory=list)
+    score: float
+    max_score: float | None = None
     score_text: str
+    total_text: str
     percentage: float
     feedback: str
     student_feedback: TeacherFeedbackView | None = None
     criteria: list[TeacherCriterionView] = Field(default_factory=list)
+    can_edit_marks: bool = False
     has_page: bool
 
 
@@ -111,12 +119,35 @@ def plain_criteria(state: SessionState | None, item: ReviewItem) -> list[Teacher
         description, ceiling = rubric.get(score.criterion_id, (None, None))
         views.append(
             TeacherCriterionView(
+                criterion_id=score.criterion_id,
                 title=_criterion_title(score.criterion_id, description),
+                score=score.score,
+                max_score=ceiling,
                 score_text=points_text(score.score, ceiling),
                 comment=score.comment,
             )
         )
     return views
+
+
+def covers_rubric(
+    state: SessionState | None, criteria: list[TeacherCriterionView]
+) -> bool:
+    rubric = _rubric_index(state)
+    if not rubric or not criteria:
+        return False
+    return {view.criterion_id for view in criteria} == set(rubric)
+
+
+def total_ceiling(
+    criteria: list[TeacherCriterionView], record: SISGradeRecord
+) -> float | None:
+    ceilings = [view.max_score for view in criteria if view.max_score is not None]
+    if criteria and len(ceilings) == len(criteria):
+        return sum(ceilings)
+    if record.percentage > 0:
+        return 100.0 * record.score / record.percentage
+    return None
 
 
 def _primary_reason(item: ReviewItem) -> str:
@@ -146,6 +177,8 @@ async def build_review_view(
     state = await load_state(container, item.job_id, cache)
     record = item.proposed_record
     primary = _primary_reason(item)
+    criteria = plain_criteria(state, item)
+    ceiling = total_ceiling(criteria, record)
     return TeacherReviewView(
         review_id=item.review_id,
         student_id=item.student_id,
@@ -161,11 +194,15 @@ async def build_review_view(
             TeacherEvidenceView(page=span.page, quote=span.quote, note=span.rationale)
             for span in item.evidence
         ],
+        score=record.score,
+        max_score=ceiling,
         score_text=f"{record.score:g} points",
+        total_text=points_text(record.score, ceiling),
         percentage=record.percentage,
         feedback=record.feedback,
         student_feedback=build_feedback_view(record, graded_result(state, item)),
-        criteria=plain_criteria(state, item),
+        criteria=criteria,
+        can_edit_marks=covers_rubric(state, criteria),
         has_page=bool(item.document_paths),
     )
 
@@ -184,11 +221,13 @@ __all__ = [
     "TeacherEvidenceView",
     "TeacherReviewView",
     "build_review_view",
+    "covers_rubric",
     "display_name",
     "graded_result",
     "plain_criteria",
     "points_text",
     "reason_key",
+    "total_ceiling",
     "translate_reason",
     "translate_reasons",
 ]
