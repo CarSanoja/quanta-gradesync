@@ -12,8 +12,10 @@ not decide alone.
 
 ## The fleet
 
-Ten model-backed agents and one deterministic repair component behind a single
-governing harness, built with the
+Eleven components behind a single governing harness — seven model-backed agents
+and four deterministic ones (risk scoring, schema repair, and the two
+meta-optimizers, which orchestrate model calls without holding a model of their
+own). Built with the
 Google Agent Development Kit on Gemini 3.5 Flash (deep multimodal reasoning,
 thinking enabled) and Gemini 3.5 Flash-Lite (high-speed structured extraction):
 

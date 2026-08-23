@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="p" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#8430ce"/></marker>
+  </defs>
+
+  <rect x="0" y="0" width="1920" height="1080" fill="#ffffff"/>
+  <rect x="0" y="575" width="1920" height="280" fill="#f4ecfb"/>
+
+  <text x="100" y="74" font-size="24" font-weight="bold" letter-spacing="7" fill="#80868b">HER SIDE OF IT</text>
+  <text x="100" y="132" font-size="52" font-weight="bold" fill="#202124">What the teacher actually does.</text>
+  <text x="1820" y="132" font-size="24" fill="#5f6368" text-anchor="end">one held batch &#8212; 100 students</text>
+  <line x1="100" y1="158" x2="1820" y2="158" stroke="#e8eaed" stroke-width="2"/>
+
+  <!-- four stops -->
+  <rect x="100" y="220" width="396" height="300" rx="14" fill="#ffffff" stroke="#8430ce" stroke-width="2.5"/>
+  <circle cx="146" cy="268" r="24" fill="#8430ce"/>
+  <text x="146" y="278" font-size="27" font-weight="bold" fill="#ffffff" text-anchor="middle">1</text>
+  <text x="124" y="356" font-size="32" font-weight="bold" fill="#5b2c8d">She drops in</text>
+  <text x="124" y="394" font-size="32" font-weight="bold" fill="#5b2c8d">the scans</text>
+  <text x="124" y="446" font-size="26" fill="#3c4043">Photos or PDFs &#8212; and she</text>
+  <text x="124" y="480" font-size="26" fill="#3c4043">never renames a file.</text>
+
+  <rect x="541" y="220" width="396" height="300" rx="14" fill="#ffffff" stroke="#8430ce" stroke-width="2.5"/>
+  <circle cx="587" cy="268" r="24" fill="#8430ce"/>
+  <text x="587" y="278" font-size="27" font-weight="bold" fill="#ffffff" text-anchor="middle">2</text>
+  <text x="565" y="356" font-size="32" font-weight="bold" fill="#5b2c8d">The work happens</text>
+  <text x="565" y="394" font-size="32" font-weight="bold" fill="#5b2c8d">without her</text>
+  <text x="565" y="446" font-size="26" fill="#3c4043">She can close the page</text>
+  <text x="565" y="480" font-size="26" fill="#3c4043">and come back.</text>
+
+  <rect x="982" y="220" width="396" height="300" rx="14" fill="#ffffff" stroke="#8430ce" stroke-width="2.5"/>
+  <circle cx="1028" cy="268" r="24" fill="#8430ce"/>
+  <text x="1028" y="278" font-size="27" font-weight="bold" fill="#ffffff" text-anchor="middle">3</text>
+  <text x="1006" y="356" font-size="32" font-weight="bold" fill="#5b2c8d">She is called only</text>
+  <text x="1006" y="394" font-size="32" font-weight="bold" fill="#5b2c8d">for the few</text>
+  <text x="1006" y="446" font-size="26" fill="#3c4043">The ones it will not</text>
+  <text x="1006" y="480" font-size="26" fill="#3c4043">decide on its own.</text>
+
+  <rect x="1423" y="220" width="397" height="300" rx="14" fill="#f3e8fd" stroke="#8430ce" stroke-width="3"/>
+  <circle cx="1469" cy="268" r="24" fill="#8430ce"/>
+  <text x="1469" y="278" font-size="27" font-weight="bold" fill="#ffffff" text-anchor="middle">4</text>
+  <text x="1447" y="356" font-size="32" font-weight="bold" fill="#5b2c8d">One click each,</text>
+  <text x="1447" y="394" font-size="32" font-weight="bold" fill="#5b2c8d">and she is done</text>
+  <text x="1447" y="446" font-size="26" fill="#3c4043">The rest leave together,</text>
+  <text x="1447" y="480" font-size="26" fill="#3c4043">on one confirmation.</text>
+
+  <g stroke="#8430ce" stroke-width="3">
+    <line x1="504" y1="370" x2="533" y2="370" marker-end="url(#p)"/>
+    <line x1="945" y1="370" x2="974" y2="370" marker-end="url(#p)"/>
+    <line x1="1386" y1="370" x2="1415" y2="370" marker-end="url(#p)"/>
+  </g>
+
+  <!-- the payoff -->
+  <text x="960" y="718" text-anchor="middle">
+    <tspan font-size="132" font-weight="bold" fill="#8430ce">63</tspan><tspan font-size="50" fill="#3c4043" dx="40">held exams become</tspan><tspan font-size="132" font-weight="bold" fill="#8430ce" dx="44">4</tspan><tspan font-size="50" fill="#3c4043" dx="44">decisions</tspan>
+  </text>
+  <text x="960" y="800" font-size="32" fill="#5b2c8d" text-anchor="middle">three she looks at, and one confirmation for the rest</text>
+
+  <text x="100" y="928" font-size="30" font-weight="bold" fill="#202124">What she never sees</text>
+  <text x="100" y="974" font-size="28" fill="#5f6368">job ids &#183; stages &#183; confidence scores &#183; model names</text>
+  <text x="1820" y="974" font-size="24" font-style="italic" fill="#80868b" text-anchor="end">the shipped teacher surface &#183; implementation 013</text>
+</svg>

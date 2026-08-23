@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#5f6368"/></marker>
+  </defs>
+
+  <rect x="0" y="0" width="1920" height="1080" fill="#ffffff"/>
+
+  <text x="100" y="74" font-size="24" font-weight="bold" letter-spacing="7" fill="#80868b">END TO END</text>
+  <text x="100" y="132" font-size="52" font-weight="bold" fill="#202124">The life of one exam, on a real clock.</text>
+  <text x="1820" y="132" font-size="26" fill="#5f6368" text-anchor="end">nobody launches anything</text>
+  <line x1="100" y1="158" x2="1820" y2="158" stroke="#e8eaed" stroke-width="2"/>
+
+  <!-- rail -->
+  <line x1="100" y1="330" x2="1820" y2="330" stroke="#e8eaed" stroke-width="4"/>
+
+  <!-- 1 scanned -->
+  <rect x="100" y="230" width="253" height="200" rx="12" fill="#f3e8fd" stroke="#8430ce" stroke-width="3"/>
+  <text x="226" y="300" font-size="30" font-weight="bold" fill="#5b2c8d" text-anchor="middle">Scanned</text>
+  <text x="226" y="344" font-size="24" fill="#5b2c8d" text-anchor="middle">a page is dropped</text>
+  <text x="226" y="378" font-size="24" fill="#5b2c8d" text-anchor="middle">in the front office</text>
+
+  <!-- 2 bucket -->
+  <rect x="393" y="230" width="253" height="200" rx="12" fill="#fef7e0" stroke="#f9ab00" stroke-width="3"/>
+  <text x="519" y="284" font-size="30" font-weight="bold" fill="#7f5c00" text-anchor="middle">Lands in the</text>
+  <text x="519" y="320" font-size="30" font-weight="bold" fill="#7f5c00" text-anchor="middle">bucket</text>
+  <text x="519" y="364" font-size="24" fill="#7f5c00" text-anchor="middle">versioned scan,</text>
+  <text x="519" y="396" font-size="24" fill="#7f5c00" text-anchor="middle">never lost</text>
+
+  <!-- 3 graded -->
+  <rect x="686" y="230" width="253" height="200" rx="12" fill="#e8f0fe" stroke="#1a73e8" stroke-width="3"/>
+  <text x="812" y="300" font-size="30" font-weight="bold" fill="#174ea6" text-anchor="middle">Graded</text>
+  <text x="812" y="344" font-size="24" fill="#174ea6" text-anchor="middle">with a line quoted</text>
+  <text x="812" y="378" font-size="24" fill="#174ea6" text-anchor="middle">from the page</text>
+
+  <!-- 4 audited -->
+  <rect x="979" y="230" width="253" height="200" rx="12" fill="#e8f0fe" stroke="#1a73e8" stroke-width="3"/>
+  <text x="1105" y="284" font-size="30" font-weight="bold" fill="#174ea6" text-anchor="middle">Audited and</text>
+  <text x="1105" y="320" font-size="30" font-weight="bold" fill="#174ea6" text-anchor="middle">risk-scored</text>
+  <text x="1105" y="364" font-size="24" fill="#174ea6" text-anchor="middle">ministry standard,</text>
+  <text x="1105" y="396" font-size="24" fill="#174ea6" text-anchor="middle">then z-scores</text>
+
+  <!-- 5 fork -->
+  <rect x="1272" y="230" width="253" height="200" rx="12" fill="#ffffff" stroke="#d93025" stroke-width="3"/>
+  <text x="1398" y="284" font-size="30" font-weight="bold" fill="#a50e0e" text-anchor="middle">The fork</text>
+  <rect x="1292" y="306" width="213" height="48" rx="8" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2"/>
+  <text x="1398" y="339" font-size="26" font-weight="bold" fill="#174ea6" text-anchor="middle">synced</text>
+  <rect x="1292" y="364" width="213" height="48" rx="8" fill="#fce8e6" stroke="#d93025" stroke-width="2"/>
+  <text x="1398" y="397" font-size="26" font-weight="bold" fill="#a50e0e" text-anchor="middle">or held</text>
+
+  <!-- 6 gradebook -->
+  <rect x="1565" y="230" width="255" height="200" rx="12" fill="#e8f0fe" stroke="#1a73e8" stroke-width="3"/>
+  <text x="1692" y="284" font-size="30" font-weight="bold" fill="#174ea6" text-anchor="middle">In the</text>
+  <text x="1692" y="320" font-size="30" font-weight="bold" fill="#174ea6" text-anchor="middle">gradebook</text>
+  <text x="1692" y="364" font-size="24" fill="#174ea6" text-anchor="middle">scores, codes and</text>
+  <text x="1692" y="396" font-size="24" fill="#174ea6" text-anchor="middle">the quoted line</text>
+
+  <!-- arrows -->
+  <g stroke="#5f6368" stroke-width="4">
+    <line x1="357" y1="330" x2="389" y2="330" marker-end="url(#g)"/>
+    <line x1="650" y1="330" x2="682" y2="330" marker-end="url(#g)"/>
+    <line x1="943" y1="330" x2="975" y2="330" marker-end="url(#g)"/>
+    <line x1="1236" y1="330" x2="1268" y2="330" marker-end="url(#g)"/>
+    <line x1="1529" y1="330" x2="1561" y2="330" marker-end="url(#g)"/>
+  </g>
+
+  <!-- human entry -->
+  <line x1="1398" y1="434" x2="1398" y2="474" stroke="#8430ce" stroke-width="4"/>
+  <rect x="1215" y="474" width="366" height="66" rx="33" fill="#8430ce"/>
+  <text x="1398" y="518" font-size="27" font-weight="bold" letter-spacing="2" fill="#ffffff" text-anchor="middle">A HUMAN DECIDES</text>
+  <text x="1398" y="582" font-size="24" fill="#5b2c8d" text-anchor="middle">the only place the run waits for a person</text>
+
+  <!-- clock -->
+  <rect x="100" y="630" width="1040" height="258" rx="14" fill="#f8f9fa" stroke="#dadce0" stroke-width="2"/>
+  <text x="620" y="682" font-size="26" font-weight="bold" letter-spacing="4" fill="#3c4043" text-anchor="middle">MEASURED ON THE REFERENCE BATCH</text>
+  <text x="296" y="792" font-size="86" font-weight="bold" fill="#1a73e8" text-anchor="middle">43.9 s</text>
+  <text x="296" y="834" font-size="26" fill="#3c4043" text-anchor="middle">8 exams, end to end</text>
+  <text x="620" y="792" font-size="86" font-weight="bold" fill="#1a73e8" text-anchor="middle">5 s</text>
+  <text x="620" y="834" font-size="26" fill="#3c4043" text-anchor="middle">per exam</text>
+  <text x="944" y="792" font-size="86" font-weight="bold" fill="#1a73e8" text-anchor="middle">$0.039</text>
+  <text x="944" y="834" font-size="26" fill="#3c4043" text-anchor="middle">per exam</text>
+  <text x="1116" y="870" font-size="24" font-style="italic" fill="#80868b" text-anchor="end">e2e-2026-08-19.md</text>
+
+  <rect x="1180" y="630" width="640" height="258" rx="14" fill="#ffffff" stroke="#dadce0" stroke-width="2"/>
+  <text x="1500" y="682" font-size="26" font-weight="bold" letter-spacing="4" fill="#3c4043" text-anchor="middle">THE INVARIANT</text>
+  <text x="1500" y="744" font-size="30" font-weight="bold" fill="#202124" text-anchor="middle">Every exam ends in exactly</text>
+  <text x="1500" y="784" font-size="30" font-weight="bold" fill="#202124" text-anchor="middle">one visible state.</text>
+  <text x="1500" y="844" font-size="30" text-anchor="middle"><tspan fill="#1a73e8" font-weight="bold">synced</tspan><tspan fill="#5f6368"> &#183; </tspan><tspan fill="#d93025" font-weight="bold">quarantined</tspan><tspan fill="#5f6368"> &#183; </tspan><tspan fill="#d93025" font-weight="bold">failed</tspan></text>
+
+  <text x="960" y="962" font-size="34" font-weight="bold" fill="#3c4043" text-anchor="middle">A person touches an exam twice: dropping the scan, deciding a held card.</text>
+</svg>
