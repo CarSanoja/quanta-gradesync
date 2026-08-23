@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#5f6368"/></marker>
+    <marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#1a73e8"/></marker>
+    <marker id="r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#d93025"/></marker>
+    <marker id="v" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#188038"/></marker>
+  </defs>
+
+  <rect x="0" y="0" width="1920" height="1080" fill="#ffffff"/>
+
+  <text x="100" y="74" font-size="24" font-weight="bold" letter-spacing="7" fill="#80868b">HOW IT WORKS</text>
+  <text x="100" y="132" font-size="52" font-weight="bold" fill="#202124">Files land in a bucket. Grades land in the gradebook.</text>
+  <line x1="100" y1="158" x2="1820" y2="158" stroke="#e8eaed" stroke-width="2"/>
+
+  <!-- left column: ingest chain -->
+  <rect x="100" y="210" width="400" height="150" rx="12" fill="#fef7e0" stroke="#f9ab00" stroke-width="2"/>
+  <text x="300" y="270" font-size="30" font-weight="bold" fill="#7f5c00" text-anchor="middle">Exam scans uploaded</text>
+  <text x="300" y="308" font-size="24" fill="#7f5c00" text-anchor="middle">drag and drop, or the scanner</text>
+
+  <rect x="100" y="395" width="400" height="150" rx="12" fill="#fef7e0" stroke="#f9ab00" stroke-width="2"/>
+  <text x="300" y="455" font-size="30" font-weight="bold" fill="#7f5c00" text-anchor="middle">Cloud Storage</text>
+  <text x="300" y="493" font-size="24" fill="#7f5c00" text-anchor="middle">versioned exam bucket</text>
+
+  <rect x="100" y="580" width="400" height="150" rx="12" fill="#fef7e0" stroke="#f9ab00" stroke-width="2"/>
+  <text x="300" y="640" font-size="30" font-weight="bold" fill="#7f5c00" text-anchor="middle">Pub/Sub</text>
+  <text x="300" y="678" font-size="24" fill="#7f5c00" text-anchor="middle">push on every new object</text>
+
+  <line x1="300" y1="360" x2="300" y2="391" stroke="#5f6368" stroke-width="3" marker-end="url(#g)"/>
+  <line x1="300" y1="545" x2="300" y2="576" stroke="#5f6368" stroke-width="3" marker-end="url(#g)"/>
+  <line x1="500" y1="655" x2="576" y2="655" stroke="#5f6368" stroke-width="3" marker-end="url(#g)"/>
+
+  <!-- centre: Cloud Run -->
+  <rect x="580" y="210" width="760" height="520" rx="14" fill="#f8f9fa" stroke="#1a73e8" stroke-width="3"/>
+  <text x="960" y="264" font-size="34" font-weight="bold" fill="#174ea6" text-anchor="middle">Cloud Run</text>
+  <text x="960" y="300" font-size="24" fill="#174ea6" text-anchor="middle">one service, scale to zero when idle</text>
+
+  <rect x="610" y="326" width="700" height="176" rx="8" fill="#1a73e8"/>
+  <text x="960" y="370" font-size="24" font-weight="bold" letter-spacing="4" fill="#d2e3fc" text-anchor="middle">SEVEN STAGES, IN ORDER</text>
+  <text x="960" y="424" font-size="32" font-weight="bold" fill="#ffffff" text-anchor="middle">Fetch &#183; Grade &#183; Audit &#183; Risk</text>
+  <text x="960" y="470" font-size="32" font-weight="bold" fill="#ffffff" text-anchor="middle">Sync &#183; Verify &#183; Optimize</text>
+
+  <text x="960" y="550" font-size="26" fill="#3c4043" text-anchor="middle">A checkpoint after every stage.</text>
+  <text x="960" y="586" font-size="26" fill="#3c4043" text-anchor="middle">A crash resumes where it stopped.</text>
+  <text x="960" y="652" font-size="36" font-weight="bold" fill="#1a73e8" text-anchor="middle">8 exams &#183; 43.9 s &#183; $0.039 each</text>
+  <text x="960" y="692" font-size="24" font-style="italic" fill="#80868b" text-anchor="middle">e2e-2026-08-19.md</text>
+
+  <!-- right column: outcomes -->
+  <rect x="1420" y="210" width="400" height="150" rx="12" fill="#e6f4ea" stroke="#188038" stroke-width="2"/>
+  <text x="1620" y="270" font-size="30" font-weight="bold" fill="#0d652d" text-anchor="middle">Firestore</text>
+  <text x="1620" y="308" font-size="24" fill="#0d652d" text-anchor="middle">checkpoints, memory, ledger</text>
+
+  <rect x="1420" y="395" width="400" height="150" rx="12" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2"/>
+  <text x="1620" y="455" font-size="27" font-weight="bold" fill="#174ea6" text-anchor="middle">School gradebook (SIS)</text>
+  <text x="1620" y="493" font-size="24" fill="#174ea6" text-anchor="middle">grades with competency codes</text>
+
+  <rect x="1420" y="580" width="400" height="150" rx="12" fill="#fce8e6" stroke="#d93025" stroke-width="2"/>
+  <text x="1620" y="640" font-size="30" font-weight="bold" fill="#a50e0e" text-anchor="middle">Quarantine</text>
+  <text x="1620" y="678" font-size="24" font-weight="bold" fill="#5b2c8d" text-anchor="middle">a teacher decides, one click</text>
+
+  <line x1="1340" y1="285" x2="1416" y2="285" stroke="#5f6368" stroke-width="3" marker-end="url(#g)"/>
+  <line x1="1340" y1="470" x2="1416" y2="470" stroke="#1a73e8" stroke-width="3" marker-end="url(#b)"/>
+  <line x1="1340" y1="655" x2="1416" y2="655" stroke="#d93025" stroke-width="3" marker-end="url(#r)"/>
+  <text x="1378" y="272" font-size="24" fill="#5f6368" text-anchor="middle">write</text>
+  <text x="1378" y="457" font-size="24" fill="#5f6368" text-anchor="middle">sync</text>
+  <text x="1378" y="642" font-size="24" fill="#5f6368" text-anchor="middle">held</text>
+
+  <!-- models -->
+  <rect x="580" y="810" width="760" height="150" rx="12" fill="#e6f4ea" stroke="#188038" stroke-width="2"/>
+  <text x="960" y="868" font-size="32" font-weight="bold" fill="#0d652d" text-anchor="middle">Vertex AI</text>
+  <text x="960" y="906" font-size="26" fill="#0d652d" text-anchor="middle">Gemini 3.5 Flash + Flash-Lite, through Google ADK</text>
+  <text x="960" y="938" font-size="26" fill="#0d652d" text-anchor="middle">grades and audits every answer</text>
+
+  <line x1="960" y1="806" x2="960" y2="734" stroke="#188038" stroke-width="3" marker-end="url(#v)" marker-start="url(#v)"/>
+  <text x="990" y="778" font-size="24" fill="#5f6368">grade &#183; audit</text>
+</svg>
