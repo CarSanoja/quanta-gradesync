@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" font-family="Helvetica, Arial, sans-serif">
+  <rect width="1920" height="1080" fill="#ffffff"/>
+
+  <text x="960" y="112" font-size="24" font-weight="bold" letter-spacing="6" fill="#80868b" text-anchor="middle">WHAT THE LOAD COSTS BEYOND TIME</text>
+  <text x="960" y="186" font-size="54" font-weight="bold" fill="#202124" text-anchor="middle">One of the pressures pushing teachers out.</text>
+
+  <!-- 1: EXHAUSTION -->
+  <rect x="100" y="320" width="480" height="480" rx="18" fill="#fef7e0" stroke="#f9ab00" stroke-width="2.5"/>
+  <text x="340" y="376" font-size="22" font-weight="bold" letter-spacing="4" fill="#b06000" text-anchor="middle">EXHAUSTION</text>
+  <text x="340" y="452" font-size="30" fill="#5f6368" text-anchor="middle">over</text>
+  <text x="340" y="586" font-size="140" font-weight="bold" fill="#b06000" text-anchor="middle">60%</text>
+  <text x="340" y="646" font-size="27" fill="#3c4043" text-anchor="middle">report extreme exhaustion</text>
+  <text x="340" y="681" font-size="27" fill="#3c4043" text-anchor="middle">from work overload</text>
+  <text x="340" y="762" font-size="21" font-style="italic" fill="#80868b" text-anchor="middle">basic-education teachers, Latin America</text>
+
+  <path d="M 592 560 L 592 612 L 640 586 Z" fill="#9aa0a6"/>
+
+  <!-- 2: BURNOUT -->
+  <rect x="650" y="320" width="480" height="480" rx="18" fill="#fce8e6" stroke="#d93025" stroke-width="2.5"/>
+  <text x="890" y="376" font-size="22" font-weight="bold" letter-spacing="4" fill="#d93025" text-anchor="middle">BURNOUT</text>
+  <text x="890" y="452" font-size="30" fill="#5f6368" text-anchor="middle">about</text>
+  <text x="890" y="586" font-size="140" font-weight="bold" fill="#d93025" text-anchor="middle">37%</text>
+  <text x="890" y="646" font-size="27" fill="#3c4043" text-anchor="middle">show burnout signs</text>
+  <text x="890" y="681" font-size="23" fill="#5f6368" text-anchor="middle">exhaustion · depersonalisation</text>
+  <text x="890" y="710" font-size="23" fill="#5f6368" text-anchor="middle">low personal accomplishment</text>
+  <text x="890" y="762" font-size="21" font-style="italic" fill="#80868b" text-anchor="middle">teacher-burnout studies, Latin America</text>
+
+  <path d="M 1142 560 L 1142 612 L 1190 586 Z" fill="#9aa0a6"/>
+
+  <!-- 3: THE SHORTFALL -->
+  <rect x="1200" y="320" width="620" height="480" rx="18" fill="#d93025"/>
+  <text x="1510" y="376" font-size="22" font-weight="bold" letter-spacing="4" fill="#ffffff" fill-opacity="0.82" text-anchor="middle">THE REGIONAL SHORTFALL</text>
+  <text x="1510" y="452" font-size="30" fill="#ffffff" fill-opacity="0.85" text-anchor="middle">the region must add</text>
+  <text x="1510" y="586" text-anchor="middle" fill="#ffffff">
+    <tspan font-size="150" font-weight="bold">3.2</tspan><tspan font-size="58" font-weight="bold" dx="20">million</tspan>
+  </text>
+  <text x="1510" y="646" font-size="27" fill="#ffffff" text-anchor="middle">more teachers by 2030</text>
+  <text x="1510" y="681" font-size="23" fill="#ffffff" fill-opacity="0.85" text-anchor="middle">most of them to replace those who leave</text>
+  <text x="1510" y="762" font-size="21" font-style="italic" fill="#ffffff" fill-opacity="0.72" text-anchor="middle">UNESCO · Latin America and the Caribbean</text>
+
+  <line x1="200" y1="890" x2="1720" y2="890" stroke="#dadce0" stroke-width="2"/>
+  <text x="960" y="936" font-size="24" fill="#5f6368" text-anchor="middle">UNESCO's gap splits into 1 million primary and 2.2 million secondary teachers, with work overload named among the causes.</text>
+  <text x="960" y="970" font-size="24" fill="#5f6368" text-anchor="middle">A Brazilian study of 679 public-school teachers found 25.77 % showing the full burnout profile.</text>
+</svg>

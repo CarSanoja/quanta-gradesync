@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" font-family="Helvetica, Arial, sans-serif">
+  <rect x="0" y="0" width="1920" height="1080" fill="#ffffff"/>
+
+  <text x="100" y="80" font-size="24" font-weight="bold" letter-spacing="7" fill="#80868b">WHAT CHANGES</text>
+  <line x1="100" y1="104" x2="1820" y2="104" stroke="#e8eaed" stroke-width="2"/>
+
+  <!-- ===== BEFORE ===== -->
+  <text x="100" y="158" font-size="28" font-weight="bold" letter-spacing="5" fill="#5f6368">TODAY</text>
+  <text x="100" y="322" font-size="190" font-weight="bold" fill="#202124">18 h</text>
+  <text x="560" y="262" font-size="46" fill="#202124">a month, marking by hand</text>
+  <text x="560" y="308" font-size="24" fill="#5f6368">~100 students · about 200 sittings a month · ~5 minutes each, against a rubric</text>
+
+  <rect x="100" y="372" width="1720" height="96" rx="6" fill="#202124"/>
+
+  <text x="100" y="506" font-size="22" fill="#5f6368">OECD TALIS 2024 — 4.6 h a week marking and correcting, inside a 41 h working week</text>
+  <text x="1820" y="506" font-size="22" fill="#5f6368" text-anchor="end">over a 10-month year: ~180 h — more than 22 working days of 8 hours</text>
+
+  <!-- ===== becomes ===== -->
+  <line x1="100" y1="552" x2="880" y2="552" stroke="#e8eaed" stroke-width="2"/>
+  <line x1="1040" y1="552" x2="1820" y2="552" stroke="#e8eaed" stroke-width="2"/>
+  <text x="960" y="561" font-size="26" fill="#9aa0a6" text-anchor="middle" font-style="italic">becomes</text>
+
+  <!-- ===== AFTER ===== -->
+  <text x="100" y="622" font-size="28" font-weight="bold" letter-spacing="5" fill="#1a73e8">WITH GRADESYNC</text>
+  <text x="100" y="738" font-size="120" font-weight="bold" fill="#1a73e8">minutes</text>
+  <text x="640" y="698" font-size="46" fill="#202124">of exception review</text>
+  <text x="640" y="740" font-size="24" fill="#5f6368">she drops the scans; she is called back only for the ones the system refused to decide alone</text>
+
+  <rect x="100" y="770" width="1720" height="96" rx="6" fill="#f8f9fa" stroke="#c5c9ce" stroke-width="2" stroke-dasharray="9 9"/>
+  <rect x="100" y="770" width="120" height="96" rx="6" fill="#8430ce"/>
+  <text x="1020" y="827" font-size="28" fill="#9aa0a6" text-anchor="middle">time returned to teaching</text>
+
+  <text x="100" y="900" font-size="22" font-weight="bold" fill="#8430ce">held for a teacher</text>
+  <text x="1820" y="900" font-size="22" fill="#5f6368" text-anchor="end">each one arrives with the scanned page and the line it was graded on</text>
+
+  <rect x="100" y="930" width="7" height="100" fill="#d93025"/>
+  <text x="140" y="958" font-size="24" fill="#202124">The exceptions are real work — she still reads them and decides.</text>
+  <text x="140" y="992" font-size="24" fill="#202124">No grade reaches the gradebook until it passes the checks, or a human approves it.</text>
+  <text x="140" y="1024" font-size="22" fill="#80868b">She is not taken out of the loop. She is called only when it matters.</text>
+</svg>

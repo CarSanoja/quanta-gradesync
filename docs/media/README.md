@@ -41,6 +41,42 @@ lines — a change that would never have been made without looking.
 Render at `-s 2400` for anything going into a submission gallery: presentation
 surfaces resample images and thin strokes disappear at small sizes.
 
+**Quick Look thumbnails are square.** `qlmanage` writes a 2400x2400 (or
+1920x1920) PNG with transparent letterboxing above and below a 16:9 design. For
+anything with a fixed aspect ratio — slide images especially — crop after
+rendering or the deck will letterbox:
+
+```bash
+qlmanage -t -s 1920 -o docs/media docs/media/<name>.svg
+mv docs/media/<name>.svg.png docs/media/<name>.png
+sips -c 1080 1920 docs/media/<name>.png    # centred crop to exact 16:9
+```
+
+## Two families of diagram, and why they are not the same file
+
+A diagram that documents and a diagram that projects have opposite constraints,
+and trying to serve both produces something that fails at each:
+
+| | Reference diagram | Slide diagram |
+|---|---|---|
+| Read | Zoomed in, at leisure | Three seconds, across a room |
+| Density | High — every component, every number | At most ~9 labelled elements |
+| Minimum type | 10.5px | **24px** |
+| When it does not fit | Reflow, add a leader line | **Cut content — never shrink type** |
+| Example | `architecture.svg`, `governance.svg` | `slide-architecture.svg`, `pitch-arithmetic.svg` |
+
+The slide versions live beside the reference versions with a `slide-` or
+`pitch-` prefix. They must never contradict the reference diagram — same
+palette, same shape grammar, same facts, less of them.
+
+### What only looking catches
+
+Two real examples from this suite, both invisible in the source and obvious in
+the render: a focal figure written as `17–18` read as *"17 minus 18"* at 230px
+because an en dash at that scale looks like a minus sign; and a giant numeral
+followed by a word collided, because a 240px digit has almost no side bearing —
+the letter-spacing that looks generous at 12px is nothing at 240px.
+
 ## Visual system
 
 Colours follow the Google Cloud palette, so the diagram reads as native to the

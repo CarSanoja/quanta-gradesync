@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" font-family="Helvetica, Arial, sans-serif">
+  <rect x="0" y="0" width="1920" height="1080" fill="#ffffff"/>
+
+  <text x="100" y="74" font-size="24" font-weight="bold" letter-spacing="7" fill="#80868b">THE EVIDENCE</text>
+  <text x="100" y="132" font-size="52" font-weight="bold" fill="#202124">Measured, not promised</text>
+  <text x="1820" y="132" font-size="24" fill="#5f6368" text-anchor="end">every figure came out of a run — the dated report is printed under it</text>
+  <line x1="100" y1="158" x2="1820" y2="158" stroke="#e8eaed" stroke-width="2"/>
+
+  <!-- ===== row 1 ===== -->
+  <g>
+    <rect x="100" y="184" width="553" height="310" rx="14" fill="#ffffff" stroke="#dadce0" stroke-width="2"/>
+    <rect x="102" y="196" width="7" height="286" rx="3.5" fill="#1a73e8"/>
+    <text x="140" y="316" font-size="104" font-weight="bold" fill="#1a73e8">43.9 s</text>
+    <text x="140" y="368" font-size="22" fill="#202124">8 exams graded, audited, risk-scored</text>
+    <text x="140" y="396" font-size="22" fill="#202124">and synced — webhook to job complete</text>
+    <line x1="140" y1="446" x2="613" y2="446" stroke="#f1f3f4" stroke-width="2"/>
+    <text x="140" y="476" font-size="20" font-style="italic" fill="#80868b">e2e-2026-08-19.md</text>
+  </g>
+  <g>
+    <rect x="683" y="184" width="553" height="310" rx="14" fill="#ffffff" stroke="#dadce0" stroke-width="2"/>
+    <rect x="685" y="196" width="7" height="286" rx="3.5" fill="#1a73e8"/>
+    <text x="723" y="316" font-size="104" font-weight="bold" fill="#1a73e8">$0.039</text>
+    <text x="723" y="368" font-size="22" fill="#202124">per exam — every model call in the</text>
+    <text x="723" y="396" font-size="22" fill="#202124">run, priced at list rates</text>
+    <line x1="723" y1="446" x2="1196" y2="446" stroke="#f1f3f4" stroke-width="2"/>
+    <text x="723" y="476" font-size="20" font-style="italic" fill="#80868b">e2e-2026-08-19.md</text>
+  </g>
+  <g>
+    <rect x="1266" y="184" width="553" height="310" rx="14" fill="#ffffff" stroke="#dadce0" stroke-width="2"/>
+    <rect x="1268" y="196" width="7" height="286" rx="3.5" fill="#d93025"/>
+    <text x="1306" y="316" font-size="104" font-weight="bold" fill="#d93025">24 / 24</text>
+    <text x="1306" y="368" font-size="22" fill="#202124">hostile payloads caught. 13 classes</text>
+    <text x="1306" y="396" font-size="22" fill="#202124">exercised — 12 hostile, 1 clean control.</text>
+    <text x="1306" y="424" font-size="22" fill="#202124">0 false positives, 0 fail-open.</text>
+    <line x1="1306" y1="446" x2="1779" y2="446" stroke="#f1f3f4" stroke-width="2"/>
+    <text x="1306" y="476" font-size="20" font-style="italic" fill="#80868b">red-team-2026-08-21.md</text>
+  </g>
+
+  <!-- ===== row 2 ===== -->
+  <g>
+    <rect x="100" y="518" width="553" height="310" rx="14" fill="#ffffff" stroke="#dadce0" stroke-width="2"/>
+    <rect x="102" y="530" width="7" height="286" rx="3.5" fill="#202124"/>
+    <text x="140" y="650" font-size="104" font-weight="bold" fill="#202124">verbatim</text>
+    <text x="140" y="702" font-size="22" fill="#202124">every grade carries the line it was</text>
+    <text x="140" y="730" font-size="22" fill="#202124">based on, quoted from the student's</text>
+    <text x="140" y="758" font-size="22" fill="#202124">own page</text>
+    <line x1="140" y1="780" x2="613" y2="780" stroke="#f1f3f4" stroke-width="2"/>
+    <text x="140" y="810" font-size="20" font-style="italic" fill="#80868b">e2e-2026-08-19.md — 8 evidence spans</text>
+  </g>
+  <g>
+    <rect x="683" y="518" width="553" height="310" rx="14" fill="#ffffff" stroke="#dadce0" stroke-width="2"/>
+    <rect x="685" y="530" width="7" height="286" rx="3.5" fill="#8430ce"/>
+    <text x="723" y="650" font-size="104" font-weight="bold" fill="#8430ce">0.845</text>
+    <text x="723" y="702" font-size="22" fill="#202124">QWK agreement with human graders</text>
+    <text x="723" y="730" font-size="22" fill="#202124">on the same exams. MAE 0.208.</text>
+    <line x1="723" y1="780" x2="1196" y2="780" stroke="#f1f3f4" stroke-width="2"/>
+    <text x="723" y="810" font-size="20" font-style="italic" fill="#80868b">calibration-2026-08-20.md</text>
+  </g>
+  <g>
+    <rect x="1266" y="518" width="553" height="310" rx="14" fill="#ffffff" stroke="#dadce0" stroke-width="2"/>
+    <rect x="1268" y="530" width="7" height="286" rx="3.5" fill="#5f6368"/>
+    <text x="1306" y="650" font-size="104" font-weight="bold" fill="#5f6368">506</text>
+    <text x="1306" y="702" font-size="22" fill="#202124">offline tests over the pipeline and</text>
+    <text x="1306" y="730" font-size="22" fill="#202124">its gates — 8 skipped of 514 collected</text>
+    <line x1="1306" y1="780" x2="1779" y2="780" stroke="#f1f3f4" stroke-width="2"/>
+    <text x="1306" y="810" font-size="20" font-style="italic" fill="#80868b">offline suite, run on every change</text>
+  </g>
+
+  <!-- ===== the honest limit ===== -->
+  <rect x="100" y="852" width="1720" height="168" rx="14" fill="#f8f9fa" stroke="#dadce0" stroke-width="2"/>
+  <rect x="102" y="864" width="7" height="144" rx="3.5" fill="#d93025"/>
+  <text x="140" y="898" font-size="22" font-weight="bold" letter-spacing="4" fill="#d93025">THE HONEST LIMIT</text>
+  <text x="1780" y="898" font-size="20" font-style="italic" fill="#80868b" text-anchor="end">calibration-2026-08-20.md</text>
+  <text x="140" y="944" font-size="26" fill="#202124">The human-agreement figure comes from a small labelled set: 4 students, 12 criterion pairs.</text>
+  <text x="140" y="982" font-size="26" fill="#3c4043">One half-point change moved QWK by 0.045 — treat 0.845 as a starting point, not a benchmark.</text>
+</svg>
