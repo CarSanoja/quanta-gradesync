@@ -187,6 +187,49 @@ local implementation selected when `GRADESYNC_LOCAL_MODE=true`, so the entire te
 suite runs offline with no GCP credentials (in-memory stores, local-dir staging,
 jsonl append).
 
+## Reproducible testing
+
+The whole suite runs on a laptop with no cloud account, no credentials and no
+network. From a clean clone:
+
+```bash
+python3.12 -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+pytest
+```
+
+Expected, on any machine:
+
+```
+506 passed, 8 skipped
+```
+
+The 8 skips are the live contract tests under `tests/live/`, which call real
+Gemini models and skip themselves unless Application Default Credentials and a
+GCP project are present. Nothing else is skipped and nothing else is mocked:
+Cloud Storage, Pub/Sub, Firestore and the SIS each have a real on-disk
+implementation behind the same Protocol the cloud clients satisfy, so the
+offline suite exercises the production code paths rather than test doubles.
+
+| What you want to verify | Command | Tests | Credentials |
+|---|---|---|---|
+| The engine's logic, gates and failure handling | `pytest` | 506 | none |
+| Throughput and concurrency behaviour | `pytest -m benchmark` | 2 | none |
+| Calibration maths and the promotion gate, against fixed ground truth | `pytest -m calibration` | 59 | none |
+| Contracts against the real models | `pytest -m live` | 8 | Gemini + GCP |
+| A batch graded end to end, on your machine | see [Local demo run](#local-demo-run) | | Gemini |
+
+The benchmark and calibration markers select subsets of the same 506; only the
+live tests sit outside it.
+
+Run `pytest` before creating a `.env`: the settings loader reads `.env` from the
+working directory, and the placeholder SIS URL and settle interval in
+`.env.example` override local-mode defaults that two tests assert.
+
+Deployment, Pub/Sub wiring and the production runbooks are further down; the
+sections immediately below take a batch of generated exams from a folder to a
+graded, quarantined and human-approved result without leaving localhost.
+
 ## Local-mode quickstart
 
 Requires Python 3.12+. [uv](https://docs.astral.sh/uv/) is optional — a plain
@@ -211,11 +254,6 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 pytest
 ```
-
-Run `pytest` before creating a `.env`: the settings loader reads `.env` from
-the working directory, and the placeholder SIS URL and settle interval in
-`.env.example` override local-mode defaults that two tests assert. The suite
-itself needs no `.env`, no GCP credentials, and no network.
 
 ### Run the API locally
 
@@ -269,10 +307,6 @@ real Gemini calls) and answers with the completed job. Then inspect:
 - `.local_data/sis_writes.jsonl` — local SIS ledger, one write request per line;
   quarantined items land here after `POST /review/{review_id}/approve`
 
-Test markers:
-
-- `pytest -m benchmark` — throughput/concurrency stress tests
-- `pytest -m calibration` — ground-truth prompt quality tests
 
 ## Environment variables
 
