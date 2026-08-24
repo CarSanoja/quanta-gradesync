@@ -239,6 +239,6 @@
     <text x="1170" y="1038">duplicate delivery: 200 duplicate, zero SIS writes, zero recompute</text>
     <text x="1170" y="1057">resume after a killed instance: 2.3 s and 8.0 s vs 41.0 s cold</text>
     <text x="1170" y="1076">24 of 24 red-team injection attempts caught, 0 false positives</text>
-    <text x="1170" y="1095">503 offline tests pass with no GCP credentials and no network</text>
+    <text x="1170" y="1095">506 offline tests pass with no GCP credentials and no network</text>
   </g>
 </svg>
