@@ -48,10 +48,10 @@ from autocurricula.core.orchestration.sis_records import (
 )
 from autocurricula.core.orchestration.stages_assessment import (
     SCRIPTED_MODEL_ID,
-    build_audit_step,
     build_fetch_step,
     build_grade_step,
 )
+from autocurricula.core.orchestration.stages_audit import build_audit_step
 from autocurricula.core.orchestration.stages_outcome import (
     TermResolver,
     build_optimize_step,

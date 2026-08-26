@@ -1,4 +1,4 @@
-import asyncio
+
 import logging
 from typing import Any, Protocol, runtime_checkable
 
@@ -6,6 +6,10 @@ from autocurricula.core.fleet import (
     EVIDENCE_TRANSCRIBER_ID,
     annotate_span,
     authorize_llm,
+)
+from autocurricula.core.orchestration.concurrency import (
+    DEFAULT_MODEL_CONCURRENCY,
+    gather_limited,
 )
 from autocurricula.core.telemetry import Recorder, usage_scope
 from autocurricula.schemas.exam import ExamBatch, ExamSubmission
@@ -34,13 +38,17 @@ class PageTranscriber(Protocol):
 
 
 async def transcribe_batch(
-    transcriber: PageTranscriber, batch: ExamBatch, recorder: Recorder
+    transcriber: PageTranscriber,
+    batch: ExamBatch,
+    recorder: Recorder,
+    limit: int = DEFAULT_MODEL_CONCURRENCY,
 ) -> dict[tuple[str, int], str]:
-    captured = await asyncio.gather(
-        *(
+    captured = await gather_limited(
+        (
             _transcribe_submission(transcriber, submission, recorder)
             for submission in batch.submissions
-        )
+        ),
+        limit,
     )
     texts: dict[tuple[str, int], str] = {}
     for pages in captured:

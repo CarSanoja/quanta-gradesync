@@ -1,23 +1,21 @@
-import asyncio
 import logging
 
-from autocurricula.agents.curriculum_auditor import CurriculumAuditor
 from autocurricula.agents.evaluator import GradingEvaluator, bind_feedback_band
 from autocurricula.core.armor import InjectionDetector, store_armor_report
 from autocurricula.core.fleet import (
-    CURRICULUM_AUDITOR_ID,
     EXAM_FETCHER_PRINCIPAL,
     authorize_gcs_read,
-    authorize_llm,
 )
 from autocurricula.core.harness import DEFAULT_MATCH_THRESHOLD
 from autocurricula.core.memory.manager import MemoryManager
 from autocurricula.core.orchestration.catalog import JobCatalog
+from autocurricula.core.orchestration.concurrency import (
+    DEFAULT_MODEL_CONCURRENCY,
+    gather_limited,
+)
 from autocurricula.core.orchestration.context import (
-    STAGE_AUDIT,
     STAGE_FETCH,
     STAGE_GRADE,
-    AuditOutputs,
     FetchOutputs,
     JobContext,
     StageCallable,
@@ -93,6 +91,7 @@ def build_grade_step(
     armor_enabled: bool | None = None,
     transcriber: PageTranscriber | None = None,
     match_threshold: float = DEFAULT_MATCH_THRESHOLD,
+    model_concurrency: int = DEFAULT_MODEL_CONCURRENCY,
 ) -> StageCallable:
     async def run(context: JobContext) -> JobContext:
         outputs = context.fetch_outputs
@@ -104,7 +103,9 @@ def build_grade_step(
         transcripts = (
             None
             if transcriber is None
-            else await transcribe_batch(transcriber, outputs.batch, recorder)
+            else await transcribe_batch(
+                transcriber, outputs.batch, recorder, limit=model_concurrency
+            )
         )
         guard = build_grade_guard(
             job_id=context.job_id,
@@ -125,11 +126,12 @@ def build_grade_step(
             match_threshold=match_threshold,
         )
 
-        outcomes = await asyncio.gather(
-            *(
+        outcomes = await gather_limited(
+            (
                 guard.grade(submission, outputs.rubric, retrieved)
                 for submission in outputs.batch.submissions
-            )
+            ),
+            model_concurrency,
         )
         results = [outcome.result for outcome in outcomes if outcome.result is not None]
         failures = [outcome.failure for outcome in outcomes if outcome.failed]
@@ -165,34 +167,6 @@ def build_grade_step(
                 model_id=_resolve_model_id(grading_evaluator, model_id),
             ),
         )
-        return context
-
-    return run
-
-
-def build_audit_step(
-    memory_manager: MemoryManager, auditor: CurriculumAuditor
-) -> StageCallable:
-    async def run(context: JobContext) -> JobContext:
-        standard = context.curriculum_standard
-        query = " ".join(
-            f"{competency.code} {competency.description}"
-            for competency in standard.competencies
-        )
-        retrieved = await memory_manager.l2.search(query)
-        authorize_llm(
-            CURRICULUM_AUDITOR_ID,
-            context.job_id,
-            model_id=getattr(auditor, "model_id", ""),
-            recorder=context.recorder,
-        )
-        audits = await asyncio.gather(
-            *(
-                auditor.audit(result, standard, retrieved)
-                for result in context.grade_result.results
-            )
-        )
-        context.complete(STAGE_AUDIT, AuditOutputs(audits=list(audits)))
         return context
 
     return run

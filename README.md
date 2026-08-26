@@ -338,6 +338,7 @@ All variables use the `GRADESYNC_` prefix and are read from the environment or a
 | `GRADESYNC_OPTIMIZER_CONVERGENCE_MIN_IMPROVEMENT` | `0.01` | Marginal MAE improvement below which the optimizer stops cycling |
 | `GRADESYNC_VERIFY_MAX_ITERATIONS` | `2` | Bounded rework iterations in the verify stage |
 | `GRADESYNC_HARNESS_MAX_CALLS_PER_ITEM` | `4` | Max agent invocations per exam before isolating it (blast-radius containment) |
+| `GRADESYNC_MODEL_CONCURRENCY` | `8` | Maximum exams transcribed, graded or audited at once; caps burst load on Vertex |
 | `GRADESYNC_SCHEMA_REPAIR_ATTEMPTS` | `2` | Bounded JSON-contract self-repair attempts before quarantine |
 | `GRADESYNC_BATCH_ANOMALY_THRESHOLD` | `0.15` | Quarantine ratio above which the whole batch's auto-sync is suspended |
 | `GRADESYNC_VARIANCE_COLLAPSE_RATIO` | `0.20` | Allowed score-variance drop vs ground truth before the anti-gaming sensor rejects |

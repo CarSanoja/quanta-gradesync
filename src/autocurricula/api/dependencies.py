@@ -110,6 +110,7 @@ def build_container(settings: Settings | None = None) -> AppContainer:
         live_sink=live_sink,
         transcriber=build_page_transcriber(resolved),
         match_threshold=resolved.faithfulness_match_threshold,
+        model_concurrency=resolved.model_concurrency,
     )
     return AppContainer(
         settings=resolved,

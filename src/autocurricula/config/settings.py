@@ -52,6 +52,7 @@ class Settings(BaseSettings):
     verify_max_iterations: int = Field(default=2, ge=0, le=5)
 
     harness_max_calls_per_item: int = Field(default=4, ge=1, le=16)
+    model_concurrency: int = Field(default=8, ge=1, le=64)
     schema_repair_attempts: int = Field(default=2, ge=0, le=5)
     batch_anomaly_threshold: float = Field(default=0.15, gt=0.0, le=1.0)
     variance_collapse_ratio: float = Field(default=0.20, gt=0.0, le=1.0)

@@ -22,6 +22,7 @@ from autocurricula.core.harness import (
 from autocurricula.core.memory.manager import MemoryManager
 from autocurricula.core.memory.session_memory import SessionMemory, SessionState, StageStatus
 from autocurricula.core.orchestration.catalog import JobCatalog, build_job_catalog
+from autocurricula.core.orchestration.concurrency import DEFAULT_MODEL_CONCURRENCY
 from autocurricula.core.orchestration.context import STAGE_COMPLETION, JobContext, StageStep
 from autocurricula.core.orchestration.graph import build_pipeline
 from autocurricula.core.orchestration.job_state import (
@@ -77,6 +78,7 @@ class JobRunner:
         live_sink: LiveSink | None = None,
         transcriber: PageTranscriber | None = None,
         match_threshold: float = DEFAULT_MATCH_THRESHOLD,
+        model_concurrency: int = DEFAULT_MODEL_CONCURRENCY,
     ) -> None:
         self._memory_manager = memory_manager
         self._checkpoint_store = checkpoint_store
@@ -111,6 +113,7 @@ class JobRunner:
             dead_letter_max_attempts=dead_letter_max_attempts,
             transcriber=transcriber,
             match_threshold=match_threshold,
+            model_concurrency=model_concurrency,
         )
         self._audit_logger = audit_logger
         self._live_sink = live_sink

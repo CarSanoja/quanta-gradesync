@@ -8,6 +8,7 @@ from autocurricula.core.evolution.prompt_mutator import PromptVariant
 from autocurricula.core.harness import DEFAULT_MATCH_THRESHOLD, BatchAnomalyBreaker
 from autocurricula.core.memory.manager import MemoryManager
 from autocurricula.core.orchestration.catalog import JobCatalog
+from autocurricula.core.orchestration.concurrency import DEFAULT_MODEL_CONCURRENCY
 from autocurricula.core.orchestration.context import (
     STAGE_AUDIT,
     STAGE_FETCH,
@@ -20,10 +21,10 @@ from autocurricula.core.orchestration.context import (
     StageStep,
 )
 from autocurricula.core.orchestration.stages_assessment import (
-    build_audit_step,
     build_fetch_step,
     build_grade_step,
 )
+from autocurricula.core.orchestration.stages_audit import build_audit_step
 from autocurricula.core.orchestration.stages_outcome import (
     TermResolver,
     build_optimize_step,
@@ -69,6 +70,7 @@ def build_pipeline(
     dead_letter_max_attempts: int = 3,
     transcriber: PageTranscriber | None = None,
     match_threshold: float = DEFAULT_MATCH_THRESHOLD,
+    model_concurrency: int = DEFAULT_MODEL_CONCURRENCY,
 ) -> list[StageStep]:
     grade_step: StageCallable = build_grade_step(
         memory_manager,
@@ -83,11 +85,14 @@ def build_pipeline(
         dead_letter_max_attempts=dead_letter_max_attempts,
         transcriber=transcriber,
         match_threshold=match_threshold,
+        model_concurrency=model_concurrency,
     )
     return [
         StageStep(name=STAGE_FETCH, callable=build_fetch_step(catalog, fetcher)),
         StageStep(name=STAGE_GRADE, callable=grade_step),
-        StageStep(name=STAGE_AUDIT, callable=build_audit_step(memory_manager, auditor)),
+        StageStep(name=STAGE_AUDIT, callable=build_audit_step(
+            memory_manager, auditor, model_concurrency=model_concurrency
+        )),
         StageStep(name=STAGE_RISK, callable=build_risk_step(memory_manager, risk_detector)),
         StageStep(
             name=STAGE_SYNC,
