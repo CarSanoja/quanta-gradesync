@@ -63,6 +63,18 @@ def install_telemetry(settings: Settings, capture: LlmSpanCapture) -> bool:
     return True
 
 
+def flush_telemetry(timeout_millis: int = 3000) -> None:
+    try:
+        from opentelemetry import trace
+
+        provider = trace.get_tracer_provider()
+        force_flush = getattr(provider, "force_flush", None)
+        if callable(force_flush):
+            force_flush(timeout_millis)
+    except Exception as error:
+        logger.warning("otel span flush failed: %s", error)
+
+
 def reset_telemetry_install() -> None:
     global _installed
     _installed = False

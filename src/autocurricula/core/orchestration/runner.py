@@ -30,6 +30,7 @@ from autocurricula.core.orchestration.verifier import DEFAULT_VERIFY_MAX_ITERATI
 from autocurricula.core.resilience import DeadLetterStore, SchemaRepairAgent
 from autocurricula.core.review import DEFAULT_CONFIDENCE_THRESHOLD, ReviewStore, build_review_store
 from autocurricula.core.telemetry import AuditLogger, LiveSink, Recorder, collect_metrics
+from autocurricula.core.telemetry.otel_setup import flush_telemetry
 from autocurricula.schemas.common import utc_now
 from autocurricula.schemas.events import PubSubJobEvent
 from autocurricula.tools.gcs_fetcher import Fetcher
@@ -154,6 +155,7 @@ class JobRunner:
         return record
 
     async def _flush_live(self) -> None:
+        await asyncio.to_thread(flush_telemetry)
         if self._live_sink is None:
             return
         try:

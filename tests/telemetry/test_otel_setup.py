@@ -175,3 +175,26 @@ def test_gcp_install_forwards_a_project_scoped_resource(
     captured.clear()
     assert install_telemetry(local_settings(), LlmSpanCapture(local_settings())) is True
     assert captured["resource"] is None
+
+
+def test_flush_telemetry_flushes_a_capable_provider(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from opentelemetry import trace as otel_trace
+
+    from autocurricula.core.telemetry.otel_setup import flush_telemetry
+
+    calls: list[int] = []
+
+    class Provider:
+        def force_flush(self, timeout_millis: int) -> bool:
+            calls.append(timeout_millis)
+            return True
+
+    monkeypatch.setattr(otel_trace, "get_tracer_provider", Provider)
+    flush_telemetry(1234)
+    assert calls == [1234]
+
+    monkeypatch.setattr(otel_trace, "get_tracer_provider", object)
+    flush_telemetry()
+
