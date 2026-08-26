@@ -1,4 +1,5 @@
 import json
+import unicodedata
 
 from pydantic import Field, ValidationError, model_validator
 
@@ -7,9 +8,34 @@ from autocurricula.schemas.common import StrictBaseModel
 from autocurricula.schemas.curriculum import CurriculumStandard
 from autocurricula.schemas.rubric import Rubric
 
+SUBJECT_ALIASES = {
+    "math": "matematicas",
+    "maths": "matematicas",
+    "mathematics": "matematicas",
+    "matematica": "matematicas",
+    "matematicas": "matematicas",
+    "language": "lenguaje",
+    "languagearts": "lenguaje",
+    "lengua": "lenguaje",
+    "castellano": "lenguaje",
+    "science": "ciencias",
+    "sciences": "ciencias",
+    "ciencia": "ciencias",
+}
+
+
+def strip_accents(value: str) -> str:
+    decomposed = unicodedata.normalize("NFD", value)
+    return "".join(char for char in decomposed if not unicodedata.combining(char))
+
 
 def normalize_token(value: str) -> str:
-    return value.strip().lower().replace(" ", "-")
+    return strip_accents(value).strip().lower().replace(" ", "-")
+
+
+def canonical_subject(value: str) -> str:
+    normalized = normalize_token(value)
+    return SUBJECT_ALIASES.get(normalized.replace("-", ""), normalized)
 
 
 class CatalogDefaults(StrictBaseModel):
@@ -29,11 +55,15 @@ class CatalogDefaults(StrictBaseModel):
         return self
 
     def binding_for(self, subject: str) -> SubjectBinding:
-        normalized = normalize_token(subject)
+        wanted = canonical_subject(subject)
         for binding in self.bindings:
-            if normalize_token(binding.subject) == normalized:
+            if canonical_subject(binding.subject) == wanted:
                 return binding
-        raise CatalogError(f"catalog defaults have no binding for subject {subject!r}")
+        known = ", ".join(sorted(binding.subject for binding in self.bindings))
+        raise CatalogError(
+            f"catalog defaults have no binding for subject {subject!r}; "
+            f"this catalog binds: {known}"
+        )
 
 
 def parse_defaults(payload: str | bytes) -> CatalogDefaults:
