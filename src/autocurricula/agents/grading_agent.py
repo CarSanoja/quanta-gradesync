@@ -15,6 +15,7 @@ from autocurricula.agents.evaluator import (
     salvage_without_student_feedback,
     stamp_feedback_band,
 )
+from autocurricula.agents.gemini_retry import gemini_model
 from autocurricula.agents.grading_tools import build_grading_tools
 from autocurricula.agents.prompts.grading_parts import (
     MAX_INLINE_FILE_BYTES,
@@ -55,7 +56,7 @@ def _build_agent(*, model: str, instruction: str, tools: list[Any]) -> Any:
 
     return LlmAgent(
         name=GRADING_AGENT_NAME,
-        model=model,
+        model=gemini_model(model),
         instruction=instruction,
         description="Multimodal rubric-grounded exam grading specialist",
         tools=tools,

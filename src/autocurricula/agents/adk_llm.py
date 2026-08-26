@@ -9,6 +9,7 @@ from autocurricula.agents.base import (
     structured_output_with_retry,
     text_part,
 )
+from autocurricula.agents.gemini_retry import gemini_model
 
 TModel = TypeVar("TModel", bound=BaseModel)
 
@@ -36,7 +37,7 @@ def build_structured_agent(
 
     return LlmAgent(
         name=name,
-        model=model,
+        model=gemini_model(model),
         instruction=instruction,
         output_schema=output_schema,
         generate_content_config=genai_types.GenerateContentConfig(temperature=temperature),

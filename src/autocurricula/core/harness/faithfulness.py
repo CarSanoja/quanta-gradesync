@@ -26,6 +26,10 @@ class PageTextProvider(Protocol):
     def page_text(self, submission_id: str, page: int) -> str | None: ...
 
 
+def compact_text(text: str) -> str:
+    return _WHITESPACE.sub("", normalize_text(text))
+
+
 def longest_common_coverage(quote: str, page_text: str) -> float:
     if not quote:
         return 1.0
@@ -40,12 +44,15 @@ def span_status(
     if page_text is None:
         return VERIFICATION_UNCHECKED
     normalized_quote = normalize_text(quote)
-    normalized_page = normalize_text(page_text)
-    if normalized_quote in normalized_page:
+    if normalized_quote in normalize_text(page_text):
+        return VERIFICATION_VERIFIED
+    compact_quote = compact_text(quote)
+    compact_page = compact_text(page_text)
+    if compact_quote and compact_quote in compact_page:
         return VERIFICATION_VERIFIED
     if match_threshold is None or len(normalized_quote) < MIN_FUZZY_QUOTE_CHARS:
         return VERIFICATION_FAILED
-    coverage = longest_common_coverage(normalized_quote, normalized_page)
+    coverage = longest_common_coverage(compact_quote, compact_page)
     return VERIFICATION_VERIFIED if coverage >= match_threshold else VERIFICATION_FAILED
 
 

@@ -2,6 +2,7 @@ import json
 from typing import Any, Protocol, runtime_checkable
 
 from autocurricula.agents.audit_response import AuditResponse
+from autocurricula.agents.gemini_retry import client_http_options
 from autocurricula.agents.local_auditor import LocalCurriculumAuditor
 from autocurricula.agents.prompts.auditor_prompts import build_auditor_variant
 from autocurricula.config.settings import Settings
@@ -173,6 +174,7 @@ def _build_gemini_client(settings: Settings) -> Any:
         vertexai=True,
         project=settings.gcp_project_id,
         location=settings.gemini_location,
+        http_options=client_http_options(),
     )
 
 

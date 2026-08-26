@@ -69,8 +69,9 @@ def test_item_budget_rejects_invalid_limits() -> None:
 
 def test_span_is_faithful_with_normalization() -> None:
     page = "The student  Solves the equation   2x + 3 = 7 correctly."
-    assert span_is_faithful("solves the equation 2x+3=7", page) is False
+    assert span_is_faithful("solves the equation 2x+3=7", page) is True
     assert span_is_faithful("Solves the equation 2x + 3 = 7", page) is True
+    assert span_is_faithful("solves the equation 2x + 3 = 9", page) is False
 
 
 def test_missing_page_text_is_treated_as_faithful() -> None:

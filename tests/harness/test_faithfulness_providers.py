@@ -181,3 +181,17 @@ def test_enforce_keeps_a_result_the_transcript_supports() -> None:
     result = make_result(NEAR_QUOTE)
 
     assert enforce_result(result, provider) is result
+
+
+SPACED_QUOTE = "1 h 20 min = 1 + 20/60 = 4/3 h"
+SPACED_PAGE = "v = 84 km / (4 / 3 h)\n1 h 20 min = 1 + 20 / 60 = 4 / 3 h\nFinal answer: 63 km / h"
+
+
+def test_whitespace_around_operators_never_counts_as_a_hallucination() -> None:
+    assert span_status(SPACED_QUOTE, SPACED_PAGE) == VERIFICATION_VERIFIED
+    assert span_status(SPACED_QUOTE, SPACED_PAGE, match_threshold=0.75) == VERIFICATION_VERIFIED
+    assert span_status("63km/h", "Final answer: 63 km / h") == VERIFICATION_VERIFIED
+    assert (
+        span_status("Final answer: 63 km / h", "the bus took 63 minutes", match_threshold=0.75)
+        == VERIFICATION_FAILED
+    )
