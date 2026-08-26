@@ -219,7 +219,7 @@
   <text x="1488" y="912" font-size="11" fill="#174ea6" text-anchor="middle">+ Firestore sis_records ledger</text>
   <text x="1488" y="930" font-size="11" fill="#174ea6" text-anchor="middle">the school's system of record</text>
 
-  <text x="40" y="994" font-size="11.5" fill="#5f6368">Nothing here is hand-maintained: the registry computes a definition SHA per agent and a registry SHA over the fleet. Offline suite: 648 passed, 10 skipped of 658 collected.</text>
+  <text x="40" y="994" font-size="11.5" fill="#5f6368">Nothing here is hand-maintained: the registry computes a definition SHA per agent and a registry SHA over the fleet. Offline suite: 653 passed, 10 skipped of 663 collected.</text>
   <text x="40" y="1012" font-size="11.5" fill="#5f6368">Impersonation is configuration-gated and falls back to the ambient identity on an IAM failure, logging the fallback — a token outage must not stop grades reaching the school.</text>
   </g>
 </svg>

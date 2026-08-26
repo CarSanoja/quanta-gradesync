@@ -251,5 +251,5 @@
   <text x="1364" y="1047" font-size="11" fill="#202124">batch yields one card and goal_met = false.</text>
 
     <text x="40" y="1108" font-size="11.5" font-weight="bold" fill="#202124">Every scenario above was executed, not designed.</text>
-  <text x="352" y="1108" font-size="11.5" fill="#5f6368">Sources: resilience-2026-08-20 (six scenarios, deployed service and local GCP mode) · sync-failure-modes (outage parity, the zero-grade batch) · implementation 012 · offline suite 648 passed / 10 skipped.</text>
+  <text x="352" y="1108" font-size="11.5" fill="#5f6368">Sources: resilience-2026-08-20 (six scenarios, deployed service and local GCP mode) · sync-failure-modes (outage parity, the zero-grade batch) · implementation 012 · offline suite 653 passed / 10 skipped.</text>
 </svg>

@@ -201,7 +201,7 @@ pytest
 Expected, on any machine:
 
 ```
-648 passed, 10 skipped
+653 passed, 10 skipped
 ```
 
 The 8 skips are the live contract tests under `tests/live/`, which call real
@@ -213,13 +213,13 @@ offline suite exercises the production code paths rather than test doubles.
 
 | What you want to verify | Command | Tests | Credentials |
 |---|---|---|---|
-| The engine's logic, gates and failure handling | `pytest` | 648 | none |
+| The engine's logic, gates and failure handling | `pytest` | 653 | none |
 | Throughput and concurrency behaviour | `pytest -m benchmark` | 2 | none |
 | Calibration maths and the promotion gate, against fixed ground truth | `pytest -m calibration` | 59 | none |
 | Contracts against the real models | `pytest -m live` | 8 | Gemini + GCP |
 | A batch graded end to end, on your machine | see [Local demo run](#local-demo-run) | | Gemini |
 
-The benchmark and calibration markers select subsets of the same 648; only the
+The benchmark and calibration markers select subsets of the same 653; only the
 live tests sit outside it.
 
 Run `pytest` before creating a `.env`: the settings loader reads `.env` from the
