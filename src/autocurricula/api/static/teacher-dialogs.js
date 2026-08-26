@@ -72,6 +72,7 @@ export function askCollision(studentId) {
   dom.collisionNameInput.hidden = true;
   dom.collisionNameInput.value = "";
   dom.collisionError.hidden = true;
+  dom.collisionAll.checked = false;
   dom.collisionDifferent.textContent = "This is a different student";
   dom.collisionVeil.hidden = false;
   dom.collisionReplace.focus();
@@ -81,7 +82,7 @@ export function askCollision(studentId) {
 function settleCollision(result) {
   if (collisionResolver) {
     dom.collisionVeil.hidden = true;
-    collisionResolver(result);
+    collisionResolver({ ...result, all: Boolean(dom.collisionAll && dom.collisionAll.checked) });
     collisionResolver = null;
   }
 }
@@ -167,7 +168,7 @@ export function setupDialogs(options) {
     "access-error", "access-cancel", "confirm-veil", "confirm-title", "confirm-body",
     "confirm-aside", "confirm-error", "confirm-yes", "confirm-no", "collision-veil",
     "collision-message", "collision-name-input", "collision-error", "collision-cancel",
-    "collision-different", "collision-replace", "zoom-veil", "zoom-title", "zoom-body",
+    "collision-different", "collision-replace", "collision-all", "zoom-veil", "zoom-title", "zoom-body",
     "zoom-close",
   ]);
   dom.confirmNo.addEventListener("click", closeConfirm);

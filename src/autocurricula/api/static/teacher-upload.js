@@ -24,6 +24,7 @@ export const uploads = {
   running: false,
   awaitingLot: false,
   lotCode: "",
+  collisionForAll: null,
 };
 
 let hooks = {};
@@ -156,7 +157,11 @@ async function uploadRow(row, lotCode) {
     if (result.status === 409 && result.body && result.body.collision) {
       finish(row, "sending", "already has a scan");
       changed();
-      const decision = await hooks.askCollision(result.body.student_id || row.studentId);
+      const decision = uploads.collisionForAll
+        || await hooks.askCollision(result.body.student_id || row.studentId);
+      if (decision.all && decision.action !== "rename") {
+        uploads.collisionForAll = { action: decision.action, all: true };
+      }
       if (decision.action === "cancel") {
         finish(row, "skipped", "kept the scan already saved");
         return true;
@@ -223,6 +228,7 @@ export function retryFailed() {
 }
 
 export function resetUploads() {
+  uploads.collisionForAll = null;
   uploads.rows.forEach(releaseThumb);
   uploads.rows.length = 0;
   uploads.pair = null;
