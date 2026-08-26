@@ -1,8 +1,8 @@
 from autocurricula.tools.base import ToolResult, as_function_tool
 from autocurricula.tools.gcs_fetcher import (
     ALLOWED_MIME_TYPES,
-    FetchError,
     Fetcher,
+    FetchError,
     GcsFetcher,
     LocalStagingFetcher,
     build_fetcher,

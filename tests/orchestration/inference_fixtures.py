@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from autocurricula.schemas.curriculum import Competency, CurriculumStandard
@@ -8,7 +8,7 @@ from autocurricula.schemas.rubric import MasteryLevel, Rubric, RubricCriterion
 
 BUCKET = "exams"
 PREFIX = "batches/2026_matematicas_10A_Parcial1"
-TRIGGERED_AT = datetime(2026, 8, 17, 9, 0, tzinfo=timezone.utc)
+TRIGGERED_AT = datetime(2026, 8, 17, 9, 0, tzinfo=UTC)
 
 
 def make_event(

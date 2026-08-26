@@ -383,8 +383,8 @@ async def test_sis_records_reads_firestore_in_gcp_mode(
 
 
 def test_ledger_document_carries_student_feedback():
-    from autocurricula.schemas.feedback import FeedbackBand, FeedbackPoint, StudentFeedback
     from autocurricula.schemas.common import utc_now
+    from autocurricula.schemas.feedback import FeedbackBand, FeedbackPoint, StudentFeedback
     from autocurricula.schemas.sis_sync import SISGradeRecord
     from autocurricula.tools.sis_firestore import build_ledger_document
 

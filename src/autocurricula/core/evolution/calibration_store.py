@@ -1,6 +1,7 @@
 import json
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Self, Sequence
+from typing import Self
 
 from pydantic import Field, field_validator, model_validator
 

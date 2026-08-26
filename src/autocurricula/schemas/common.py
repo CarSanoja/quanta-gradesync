@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Annotated
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field
@@ -20,7 +20,7 @@ ClassId = Annotated[str, Field(min_length=1)]
 
 def _ensure_utc(value: datetime) -> datetime:
     if value.tzinfo is None:
-        return value.replace(tzinfo=timezone.utc)
+        return value.replace(tzinfo=UTC)
     return value
 
 
@@ -28,4 +28,4 @@ TzAwareDatetime = Annotated[datetime, AfterValidator(_ensure_utc)]
 
 
 def utc_now() -> datetime:
-    return datetime.now(tz=timezone.utc)
+    return datetime.now(tz=UTC)

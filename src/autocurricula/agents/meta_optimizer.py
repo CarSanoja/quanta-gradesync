@@ -1,19 +1,6 @@
 from collections.abc import Callable
 from pathlib import Path
 
-from autocurricula.config.settings import Settings
-from autocurricula.core.evolution.anti_gaming_validator import AntiGamingValidator
-from autocurricula.core.harness.eval_harness import ObjectiveGate
-from autocurricula.core.evolution.calibration_store import CalibrationSet
-from autocurricula.core.evolution.optimizer_engine import (
-    MetaOptimizerEngine,
-    PromptProposer,
-    VariantEvaluator,
-)
-from autocurricula.core.evolution.prompt_mutator import PromptRegistry
-from autocurricula.core.memory.manager import MemoryManager
-from autocurricula.schemas.metrics import OptimizerReport
-
 from autocurricula.agents.prompt_variant_store import PromptVariantStore
 from autocurricula.agents.prompts import (
     AUDITOR_VARIANT_ID,
@@ -23,6 +10,17 @@ from autocurricula.agents.prompts import (
     seed_grading_prompt,
     seed_optimizer_variant,
 )
+from autocurricula.core.evolution.anti_gaming_validator import AntiGamingValidator
+from autocurricula.core.evolution.calibration_store import CalibrationSet
+from autocurricula.core.evolution.optimizer_engine import (
+    MetaOptimizerEngine,
+    PromptProposer,
+    VariantEvaluator,
+)
+from autocurricula.core.evolution.prompt_mutator import PromptRegistry
+from autocurricula.core.harness.eval_harness import ObjectiveGate
+from autocurricula.core.memory.manager import MemoryManager
+from autocurricula.schemas.metrics import OptimizerReport
 
 __all__ = ["MetaOptimizerAgent"]
 

@@ -1,3 +1,5 @@
+import json
+from datetime import UTC, datetime
 from pathlib import Path
 
 from autocurricula.agents.risk_detector import RiskDetector
@@ -9,7 +11,6 @@ from autocurricula.core.orchestration.job_state import (
 )
 from autocurricula.core.orchestration.runner import JobRunner
 from autocurricula.core.resilience import (
-    DeadLetterStatus,
     LocalDeadLetterStore,
     SyncPartialError,
     write_with_rollback,
@@ -17,6 +18,7 @@ from autocurricula.core.resilience import (
 from autocurricula.core.review import LocalReviewStore
 from autocurricula.schemas.sis_sync import SISGradeRecord, SISWriteResult
 from autocurricula.tools.gcs_fetcher import LocalStagingFetcher
+from autocurricula.tools.sis_connector import LocalSISConnector
 from tests.orchestration.verifier_fixtures import ConfidenceMapEvaluator
 from tests.review.flow_stack import (
     STUDENTS,
@@ -25,14 +27,10 @@ from tests.review.flow_stack import (
     make_settings,
     stage_batch,
 )
-import json
-from datetime import datetime, timezone
-
-from autocurricula.tools.sis_connector import LocalSISConnector
 
 
 def _record(student_id: str) -> SISGradeRecord:
-    graded_at = datetime(2026, 8, 17, 12, 0, tzinfo=timezone.utc)
+    graded_at = datetime(2026, 8, 17, 12, 0, tzinfo=UTC)
     return SISGradeRecord(
         student_id=student_id,
         subject="matematicas",

@@ -29,8 +29,8 @@ from autocurricula.agents.curriculum_auditor import (
 )
 from autocurricula.agents.evaluator import GradingEvaluator, GradingValidationError
 from autocurricula.agents.failing_samples import (
-    select_failing_samples,
     sample_failure_score,
+    select_failing_samples,
 )
 from autocurricula.agents.grading_agent import (
     AdkGradingEvaluator,
@@ -45,7 +45,6 @@ from autocurricula.agents.optimizer_factory import (
     build_optimizer_fleet,
     build_proposer,
 )
-from autocurricula.agents.proposer import LlmProposer, ProposalSchema
 from autocurricula.agents.prompt_variant_store import (
     FirestorePromptVariantStore,
     LocalPromptVariantStore,
@@ -62,6 +61,7 @@ from autocurricula.agents.prompts.optimizer_prompts import (
     OPTIMIZER_VARIANT_ID,
     seed_optimizer_variant,
 )
+from autocurricula.agents.proposer import LlmProposer, ProposalSchema
 from autocurricula.agents.risk_detector import RiskDetector
 
 __all__ = [

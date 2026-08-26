@@ -1,18 +1,18 @@
 import pytest
 
+from autocurricula.core.evolution.prompt_mutator import PromptVariant
 from autocurricula.core.harness import (
     BudgetExceeded,
     ItemBudget,
     SidecarTextProvider,
     enforce_result,
-    guard_item,
     evidence_sha,
+    guard_item,
     model_id_sha,
     prompt_version_sha,
     sidecar_texts_from_batch,
     span_is_faithful,
 )
-from autocurricula.core.evolution.prompt_mutator import PromptVariant
 from autocurricula.schemas.grading import CriterionScore, EvidenceSpan, GradingResult
 
 PROMPT = PromptVariant(

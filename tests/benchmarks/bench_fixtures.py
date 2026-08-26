@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from autocurricula.agents.risk_detector import RiskDetector
 from autocurricula.config.settings import Settings
@@ -32,7 +32,7 @@ CRITERIA = (("crit-a", 4.0), ("crit-b", 6.0))
 SEATS = (1, 2)
 SCRIPTED_MODEL = "scripted-benchmark-evaluator"
 STAGED_FILE_BODY = b"benchmark-staged-bytes"
-TRIGGERED_AT = datetime(2026, 5, 12, 8, 30, tzinfo=timezone.utc)
+TRIGGERED_AT = datetime(2026, 5, 12, 8, 30, tzinfo=UTC)
 
 
 def bench_id(prefix: str, index: int, suffix: str = "") -> str:

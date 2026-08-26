@@ -1,9 +1,8 @@
+from collections.abc import Sequence
 from statistics import pstdev
-from typing import Sequence
-
-from autocurricula.schemas.metrics import OptimizerReport
 
 from autocurricula.core.evolution.calibration_store import CalibrationSet
+from autocurricula.schemas.metrics import OptimizerReport
 
 
 def _spread(values: Sequence[float]) -> float:

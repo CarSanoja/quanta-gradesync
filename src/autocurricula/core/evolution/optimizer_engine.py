@@ -11,14 +11,12 @@ from autocurricula.core.evolution.engine_support import (
     score_distributions,
 )
 from autocurricula.core.evolution.prompt_mutator import PromptRegistry, PromptVariant
-from autocurricula.schemas.grading import GradingResult
+from autocurricula.core.harness.eval_harness import ObjectiveGate
 from autocurricula.schemas.metrics import (
     CalibrationMetrics,
     OptimizerReport,
     TournamentReport,
 )
-
-from autocurricula.core.harness.eval_harness import ObjectiveGate
 
 __all__ = [
     "MetaOptimizerEngine",

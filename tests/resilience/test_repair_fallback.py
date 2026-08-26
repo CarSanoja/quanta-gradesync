@@ -8,9 +8,8 @@ from autocurricula.core.resilience import (
     ResourceExhaustedError,
     SchemaRepairAgent,
 )
-from tests.review.flow_stack import make_rubric
 from tests.orchestration.verifier_fixtures import ConfidenceMapEvaluator
-from tests.review.flow_stack import STUDENTS
+from tests.review.flow_stack import STUDENTS, make_rubric
 
 
 class FlakyThenValid:

@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
@@ -10,7 +10,7 @@ from autocurricula.schemas.review import ReviewItem
 from autocurricula.schemas.sis_sync import SISGradeRecord
 
 SUBJECT = "matematicas"
-GRADED_AT = datetime(2026, 8, 17, 11, 0, tzinfo=timezone.utc)
+GRADED_AT = datetime(2026, 8, 17, 11, 0, tzinfo=UTC)
 
 
 def make_item(review_id: str, student_id: str, job_id: str) -> ReviewItem:

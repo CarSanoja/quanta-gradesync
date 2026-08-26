@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from autocurricula.config.settings import Settings
 from autocurricula.core.memory.manager import MemoryManager
@@ -9,7 +9,7 @@ from autocurricula.schemas.review import ReviewItem
 from autocurricula.schemas.sis_sync import SISGradeRecord
 from autocurricula.tools.sis_connector import LocalSISConnector
 
-GRADED_AT = datetime(2026, 8, 17, 11, 0, tzinfo=timezone.utc)
+GRADED_AT = datetime(2026, 8, 17, 11, 0, tzinfo=UTC)
 SUBJECT = "matematicas"
 CEILINGS = {"crit-a": 4.0, "crit-b": 6.0}
 MACHINE = {"crit-a": 2.0, "crit-b": 3.0}

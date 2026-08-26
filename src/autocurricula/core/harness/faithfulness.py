@@ -3,7 +3,7 @@ from collections.abc import Callable
 from typing import Protocol, runtime_checkable
 
 from autocurricula.schemas.common import FrozenStrictModel
-from autocurricula.schemas.grading import EvidenceSpan, GradingResult
+from autocurricula.schemas.grading import GradingResult
 from autocurricula.schemas.telemetry import (
     VERIFICATION_FAILED,
     VERIFICATION_UNCHECKED,

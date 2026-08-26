@@ -12,7 +12,6 @@ from autocurricula.core.orchestration.catalog import (
     BatchManifest,
     CatalogError,
     JobCatalog,
-    LocalJobCatalog,
     align_manifest,
 )
 from autocurricula.core.orchestration.catalog_defaults import (

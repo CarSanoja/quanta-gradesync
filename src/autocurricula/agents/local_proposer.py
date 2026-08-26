@@ -1,8 +1,7 @@
+from autocurricula.agents.failing_samples import select_failing_samples
 from autocurricula.core.evolution.calibration_store import CalibrationSet
 from autocurricula.core.evolution.prompt_mutator import PromptVariant
 from autocurricula.schemas.metrics import CalibrationMetrics
-
-from autocurricula.agents.failing_samples import select_failing_samples
 
 LOCAL_PROPOSER_PROVENANCE = "local-heuristic-proposer"
 DEFAULT_LOCAL_FAILING_SAMPLE_LIMIT = 2

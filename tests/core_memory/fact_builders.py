@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from autocurricula.core.memory.manager import MemoryManager
 from autocurricula.schemas.exam import ExamBatch, ExamFile, ExamSubmission
@@ -9,7 +9,7 @@ from autocurricula.schemas.grading import (
 )
 from autocurricula.schemas.memory import TermSnapshot
 
-GRADED_AT = datetime(2026, 8, 3, 9, 0, tzinfo=timezone.utc)
+GRADED_AT = datetime(2026, 8, 3, 9, 0, tzinfo=UTC)
 TERM = "term-2026-08"
 STUDENT = "stu-001"
 MAX_SCORE = 4.0

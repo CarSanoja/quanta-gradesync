@@ -1,6 +1,6 @@
 import asyncio
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from autocurricula.agents.risk_detector import RiskDetector
@@ -28,7 +28,7 @@ from autocurricula.tools.sis_connector import LocalSISConnector
 
 BUCKET = "flow-exams"
 PREFIX = "batches/2026_matematicas_10A_Parcial1"
-TRIGGERED_AT = datetime(2026, 8, 17, 10, 0, tzinfo=timezone.utc)
+TRIGGERED_AT = datetime(2026, 8, 17, 10, 0, tzinfo=UTC)
 STUDENTS = ("stu-001", "stu-002", "stu-003")
 LOW_CONFIDENCE_STUDENT = "stu-002"
 

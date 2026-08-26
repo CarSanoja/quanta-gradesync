@@ -4,6 +4,8 @@ from autocurricula.agents.curriculum_auditor import CurriculumAuditor
 from autocurricula.agents.evaluator import GradingEvaluator
 from autocurricula.agents.meta_optimizer import MetaOptimizerAgent
 from autocurricula.agents.risk_detector import RiskDetector
+from autocurricula.core.evolution.prompt_mutator import PromptVariant
+from autocurricula.core.harness import BatchAnomalyBreaker
 from autocurricula.core.memory.manager import MemoryManager
 from autocurricula.core.orchestration.catalog import JobCatalog
 from autocurricula.core.orchestration.context import (
@@ -33,8 +35,6 @@ from autocurricula.core.orchestration.verifier import (
     DEFAULT_VERIFY_MAX_ITERATIONS,
     build_verify_step,
 )
-from autocurricula.core.evolution.prompt_mutator import PromptVariant
-from autocurricula.core.harness import BatchAnomalyBreaker
 from autocurricula.core.resilience import DeadLetterStore, SchemaRepairAgent
 from autocurricula.core.review import DEFAULT_CONFIDENCE_THRESHOLD, ReviewStore
 from autocurricula.tools.gcs_fetcher import Fetcher

@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from autocurricula.core.evolution.calibration_labels import (
     load_labelled_samples,
@@ -7,7 +7,7 @@ from autocurricula.core.evolution.calibration_labels import (
 from autocurricula.core.review.label_store import InMemoryLabelStore
 from autocurricula.schemas.labels import Label, LabelDecision, LabelScore
 
-CREATED_AT = datetime(2026, 8, 20, 12, 0, tzinfo=timezone.utc)
+CREATED_AT = datetime(2026, 8, 20, 12, 0, tzinfo=UTC)
 
 
 def make_label(

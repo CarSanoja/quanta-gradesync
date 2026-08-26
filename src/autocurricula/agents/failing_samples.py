@@ -1,4 +1,4 @@
-from typing import Sequence
+from collections.abc import Sequence
 
 from autocurricula.core.evolution.calibration_store import CalibrationSample
 from autocurricula.schemas.metrics import CalibrationMetrics

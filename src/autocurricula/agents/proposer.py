@@ -2,14 +2,6 @@ import json
 
 from pydantic import Field, field_validator
 
-from autocurricula.core.evolution.calibration_store import (
-    CalibrationSample,
-    CalibrationSet,
-)
-from autocurricula.core.evolution.prompt_mutator import PromptVariant
-from autocurricula.schemas.common import StrictBaseModel
-from autocurricula.schemas.metrics import CalibrationMetrics
-
 from autocurricula.agents.adk_llm import build_structured_agent, run_structured_output
 from autocurricula.agents.failing_samples import (
     DEFAULT_FAILING_SAMPLE_LIMIT,
@@ -19,6 +11,13 @@ from autocurricula.agents.prompts import (
     build_proposer_payload,
     build_proposer_system_instruction,
 )
+from autocurricula.core.evolution.calibration_store import (
+    CalibrationSample,
+    CalibrationSet,
+)
+from autocurricula.core.evolution.prompt_mutator import PromptVariant
+from autocurricula.schemas.common import StrictBaseModel
+from autocurricula.schemas.metrics import CalibrationMetrics
 
 PROPOSER_APP_NAME = "autocurricula-meta-optimizer"
 PROPOSER_TEMPERATURE = 0.2

@@ -1,6 +1,5 @@
 from autocurricula.schemas.common import StrictBaseModel
 
-
 DEFAULT_BATCH_ANOMALY_THRESHOLD = 0.15
 
 

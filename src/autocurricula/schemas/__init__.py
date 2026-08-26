@@ -34,12 +34,12 @@ from autocurricula.schemas.memory import (
     RetrievedContext,
     TermSnapshot,
 )
-from autocurricula.schemas.provenance import Provenance
 from autocurricula.schemas.metrics import (
     CalibrationMetrics,
     OptimizerReport,
     TournamentReport,
 )
+from autocurricula.schemas.provenance import Provenance
 from autocurricula.schemas.review import (
     REQUIRES_HUMAN_REVIEW,
     ReviewItem,
