@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>GradeSync Operations Console</title>
 <link rel="stylesheet" href="/console/assets/console.css">
+<link rel="stylesheet" href="/console/assets/live.css">
 </head>
 <body>
 <header class="topbar">
@@ -50,8 +51,8 @@
       <span class="rail-hint">grades in the school system</span>
     </button>
     <button type="button" class="rail-item" data-view="trace">
-      <span class="rail-label">Live trace</span>
-      <span class="rail-hint">spans, tokens, audit</span>
+      <span class="rail-label">Mission control</span>
+      <span class="rail-hint">fleet live: LLM, armor, identity</span>
     </button>
     <p class="rail-note">
       Grades below the confidence threshold, or scored without cited evidence, are
@@ -178,22 +179,60 @@
 
     <section class="view" id="view-trace">
       <header class="view-head">
-        <h2>Live trace</h2>
-        <p>Stage progress while a job runs; the persisted span tree, token usage and audit
-          trail once the engine writes them.</p>
+        <h2>Mission control</h2>
+        <p>Live trace of the fleet at work: which agent called which model, what it sent and
+          what came back, the armor screens, the evidence checks and the permission denials,
+          in the order they happened.</p>
       </header>
-      <div class="split">
-        <div class="panel">
-          <div class="panel-head">
-            <h3>Jobs</h3>
-            <span class="poll-note"><span class="poll-dot" id="trace-poll"></span><span class="counter" id="trace-status"></span></span>
+      <div class="live-top">
+        <aside class="panel">
+          <div class="panel-head"><h3>Jobs</h3></div>
+          <div class="panel-body" id="live-jobs"></div>
+        </aside>
+        <div class="panel live-header">
+          <div class="stage-track" id="live-stage-track"></div>
+          <div class="live-stats">
+            <div class="stat">
+              <span class="stat-label">Elapsed</span>
+              <span class="stat-value" id="live-elapsed">&mdash;</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Model calls</span>
+              <span class="stat-value" id="live-calls">0</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Tokens</span>
+              <span class="stat-value" id="live-tokens">0</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Events</span>
+              <span class="stat-value" id="live-events-count">0</span>
+            </div>
           </div>
-          <div class="panel-body" id="trace-jobs"></div>
+          <span class="poll-note">
+            <span class="poll-dot" id="live-poll"></span><span id="live-status-text">idle</span>
+          </span>
+          <a class="ghost" id="live-trace-link" hidden target="_blank" rel="noreferrer">Open in Cloud Trace</a>
+          <button class="ghost" id="live-export" type="button">Export JSONL</button>
         </div>
-        <div class="panel">
-          <div class="panel-head"><h3>Trace</h3></div>
-          <div class="panel-body" id="trace-detail"></div>
-        </div>
+      </div>
+
+      <div class="live-tabs" id="live-tabs">
+        <button type="button" class="tab-button is-active" data-live-tab="activity">Fleet activity</button>
+        <button type="button" class="tab-button" data-live-tab="chains">Reasoning chains</button>
+        <button type="button" class="tab-button" data-live-tab="postrun">Post-run trace</button>
+      </div>
+
+      <div class="live-tab is-active" id="live-tab-activity">
+        <div id="live-board"></div>
+        <div id="live-ticker"></div>
+        <div id="live-detail"></div>
+      </div>
+      <div class="live-tab" id="live-tab-chains">
+        <div id="live-chain"></div>
+      </div>
+      <div class="live-tab" id="live-tab-postrun">
+        <div id="live-postrun"></div>
       </div>
     </section>
   </main>

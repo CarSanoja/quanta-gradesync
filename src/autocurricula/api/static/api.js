@@ -105,6 +105,8 @@ export const endpoints = {
     return `/sis/records?${params}`;
   },
   trace: (jobId) => `/jobs/${encodeURIComponent(jobId)}/trace`,
+  live: (jobId, after) =>
+    `/jobs/${encodeURIComponent(jobId)}/live?after=${after}&limit=500`,
   ingestExam: () => "/ingest/exam",
   sampleBatch: () => "/ingest/sample-batch",
 };

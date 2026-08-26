@@ -18,6 +18,15 @@ ASSET_MEDIA_TYPES = {
     "ingest.js": "text/javascript; charset=utf-8",
     "trace.js": "text/javascript; charset=utf-8",
     "fleet.js": "text/javascript; charset=utf-8",
+    "live.css": "text/css; charset=utf-8",
+    "live.js": "text/javascript; charset=utf-8",
+    "live-board.js": "text/javascript; charset=utf-8",
+    "live-header.js": "text/javascript; charset=utf-8",
+    "live-ticker.js": "text/javascript; charset=utf-8",
+    "live-detail.js": "text/javascript; charset=utf-8",
+    "live-chain.js": "text/javascript; charset=utf-8",
+    "live-chain-groups.js": "text/javascript; charset=utf-8",
+    "live-kinds.js": "text/javascript; charset=utf-8",
 }
 
 

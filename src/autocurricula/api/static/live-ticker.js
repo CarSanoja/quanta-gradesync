@@ -1,0 +1,143 @@
+import { clear, el, emptyState, pill } from "./render.js";
+import {
+  KIND_LABELS,
+  classifyEvent,
+  clockTime,
+  durationText,
+  injectionDetected,
+  isFailure,
+  isTickerEvent,
+  toneOf,
+  tokenText,
+  verificationOf,
+} from "./live-kinds.js";
+
+export { renderEventDetail } from "./live-detail.js";
+
+const DECISION_LABELS = {
+  deny: "DENIED",
+  quarantine: "QUARANTINED",
+  allow: "ALLOWED",
+};
+
+function describe(event, kind) {
+  const attributes = event.attributes || {};
+  const llm = event.llm || null;
+  if (kind === "llm") {
+    const tokens = llm ? tokenText(llm.input_tokens, llm.output_tokens) : "";
+    const parts = [event.agent_id, tokens, llm ? llm.finish_reason : ""];
+    return { label: (llm && llm.model) || event.name, meta: parts.filter(Boolean).join(" · ") };
+  }
+  if (kind === "armor") {
+    const severity = String(attributes["armor.severity"] || "none");
+    return {
+      label: injectionDetected(attributes) ? `INJECTION ${severity}` : "clean",
+      meta: [event.student_id, event.agent_id].filter(Boolean).join(" · "),
+    };
+  }
+  if (kind === "permission") {
+    const decision = String(attributes["permission.decision"] || "deny");
+    const capability = attributes["agent.capability"] || attributes["permission.target"] || "";
+    return {
+      label: `${DECISION_LABELS[decision] || decision.toUpperCase()} ${capability}`.trim(),
+      meta: String(attributes["permission.reason"] || event.agent_id || ""),
+    };
+  }
+  if (kind === "grading") {
+    const tokens = tokenText(
+      attributes["gen_ai.usage.input_tokens"],
+      attributes["gen_ai.usage.output_tokens"]
+    );
+    const outcome = attributes["submission.outcome"];
+    const settled = [outcome || event.status, tokens].filter(Boolean).join(" · ");
+    return {
+      label: event.student_id || event.name.replace("Grading_", ""),
+      meta: event.kind === "span_start" ? "grading started" : settled,
+    };
+  }
+  if (kind === "stage") {
+    return {
+      label: event.stage || event.name.replace("Stage_", ""),
+      meta: event.kind === "span_start" ? "running" : String(event.status),
+    };
+  }
+  if (kind === "faithfulness") {
+    const verified = attributes["evidence.spans_verified"];
+    const spans = verified === undefined ? "" : `${verified} spans verified`;
+    return {
+      label: verificationOf(attributes),
+      meta: [event.student_id, spans].filter(Boolean).join(" · "),
+    };
+  }
+  return { label: event.name, meta: event.stage || String(event.status) };
+}
+
+function tickerRow(event, selectedSeq, onSelect) {
+  const kind = classifyEvent(event);
+  const described = describe(event, kind);
+  const classes = ["ticker-row", `kind-${kind}`];
+  if (event.seq === selectedSeq) {
+    classes.push("is-selected");
+  }
+  if (isFailure(event, kind)) {
+    classes.push("is-error");
+  }
+  const trailing = [described.meta, durationText(event.duration_ms)].filter(Boolean);
+  return el(
+    "button",
+    {
+      type: "button",
+      class: classes.join(" "),
+      onclick: () => {
+        if (onSelect) {
+          onSelect(event.seq);
+        }
+      },
+    },
+    [
+      el("span", { class: "ticker-time mono", text: clockTime(event.recorded_at) }),
+      pill(KIND_LABELS[kind], toneOf(event, kind)),
+      el("span", { class: "ticker-label", text: described.label }),
+      el(
+        "span",
+        { class: "ticker-meta" },
+        trailing.map((part) => el("span", { text: part }))
+      ),
+    ]
+  );
+}
+
+function scrollAnchor(target) {
+  const existing = target.querySelector(".ticker");
+  if (!existing || existing.scrollTop <= 0) {
+    return null;
+  }
+  return { top: existing.scrollTop, height: existing.scrollHeight };
+}
+
+function restoreScroll(ticker, anchor) {
+  if (!anchor) {
+    return;
+  }
+  const grown = Math.max(0, ticker.scrollHeight - anchor.height);
+  ticker.scrollTop = anchor.top + grown;
+}
+
+export function renderTicker(target, events, selectedSeq, onSelect) {
+  const anchor = scrollAnchor(target);
+  clear(target);
+  const rows = (events || [])
+    .filter(isTickerEvent)
+    .slice()
+    .sort((left, right) => right.seq - left.seq);
+  if (!rows.length) {
+    target.append(
+      emptyState("No fleet activity yet", "Spans and model calls stream here while the job runs.")
+    );
+    return;
+  }
+  const ticker = el("div", { class: "ticker" });
+  rows.forEach((event) => ticker.append(tickerRow(event, selectedSeq, onSelect)));
+  target.append(ticker);
+  restoreScroll(ticker, anchor);
+}

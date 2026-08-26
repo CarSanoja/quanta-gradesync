@@ -20,7 +20,7 @@ import {
 import { renderFleet } from "./fleet.js";
 import { createIngestController } from "./ingest.js";
 import { createSisController } from "./sis.js";
-import { createTraceController } from "./trace.js";
+import { createLiveController } from "./live.js";
 
 const dom = {
   rail: document.getElementById("rail"),
@@ -49,10 +49,22 @@ const dom = {
   sisRecords: document.getElementById("sis-records"),
   sisCount: document.getElementById("sis-count"),
   sisPoll: document.getElementById("sis-poll"),
-  traceJobs: document.getElementById("trace-jobs"),
-  traceDetail: document.getElementById("trace-detail"),
-  tracePoll: document.getElementById("trace-poll"),
-  traceStatus: document.getElementById("trace-status"),
+  liveJobs: document.getElementById("live-jobs"),
+  liveStageTrack: document.getElementById("live-stage-track"),
+  liveElapsed: document.getElementById("live-elapsed"),
+  liveCalls: document.getElementById("live-calls"),
+  liveTokens: document.getElementById("live-tokens"),
+  liveEventsCount: document.getElementById("live-events-count"),
+  livePoll: document.getElementById("live-poll"),
+  liveStatusText: document.getElementById("live-status-text"),
+  liveTraceLink: document.getElementById("live-trace-link"),
+  liveExport: document.getElementById("live-export"),
+  liveTabs: document.getElementById("live-tabs"),
+  liveBoard: document.getElementById("live-board"),
+  liveTicker: document.getElementById("live-ticker"),
+  liveDetail: document.getElementById("live-detail"),
+  liveChain: document.getElementById("live-chain"),
+  livePostrun: document.getElementById("live-postrun"),
   lotCodeInput: document.getElementById("lot-code-input"),
   dropzone: document.getElementById("dropzone"),
   fileInput: document.getElementById("file-input"),
@@ -123,8 +135,8 @@ function setView(view) {
   if (sisController) {
     view === "sis" ? sisController.start() : sisController.stop();
   }
-  if (traceController) {
-    view === "trace" ? traceController.start() : traceController.stop();
+  if (liveController) {
+    view === "trace" ? liveController.start() : liveController.stop();
   }
 }
 
@@ -293,13 +305,13 @@ async function refreshAll() {
     await sisController.load();
   }
   if (state.view === "trace") {
-    await traceController.load();
+    await liveController.load();
   }
   dom.refresh.disabled = false;
 }
 
 const sisController = createSisController({ dom, guard, getJson, endpoints });
-const traceController = createTraceController({ dom, guard, getJson, endpoints });
+const liveController = createLiveController({ dom, guard, getJson, endpoints });
 createIngestController({
   dom,
   toast,
