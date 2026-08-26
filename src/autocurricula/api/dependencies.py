@@ -15,6 +15,7 @@ from autocurricula.agents.rework_evaluator import build_rework_evaluator
 from autocurricula.agents.risk_detector import RiskDetector
 from autocurricula.config.settings import Settings, get_settings
 from autocurricula.core.harness import BatchAnomalyBreaker
+from autocurricula.core.harness.transcription import build_page_transcriber
 from autocurricula.core.memory.manager import MemoryManager
 from autocurricula.core.orchestration.batch_settle import BatchSettler, build_batch_settler
 from autocurricula.core.orchestration.catalog import JobCatalog, build_job_catalog
@@ -107,6 +108,8 @@ def build_container(settings: Settings | None = None) -> AppContainer:
             else None
         ),
         live_sink=live_sink,
+        transcriber=build_page_transcriber(resolved),
+        match_threshold=resolved.faithfulness_match_threshold,
     )
     return AppContainer(
         settings=resolved,

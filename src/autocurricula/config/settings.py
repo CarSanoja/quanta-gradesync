@@ -61,6 +61,8 @@ class Settings(BaseSettings):
     objective_bias_abs_max: float = Field(default=0.1, gt=0.0)
 
     armor_enabled: bool = True
+    faithfulness_transcription_enabled: bool = True
+    faithfulness_match_threshold: float = Field(default=0.75, gt=0.0, le=1.0)
     legibility_enabled: bool = True
     legibility_full_trust: float = Field(default=0.70, gt=0.0, le=1.0)
     legibility_confidence_floor: float = Field(default=0.50, gt=0.0, le=1.0)

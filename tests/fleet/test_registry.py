@@ -34,12 +34,12 @@ def agent(report, agent_id: str):
     return next(item for item in report.agents if item.agent_id == agent_id)
 
 
-def test_registry_enumerates_the_eleven_readme_agents(tmp_path: Path) -> None:
+def test_registry_enumerates_the_declared_fleet(tmp_path: Path) -> None:
     report = build_fleet_registry(local_settings(tmp_path))
 
-    assert report.summary.agent_count == 11
-    assert [item.fleet_index for item in report.agents] == list(range(1, 12))
-    assert len({item.agent_id for item in report.agents}) == 11
+    assert report.summary.agent_count == 12
+    assert [item.fleet_index for item in report.agents] == list(range(1, 13))
+    assert len({item.agent_id for item in report.agents}) == 12
     assert all(item.role.strip() for item in report.agents)
 
 

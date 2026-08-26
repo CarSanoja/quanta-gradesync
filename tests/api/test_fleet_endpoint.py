@@ -19,11 +19,11 @@ async def test_fleet_registry_enumerates_the_fleet(
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["summary"]["agent_count"] == 11
+    assert payload["summary"]["agent_count"] == 12
     assert payload["summary"]["mode"] == "local"
-    assert len(payload["agents"]) == 11
-    assert sum(payload["summary"]["by_lifecycle"].values()) == 11
-    assert sum(payload["summary"]["by_model"].values()) == 11
+    assert len(payload["agents"]) == 12
+    assert sum(payload["summary"]["by_lifecycle"].values()) == 12
+    assert sum(payload["summary"]["by_model"].values()) == 12
 
 
 async def test_fleet_registry_reflects_the_wired_container(

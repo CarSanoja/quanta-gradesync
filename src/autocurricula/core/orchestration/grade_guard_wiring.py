@@ -1,7 +1,14 @@
 from typing import Any
 
 from autocurricula.core.armor import InjectionDetector, resolve_injection_detector
-from autocurricula.core.harness import SidecarTextProvider, sidecar_texts_from_batch
+from autocurricula.core.harness import (
+    DEFAULT_MATCH_THRESHOLD,
+    CompositeTextProvider,
+    PageTextProvider,
+    SidecarTextProvider,
+    TranscriptTextProvider,
+    sidecar_texts_from_batch,
+)
 from autocurricula.core.orchestration.grade_guard import GradeGuard
 from autocurricula.core.resilience import DeadLetterStore, SchemaRepairAgent
 from autocurricula.core.telemetry import Recorder
@@ -23,11 +30,11 @@ def build_grade_guard(
     batch: Any,
     armor_detector: InjectionDetector | None = None,
     armor_enabled: bool | None = None,
+    transcripts: dict[tuple[str, int], str] | None = None,
+    match_threshold: float = DEFAULT_MATCH_THRESHOLD,
 ) -> GradeGuard:
-    provider = (
-        SidecarTextProvider(sidecar_texts_from_batch(batch))
-        if faithfulness_enabled
-        else None
+    provider = build_text_provider(
+        faithfulness_enabled, batch, transcripts, match_threshold
     )
     armor = resolve_injection_detector(armor_detector, armor_enabled, batch)
     return GradeGuard(
@@ -43,4 +50,20 @@ def build_grade_guard(
         recorder=recorder,
         provider=provider,
         armor=armor,
+    )
+
+
+def build_text_provider(
+    faithfulness_enabled: bool,
+    batch: Any,
+    transcripts: dict[tuple[str, int], str] | None,
+    match_threshold: float,
+) -> PageTextProvider | None:
+    if not faithfulness_enabled:
+        return None
+    sidecar = SidecarTextProvider(sidecar_texts_from_batch(batch))
+    if not transcripts:
+        return sidecar
+    return CompositeTextProvider(
+        sidecar, TranscriptTextProvider(transcripts, match_threshold)
     )

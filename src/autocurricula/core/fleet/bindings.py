@@ -15,6 +15,7 @@ from autocurricula.core.fleet.roster import (
     ARMOR_SCREENER_ID,
     CALIBRATION_EVALUATOR_ID,
     CURRICULUM_AUDITOR_ID,
+    EVIDENCE_TRANSCRIBER_ID,
     FALLBACK_EVALUATOR_ID,
     GRADING_AGENT_ID,
     META_OPTIMIZER_AUDIT_ID,
@@ -48,6 +49,7 @@ SETTINGS_BINDINGS: dict[str, tuple[str, str]] = {
     CALIBRATION_EVALUATOR_ID: ("AdkSummaryGradingEvaluator", "LocalGradingEvaluator"),
     META_OPTIMIZER_GRADING_ID: ("MetaOptimizerAgent", "MetaOptimizerAgent"),
     META_OPTIMIZER_AUDIT_ID: ("MetaOptimizerAgent", "MetaOptimizerAgent"),
+    EVIDENCE_TRANSCRIBER_ID: ("LlmPageTranscriber", UNWIRED_BINDING),
 }
 
 SEED_VARIANTS = {
@@ -96,6 +98,8 @@ def settings_binding(declaration: AgentDeclaration, settings: Settings) -> str:
 def declared_wired(declaration: AgentDeclaration, settings: Settings) -> bool:
     if declaration.agent_id == ARMOR_SCREENER_ID:
         return settings.armor_enabled
+    if declaration.agent_id == EVIDENCE_TRANSCRIBER_ID:
+        return not settings.local_mode and settings.faithfulness_transcription_enabled
     if declaration.agent_id in LOCAL_UNWIRED_AGENTS:
         return not settings.local_mode
     return True

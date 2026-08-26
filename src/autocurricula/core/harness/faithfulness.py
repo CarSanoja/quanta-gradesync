@@ -1,6 +1,7 @@
 import re
-from collections.abc import Callable
-from typing import Protocol, runtime_checkable
+from collections.abc import Callable, Iterator
+from difflib import SequenceMatcher
+from typing import Any, Protocol, runtime_checkable
 
 from autocurricula.schemas.common import FrozenStrictModel
 from autocurricula.schemas.grading import GradingResult
@@ -12,6 +13,9 @@ from autocurricula.schemas.telemetry import (
 
 _WHITESPACE = re.compile(r"\s+")
 
+DEFAULT_MATCH_THRESHOLD = 0.75
+MIN_FUZZY_QUOTE_CHARS = 12
+
 
 def normalize_text(text: str) -> str:
     return _WHITESPACE.sub(" ", text.strip().lower())
@@ -22,15 +26,44 @@ class PageTextProvider(Protocol):
     def page_text(self, submission_id: str, page: int) -> str | None: ...
 
 
-class SidecarTextProvider:
-    def __init__(self, texts: dict[tuple[str, int], str]) -> None:
-        self._texts = {
-            (submission_id, page): normalize_text(text)
-            for (submission_id, page), text in texts.items()
-        }
+def longest_common_coverage(quote: str, page_text: str) -> float:
+    if not quote:
+        return 1.0
+    matcher = SequenceMatcher(None, quote, page_text, autojunk=False)
+    match = matcher.find_longest_match(0, len(quote), 0, len(page_text))
+    return match.size / len(quote)
 
-    def page_text(self, submission_id: str, page: int) -> str | None:
-        return self._texts.get((submission_id, page))
+
+def span_status(
+    quote: str, page_text: str | None, *, match_threshold: float | None = None
+) -> str:
+    if page_text is None:
+        return VERIFICATION_UNCHECKED
+    normalized_quote = normalize_text(quote)
+    normalized_page = normalize_text(page_text)
+    if normalized_quote in normalized_page:
+        return VERIFICATION_VERIFIED
+    if match_threshold is None or len(normalized_quote) < MIN_FUZZY_QUOTE_CHARS:
+        return VERIFICATION_FAILED
+    coverage = longest_common_coverage(normalized_quote, normalized_page)
+    return VERIFICATION_VERIFIED if coverage >= match_threshold else VERIFICATION_FAILED
+
+
+def span_is_faithful(
+    quote: str, page_text: str | None, *, match_threshold: float | None = None
+) -> bool:
+    status = span_status(quote, page_text, match_threshold=match_threshold)
+    return status != VERIFICATION_FAILED
+
+
+def provider_threshold(provider: Any, submission_id: str, page: int) -> float | None:
+    resolver = getattr(provider, "threshold_for", None)
+    if callable(resolver):
+        return resolver(submission_id, page)
+    value = getattr(provider, "match_threshold", None)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return float(value)
 
 
 class SpanCheck(FrozenStrictModel):
@@ -57,16 +90,21 @@ class FaithfulnessReport(FrozenStrictModel):
         return self.status != VERIFICATION_UNCHECKED
 
 
-def span_status(quote: str, page_text: str | None) -> str:
-    if page_text is None:
-        return VERIFICATION_UNCHECKED
-    if normalize_text(quote) in normalize_text(page_text):
-        return VERIFICATION_VERIFIED
-    return VERIFICATION_FAILED
-
-
-def span_is_faithful(quote: str, page_text: str | None) -> bool:
-    return span_status(quote, page_text) != VERIFICATION_FAILED
+def span_statuses(
+    result: GradingResult, provider: PageTextProvider
+) -> Iterator[tuple[int, str]]:
+    for criterion in result.criterion_scores:
+        for span in criterion.evidence:
+            yield (
+                span.page,
+                span_status(
+                    span.quote,
+                    provider.page_text(result.submission_id, span.page),
+                    match_threshold=provider_threshold(
+                        provider, result.submission_id, span.page
+                    ),
+                ),
+            )
 
 
 def verify_result(
@@ -75,17 +113,13 @@ def verify_result(
     verified = 0
     unchecked = 0
     hallucinated: list[SpanCheck] = []
-    for criterion in result.criterion_scores:
-        for span in criterion.evidence:
-            status = span_status(
-                span.quote, provider.page_text(result.submission_id, span.page)
-            )
-            if status == VERIFICATION_VERIFIED:
-                verified += 1
-            elif status == VERIFICATION_UNCHECKED:
-                unchecked += 1
-            else:
-                hallucinated.append(SpanCheck(page=span.page, faithful=False))
+    for page, status in span_statuses(result, provider):
+        if status == VERIFICATION_VERIFIED:
+            verified += 1
+        elif status == VERIFICATION_UNCHECKED:
+            unchecked += 1
+        else:
+            hallucinated.append(SpanCheck(page=page, faithful=False))
     return FaithfulnessReport(
         submission_id=result.submission_id,
         verified_spans=verified,
@@ -98,9 +132,8 @@ def enforce_result(
     result: GradingResult, provider: PageTextProvider
 ) -> GradingResult:
     if all(
-        span_is_faithful(span.quote, provider.page_text(result.submission_id, span.page))
-        for criterion in result.criterion_scores
-        for span in criterion.evidence
+        status != VERIFICATION_FAILED
+        for _, status in span_statuses(result, provider)
     ):
         return result
     adjusted = result.model_copy(deep=True)

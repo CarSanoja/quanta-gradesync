@@ -10,6 +10,7 @@ from autocurricula.core.fleet import (
     authorize_gcs_read,
     authorize_llm,
 )
+from autocurricula.core.harness import DEFAULT_MATCH_THRESHOLD
 from autocurricula.core.memory.manager import MemoryManager
 from autocurricula.core.orchestration.catalog import JobCatalog
 from autocurricula.core.orchestration.context import (
@@ -23,6 +24,10 @@ from autocurricula.core.orchestration.context import (
 )
 from autocurricula.core.orchestration.grade_guard_wiring import build_grade_guard
 from autocurricula.core.orchestration.grade_outcome import store_grade_report
+from autocurricula.core.orchestration.transcription_stage import (
+    PageTranscriber,
+    transcribe_batch,
+)
 from autocurricula.core.resilience import (
     DeadLetterStore,
     SchemaRepairAgent,
@@ -86,6 +91,8 @@ def build_grade_step(
     dead_letter_max_attempts: int = 3,
     armor_detector: InjectionDetector | None = None,
     armor_enabled: bool | None = None,
+    transcriber: PageTranscriber | None = None,
+    match_threshold: float = DEFAULT_MATCH_THRESHOLD,
 ) -> StageCallable:
     async def run(context: JobContext) -> JobContext:
         outputs = context.fetch_outputs
@@ -94,6 +101,11 @@ def build_grade_step(
         )
         recorder: Recorder = context.recorder
         grade_level = outputs.batch.grade_level
+        transcripts = (
+            None
+            if transcriber is None
+            else await transcribe_batch(transcriber, outputs.batch, recorder)
+        )
         guard = build_grade_guard(
             job_id=context.job_id,
             evaluator=bind_feedback_band(grading_evaluator, grade_level),
@@ -109,6 +121,8 @@ def build_grade_step(
             batch=outputs.batch,
             armor_detector=armor_detector,
             armor_enabled=armor_enabled,
+            transcripts=transcripts,
+            match_threshold=match_threshold,
         )
 
         outcomes = await asyncio.gather(

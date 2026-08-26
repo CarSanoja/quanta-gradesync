@@ -21,6 +21,7 @@ PROMPT_PROPOSER_ID = "prompt-proposer"
 CALIBRATION_EVALUATOR_ID = "calibration-evaluator"
 META_OPTIMIZER_GRADING_ID = "meta-optimizer-grading"
 META_OPTIMIZER_AUDIT_ID = "meta-optimizer-audit"
+EVIDENCE_TRANSCRIBER_ID = "evidence-transcriber"
 
 AGENT_DECLARATIONS: tuple[AgentDeclaration, ...] = (
     AgentDeclaration(
@@ -151,6 +152,19 @@ AGENT_DECLARATIONS: tuple[AgentDeclaration, ...] = (
         stages=(STAGE_OPTIMIZE,),
         capabilities=(Capability.FIRESTORE_READ, Capability.FIRESTORE_WRITE),
         prompt_variant_id="auditor-v1",
+    ),
+    AgentDeclaration(
+        agent_id=EVIDENCE_TRANSCRIBER_ID,
+        fleet_index=12,
+        display_name="Evidence transcriber",
+        role=(
+            "Second independent model reading of every scanned page, so the "
+            "evidence the grader cites is verified against what the student "
+            "actually wrote instead of going unchecked in production"
+        ),
+        stages=(STAGE_GRADE,),
+        capabilities=(Capability.LLM_INVOKE,),
+        model_setting=FLASH,
     ),
 )
 

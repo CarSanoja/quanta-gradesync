@@ -13,7 +13,12 @@ from autocurricula.core.fleet import (
     ORCHESTRATOR_PRINCIPAL,
     authorize_firestore_write,
 )
-from autocurricula.core.harness import BatchAnomalyBreaker, CapabilityLedger, capability_scope
+from autocurricula.core.harness import (
+    DEFAULT_MATCH_THRESHOLD,
+    BatchAnomalyBreaker,
+    CapabilityLedger,
+    capability_scope,
+)
 from autocurricula.core.memory.manager import MemoryManager
 from autocurricula.core.memory.session_memory import SessionMemory, SessionState, StageStatus
 from autocurricula.core.orchestration.catalog import JobCatalog, build_job_catalog
@@ -26,6 +31,7 @@ from autocurricula.core.orchestration.job_state import (
 )
 from autocurricula.core.orchestration.stage_execution import execute_stage
 from autocurricula.core.orchestration.stages_outcome import TermResolver, default_term
+from autocurricula.core.orchestration.transcription_stage import PageTranscriber
 from autocurricula.core.orchestration.verifier import DEFAULT_VERIFY_MAX_ITERATIONS
 from autocurricula.core.resilience import DeadLetterStore, SchemaRepairAgent
 from autocurricula.core.review import DEFAULT_CONFIDENCE_THRESHOLD, ReviewStore, build_review_store
@@ -69,6 +75,8 @@ class JobRunner:
         dead_letter_max_attempts: int = 3,
         audit_logger: AuditLogger | None = None,
         live_sink: LiveSink | None = None,
+        transcriber: PageTranscriber | None = None,
+        match_threshold: float = DEFAULT_MATCH_THRESHOLD,
     ) -> None:
         self._memory_manager = memory_manager
         self._checkpoint_store = checkpoint_store
@@ -101,6 +109,8 @@ class JobRunner:
             repair_agent=repair_agent,
             dead_letter=dead_letter,
             dead_letter_max_attempts=dead_letter_max_attempts,
+            transcriber=transcriber,
+            match_threshold=match_threshold,
         )
         self._audit_logger = audit_logger
         self._live_sink = live_sink

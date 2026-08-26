@@ -5,7 +5,7 @@ from autocurricula.agents.evaluator import GradingEvaluator
 from autocurricula.agents.meta_optimizer import MetaOptimizerAgent
 from autocurricula.agents.risk_detector import RiskDetector
 from autocurricula.core.evolution.prompt_mutator import PromptVariant
-from autocurricula.core.harness import BatchAnomalyBreaker
+from autocurricula.core.harness import DEFAULT_MATCH_THRESHOLD, BatchAnomalyBreaker
 from autocurricula.core.memory.manager import MemoryManager
 from autocurricula.core.orchestration.catalog import JobCatalog
 from autocurricula.core.orchestration.context import (
@@ -31,6 +31,7 @@ from autocurricula.core.orchestration.stages_outcome import (
     default_term,
 )
 from autocurricula.core.orchestration.stages_sync import build_sync_step
+from autocurricula.core.orchestration.transcription_stage import PageTranscriber
 from autocurricula.core.orchestration.verifier import (
     DEFAULT_VERIFY_MAX_ITERATIONS,
     build_verify_step,
@@ -66,6 +67,8 @@ def build_pipeline(
     repair_agent: SchemaRepairAgent | None = None,
     dead_letter: DeadLetterStore | None = None,
     dead_letter_max_attempts: int = 3,
+    transcriber: PageTranscriber | None = None,
+    match_threshold: float = DEFAULT_MATCH_THRESHOLD,
 ) -> list[StageStep]:
     grade_step: StageCallable = build_grade_step(
         memory_manager,
@@ -78,6 +81,8 @@ def build_pipeline(
         repair_agent=repair_agent,
         dead_letter=dead_letter,
         dead_letter_max_attempts=dead_letter_max_attempts,
+        transcriber=transcriber,
+        match_threshold=match_threshold,
     )
     return [
         StageStep(name=STAGE_FETCH, callable=build_fetch_step(catalog, fetcher)),
