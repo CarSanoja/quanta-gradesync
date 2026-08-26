@@ -23,6 +23,7 @@ INK_COLORS = {
     "dark_blue": (22, 33, 78),
     "graphite": (58, 58, 62),
     "black": (30, 32, 38),
+    "pale_pencil": (126, 128, 134),
 }
 
 
@@ -38,8 +39,16 @@ def load_font(candidates: tuple[str, ...], size: int) -> ImageFont.FreeTypeFont:
     return ImageFont.load_default(size=size)
 
 
-def handwriting_font(size: int) -> ImageFont.FreeTypeFont:
-    return load_font(HANDWRITING_FONT_CANDIDATES, size)
+def handwriting_font(size: int, path: str | None = None) -> ImageFont.FreeTypeFont:
+    if path is None:
+        return load_font(HANDWRITING_FONT_CANDIDATES, size)
+    return load_font((path, *HANDWRITING_FONT_CANDIDATES), size)
+
+
+def available_handwriting_fonts() -> tuple[str, ...]:
+    return tuple(
+        candidate for candidate in HANDWRITING_FONT_CANDIDATES if Path(candidate).is_file()
+    )
 
 
 def print_font(size: int) -> ImageFont.FreeTypeFont:
@@ -117,10 +126,11 @@ def write_paragraph(
     line_height: int,
     color: tuple[int, int, int] = INK_COLORS["blue"],
     jitter: float = 2.4,
+    tilt: float = 0.9,
 ) -> int:
     cursor_y = origin[1]
     for index, line in enumerate(wrap_text(text, font, max_width)):
         drift = rng.randint(-4, 4) if index else 0
-        write_line(canvas, line, (origin[0] + drift, cursor_y), font, rng, color, jitter)
+        write_line(canvas, line, (origin[0] + drift, cursor_y), font, rng, color, jitter, tilt)
         cursor_y += line_height + rng.randint(-2, 3)
     return cursor_y

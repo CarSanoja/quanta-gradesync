@@ -6,23 +6,32 @@ from random import Random
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from sample_batch.catalog import (
-    BATCH_PREFIX,
-    JOB_ID,
-    LOT_CODE,
-    build_catalog_defaults,
-    build_ground_truth,
-    build_push_body,
-)
+from sample_batch.catalog import build_catalog_defaults, build_ground_truth, build_push_body
+from sample_batch.contact_sheet import build_contact_sheet
+from sample_batch.demo_notes import build_demo_notes
+from sample_batch.lots import LotSpec
 from sample_batch.pages import compose_page
-from sample_batch.roster import PROFILES, ground_truth_entries
+from sample_batch.profiles import StudentProfile
+from sample_batch.rosters import (
+    ROSTER_DEMO,
+    ROSTER_NAMES,
+    ROSTER_REFERENCE,
+    ground_truth_for,
+    lot_for,
+    profiles_for,
+)
 
-DEFAULT_TARGET = Path(".local_data/sample_batch")
+DEFAULT_TARGETS = {
+    ROSTER_REFERENCE: Path(".local_data/sample_batch"),
+    ROSTER_DEMO: Path("docs/video/demo-batch"),
+}
 DEFAULT_SEED = 20260819
 DEFAULT_QUALITY = 84
 CATALOG_DEFAULTS_NAME = "catalog-defaults.json"
 GROUND_TRUTH_NAME = "ground_truth.json"
 PUSH_EVENT_NAME = "push-event.json"
+DEMO_NOTES_NAME = "demo-notes.md"
+CONTACT_SHEET_NAME = "contact-sheet.png"
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -35,10 +44,23 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         )
     )
     parser.add_argument(
+        "--roster",
+        choices=ROSTER_NAMES,
+        default=ROSTER_REFERENCE,
+        help=(
+            "which class to fabricate: 'reference' is the 16-page acceptance fixture, "
+            f"'demo' is the 44-page video class (default: {ROSTER_REFERENCE})"
+        ),
+    )
+    parser.add_argument(
         "--target",
         type=Path,
-        default=DEFAULT_TARGET,
-        help=f"bucket root directory to populate (default: {DEFAULT_TARGET})",
+        default=None,
+        help=(
+            "bucket root directory to populate "
+            f"(default: {DEFAULT_TARGETS[ROSTER_REFERENCE]} for reference, "
+            f"{DEFAULT_TARGETS[ROSTER_DEMO]} for demo)"
+        ),
     )
     parser.add_argument(
         "--seed",
@@ -54,7 +76,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         metavar="40-100",
         help=f"JPEG quality of the generated pages (default: {DEFAULT_QUALITY})",
     )
-    return parser.parse_args(argv)
+    arguments = parser.parse_args(argv)
+    if arguments.target is None:
+        arguments.target = DEFAULT_TARGETS[arguments.roster]
+    return arguments
 
 
 def write_json(path: Path, payload: dict) -> Path:
@@ -63,60 +88,99 @@ def write_json(path: Path, payload: dict) -> Path:
     return path
 
 
-def render_pages(batch_dir: Path, seed: int, quality: int) -> list[Path]:
+def render_pages(
+    batch_dir: Path,
+    profiles: tuple[StudentProfile, ...],
+    lot: LotSpec,
+    seed: int,
+    quality: int,
+) -> list[Path]:
     batch_dir.mkdir(parents=True, exist_ok=True)
     written: list[Path] = []
-    for profile in PROFILES:
+    for profile in profiles:
         rng = Random(f"{seed}:{profile.student_id}")
-        page = compose_page(profile, rng)
+        page = compose_page(profile, rng, lot)
         destination = batch_dir / f"{profile.student_id}.jpg"
         page.save(destination, format="JPEG", quality=quality, optimize=True)
         written.append(destination)
     return written
 
 
-def generate(target: Path, seed: int, quality: int) -> dict[str, object]:
+def legibility_table(pages: list[Path]) -> dict[str, float]:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+    from autocurricula.core.armor.legibility import legibility_score
+
+    scores: dict[str, float] = {}
+    for page in pages:
+        score = legibility_score(page)
+        if score is not None:
+            scores[page.stem] = score
+    return scores
+
+
+def generate(roster: str, target: Path, seed: int, quality: int) -> dict[str, object]:
     root = target.resolve()
-    pages = render_pages(root / BATCH_PREFIX, seed, quality)
-    catalog_path = write_json(root / CATALOG_DEFAULTS_NAME, build_catalog_defaults())
-    ground_truth_path = write_json(
-        root / GROUND_TRUTH_NAME, build_ground_truth(ground_truth_entries())
-    )
-    push_event_path = write_json(root / PUSH_EVENT_NAME, build_push_body(root.name))
-    return {
+    profiles = profiles_for(roster)
+    lot = lot_for(roster)
+    pages = render_pages(root / lot.batch_prefix, profiles, lot, seed, quality)
+    result: dict[str, object] = {
+        "roster": roster,
+        "lot": lot,
         "root": root,
+        "profiles": profiles,
         "pages": pages,
-        "catalog": catalog_path,
-        "ground_truth": ground_truth_path,
-        "push_event": push_event_path,
+        "catalog": write_json(root / CATALOG_DEFAULTS_NAME, build_catalog_defaults()),
+        "push_event": write_json(root / PUSH_EVENT_NAME, build_push_body(root.name, lot)),
     }
+    entries = ground_truth_for(roster)
+    if entries:
+        result["ground_truth"] = write_json(
+            root / GROUND_TRUTH_NAME, build_ground_truth(entries, lot)
+        )
+    if roster == ROSTER_DEMO:
+        scores = legibility_table(pages)
+        result["scores"] = scores
+        notes = root / DEMO_NOTES_NAME
+        notes.write_text(build_demo_notes(profiles, lot, scores), encoding="utf-8")
+        result["notes"] = notes
+        sheet = root / CONTACT_SHEET_NAME
+        build_contact_sheet(pages).save(sheet, format="PNG", optimize=True)
+        result["contact_sheet"] = sheet
+    return result
 
 
 def report(result: dict[str, object]) -> None:
-    root = result["root"]
+    lot: LotSpec = result["lot"]
     pages = result["pages"]
-    print(f"batch root      {root}")
-    print(f"lot code        {LOT_CODE}")
-    print(f"job id          {JOB_ID}")
-    print(f"exam pages      {len(pages)} JPEG files under {BATCH_PREFIX}")
-    for profile in PROFILES:
-        print(f"  - {profile.student_id:<14} {profile.quality}")
+    scores: dict[str, float] = result.get("scores", {})
+    print(f"roster          {result['roster']}")
+    print(f"batch root      {result['root']}")
+    print(f"lot code        {lot.lot_code}")
+    print(f"job id          {lot.job_id}")
+    print(f"exam pages      {len(pages)} JPEG files under {lot.batch_prefix}")
+    for profile in result["profiles"]:
+        score = f"{scores[profile.student_id]:.3f}" if profile.student_id in scores else "-"
+        print(f"  - {profile.student_id:<22} {profile.quality:<26} {score:>6}  {profile.expected}")
     print(f"catalog         {result['catalog'].name}")
-    print(f"ground truth    {result['ground_truth'].name} ({len(ground_truth_entries())} students)")
+    if "ground_truth" in result:
+        print(f"ground truth    {result['ground_truth'].name}")
+    if "notes" in result:
+        print(f"demo notes      {result['notes'].name}")
+        print(f"contact sheet   {result['contact_sheet'].name}")
     print(f"push event      {result['push_event'].name}")
     print()
     print("Ingest locally with:")
-    print(f"  export GRADESYNC_GCS_LOCAL_STAGING_DIR={root.parent}")
+    print(f"  export GRADESYNC_GCS_LOCAL_STAGING_DIR={result['root'].parent}")
     print(
         "  curl -sS -X POST http://localhost:8080/webhooks/pubsub "
         '-H "Authorization: Bearer $GRADESYNC_PUBSUB_PUSH_TOKEN" '
-        f'-H "Content-Type: application/json" --data @{root / PUSH_EVENT_NAME}'
+        f'-H "Content-Type: application/json" --data @{result["root"] / PUSH_EVENT_NAME}'
     )
 
 
 def main(argv: list[str] | None = None) -> int:
     arguments = parse_args(argv)
-    report(generate(arguments.target, arguments.seed, arguments.quality))
+    report(generate(arguments.roster, arguments.target, arguments.seed, arguments.quality))
     return 0
 
 

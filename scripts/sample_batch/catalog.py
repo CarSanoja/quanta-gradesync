@@ -2,17 +2,20 @@ import base64
 import json
 from typing import Any
 
-SUBJECT = "Matematicas"
-GRADE_LEVEL = "10"
-CLASS_ID = "10A"
-ASSESSMENT = "Parcial1"
-YEAR = 2026
-LOT_CODE = f"{YEAR}_{SUBJECT}_{CLASS_ID}_{ASSESSMENT}"
-BATCH_PREFIX = f"batches/{LOT_CODE}"
+from sample_batch.lots import (
+    GRADE_LEVEL,
+    REFERENCE_LOT,
+    SUBJECT,
+    LotSpec,
+)
+
+CLASS_ID = REFERENCE_LOT.class_id
+LOT_CODE = REFERENCE_LOT.lot_code
+BATCH_PREFIX = REFERENCE_LOT.batch_prefix
 RUBRIC_ID = "mat-10a-parcial1"
-JOB_ID = "sample-2026-matematicas-10a-parcial1"
-TRIGGERED_AT = "2026-08-19T13:00:00+00:00"
-TRACE_ID = "5a1c9f24b7e30d18"
+JOB_ID = REFERENCE_LOT.job_id
+TRIGGERED_AT = REFERENCE_LOT.triggered_at
+TRACE_ID = REFERENCE_LOT.trace_id
 
 CRITERION_FACTORING = "factoring"
 CRITERION_GRAPH = "graph-reading"
@@ -137,32 +140,34 @@ def build_catalog_defaults() -> dict[str, Any]:
     }
 
 
-def build_job_event(bucket: str) -> dict[str, Any]:
+def build_job_event(bucket: str, lot: LotSpec = REFERENCE_LOT) -> dict[str, Any]:
     return {
-        "job_id": JOB_ID,
+        "job_id": lot.job_id,
         "bucket": bucket,
-        "exam_batch_prefix": BATCH_PREFIX,
-        "class_id": CLASS_ID,
+        "exam_batch_prefix": lot.batch_prefix,
+        "class_id": lot.class_id,
         "subject": SUBJECT,
-        "triggered_at": TRIGGERED_AT,
-        "trace_id": TRACE_ID,
+        "triggered_at": lot.triggered_at,
+        "trace_id": lot.trace_id,
     }
 
 
-def build_push_body(bucket: str) -> dict[str, Any]:
-    payload = json.dumps(build_job_event(bucket), sort_keys=True)
+def build_push_body(bucket: str, lot: LotSpec = REFERENCE_LOT) -> dict[str, Any]:
+    payload = json.dumps(build_job_event(bucket, lot), sort_keys=True)
     encoded = base64.b64encode(payload.encode("utf-8")).decode("ascii")
     return {
         "message": {
-            "messageId": "sample-batch-message-1",
+            "messageId": lot.message_id,
             "data": encoded,
-            "attributes": {"lot_code": LOT_CODE},
+            "attributes": {"lot_code": lot.lot_code},
         },
         "subscription": "projects/quanta-gradesync/subscriptions/exam-batch-ingest-push",
     }
 
 
-def build_ground_truth(entries: list[dict[str, Any]]) -> dict[str, Any]:
+def build_ground_truth(
+    entries: list[dict[str, Any]], lot: LotSpec = REFERENCE_LOT
+) -> dict[str, Any]:
     total_ceiling = sum(MAX_SCORES.values())
     students = []
     for entry in entries:
@@ -180,11 +185,11 @@ def build_ground_truth(entries: list[dict[str, Any]]) -> dict[str, Any]:
             }
         )
     return {
-        "job_id": JOB_ID,
-        "lot_code": LOT_CODE,
+        "job_id": lot.job_id,
+        "lot_code": lot.lot_code,
         "rubric_id": RUBRIC_ID,
         "subject": SUBJECT,
-        "class_id": CLASS_ID,
+        "class_id": lot.class_id,
         "max_scores": MAX_SCORES,
         "students": students,
     }
