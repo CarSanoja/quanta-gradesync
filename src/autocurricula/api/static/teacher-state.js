@@ -7,7 +7,7 @@ export const state = {
   screen: "",
   following: false,
   lotCode: new URLSearchParams(window.location.search).get("batch") || "",
-  queries: { judgement: "", batch_hold: "", grades: "" },
+  queries: { judgement: "", batch_hold: "", grades: "", open_grade: "" },
   review: { group: "judgement", index: 0, editing: false, marks: null, imageUrl: null, painted: "" },
   open: { student: false, teacher: false },
   uploadDismissed: false,

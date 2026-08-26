@@ -33,6 +33,7 @@ TEACHER_MODULES = (
     "teacher-dialogs.js",
     "teacher-filenames.js",
     "teacher-format.js",
+    "teacher-grades.js",
     "teacher-held.js",
     "teacher-review.js",
     "teacher-screens.js",

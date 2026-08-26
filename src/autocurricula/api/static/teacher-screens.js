@@ -1,4 +1,5 @@
 import { el } from "/console/assets/render.js";
+import { gradeRow, openGradeId, openGradeKey } from "/teacher/assets/teacher-grades.js";
 import { pitchLine, valueBand } from "/teacher/assets/teacher-value.js";
 import {
   examCount, fmt, plural, prettyName, prettySubject, timeAgo, whenSent,
@@ -162,30 +163,6 @@ export function renderSettled(host, ctx) {
   );
 }
 
-function gradeRow(record) {
-  const max = record.percentage ? (100 * record.total_score) / record.percentage : null;
-  const detail = [prettySubject(record.subject), prettyName(record.term || "")]
-    .filter(Boolean)
-    .concat(`in the gradebook ${timeAgo(record.written_at)}`)
-    .join(" · ");
-  const score = record.total_score === null
-    ? "graded"
-    : `${fmt(record.total_score)}${max ? ` of ${fmt(max)}` : ""}`
-      + `${record.percentage === null ? "" : ` · ${Math.round(record.percentage)}%`}`;
-  return el("li", {}, [
-    el("div", { class: "grade-who" }, [
-      el("p", { class: "grade-student", text: prettyName(record.student_id) }),
-      el("p", { class: "grade-detail", text: detail }),
-    ]),
-    el("div", { class: "grade-figure" }, [
-      el("p", { class: "grade-score", text: score }),
-      record.competency_codes.length
-        ? el("p", { class: "grade-cite", text: record.competency_codes.join(" · ") })
-        : null,
-    ]),
-  ]);
-}
-
 export function renderGrades(host, ctx) {
   const query = String(ctx.queries.grades || "").trim().toLowerCase();
   const found = ctx.records.filter((record) =>
@@ -213,7 +190,9 @@ export function renderGrades(host, ctx) {
     }));
     return;
   }
-  host.append(el("ul", { class: "grades" }, found.map(gradeRow)));
+  const openId = openGradeId(ctx.queries);
+  host.append(el("ul", { class: "grades" }, found.map((record) =>
+    gradeRow(record, openId, (next) => ctx.setQuery(openGradeKey(), next)))));
   host.append(el("p", {
     class: "grades-foot",
     text: query
