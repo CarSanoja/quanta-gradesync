@@ -26,8 +26,32 @@ class PageTextProvider(Protocol):
     def page_text(self, submission_id: str, page: int) -> str | None: ...
 
 
+SYMBOL_FOLDS = {
+    "×": "*",
+    "·": "*",
+    "∙": "*",
+    "÷": "/",
+    "−": "-",
+    "–": "-",
+    "—": "-",
+    "²": "^2",
+    "³": "^3",
+    "\u2019": "'",
+    "\u201c": '"',
+    "\u201d": '"',
+}
+_DECIMAL_COMMA = re.compile(r"(?<=\d),(?=\d)")
+
+
+def fold_symbols(text: str) -> str:
+    folded = text
+    for symbol, replacement in SYMBOL_FOLDS.items():
+        folded = folded.replace(symbol, replacement)
+    return _DECIMAL_COMMA.sub(".", folded)
+
+
 def compact_text(text: str) -> str:
-    return _WHITESPACE.sub("", normalize_text(text))
+    return _WHITESPACE.sub("", fold_symbols(normalize_text(text)))
 
 
 def longest_common_coverage(quote: str, page_text: str) -> float:

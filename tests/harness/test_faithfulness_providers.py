@@ -195,3 +195,13 @@ def test_whitespace_around_operators_never_counts_as_a_hallucination() -> None:
         span_status("Final answer: 63 km / h", "the bus took 63 minutes", match_threshold=0.75)
         == VERIFICATION_FAILED
     )
+
+
+def test_transcriber_symbol_variants_never_count_as_hallucinations() -> None:
+    page = "v = 84 × 3/4 = 61 km/h\n1 h 20 min = 1 + 20/60 = 1,333 h\nx² + 5x + 6"
+    assert (
+        span_status("v = 84 * 3/4 = 61 km/h", page, match_threshold=0.75) == VERIFICATION_VERIFIED
+    )
+    assert span_status("1 h 20 min = 1 + 20/60 = 1.333 h", page) == VERIFICATION_VERIFIED
+    assert span_status("x^2 + 5x + 6", page) == VERIFICATION_VERIFIED
+    assert span_status("v = 84 * 3/4 = 63 km/h", page, match_threshold=0.9) == VERIFICATION_FAILED
