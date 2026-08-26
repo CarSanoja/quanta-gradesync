@@ -38,6 +38,7 @@ TEACHER_MODULES = (
     "teacher-screens.js",
     "teacher-state.js",
     "teacher-upload.js",
+    "teacher-value.js",
     "teacher-uploading.js",
 )
 

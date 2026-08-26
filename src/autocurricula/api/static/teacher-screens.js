@@ -1,4 +1,5 @@
 import { el } from "/console/assets/render.js";
+import { pitchLine, valueBand } from "/teacher/assets/teacher-value.js";
 import {
   examCount, fmt, plural, prettyName, prettySubject, timeAgo, whenSent,
 } from "/teacher/assets/teacher-format.js";
@@ -47,6 +48,7 @@ export function renderHome(host, ctx) {
         : "Nothing is waiting for your decision. Send the scans of an exam and grading starts on "
           + "its own — when something needs you, it will be waiting here.",
     }),
+    batch ? valueBand(batch) : pitchLine(),
     dropzone(ctx, "Drop your scans here",
       "Photos or PDFs, as many as you like. You never have to rename a file on your computer — "
       + "you can type each student's name on this page.",
