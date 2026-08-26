@@ -10,6 +10,26 @@ const SCALAR_FIELDS = [
   ["Parent span", "parent_span_id"],
 ];
 
+const ATTRIBUTE_LABELS = {
+  "gen_ai.usage.tokens": "Tokens used",
+  "gen_ai.usage.input_tokens": "Input tokens",
+  "gen_ai.usage.output_tokens": "Output tokens",
+  "gen_ai.request.model": "Model",
+  "payload.truncated": "Payload truncated",
+  "armor.injection_detected": "Prompt injection found",
+  "armor.severity": "Injection severity",
+  "evidence.span_verification": "Evidence check",
+  "evidence.spans_verified": "Evidence spans verified",
+  "agent.principal": "Runs as",
+  "agent.id": "Agent",
+  "agent.stage": "Stage",
+  "agent.capability": "Capability",
+  "permission.reason": "Denial reason",
+  "submission.outcome": "Outcome",
+  "error.type": "Error type",
+  student_id: "Student",
+};
+
 function detailCell(label, value) {
   return el("div", {}, [
     el("span", { class: "list-sub", text: label }),
@@ -33,7 +53,7 @@ function attributeGrid(attributes) {
   return el(
     "div",
     { class: "detail-grid" },
-    entries.map(([key, value]) => detailCell(key, String(value)))
+    entries.map(([key, value]) => detailCell(ATTRIBUTE_LABELS[key] || key, String(value)))
   );
 }
 
@@ -126,7 +146,7 @@ export function renderEventDetail(target, event, meta) {
         href: traceUrl,
         target: "_blank",
         rel: "noreferrer",
-        text: "Open this trace in Cloud Trace",
+        text: "Open the whole job in Cloud Trace",
       })
     );
   }

@@ -15,7 +15,10 @@ LIVE_SCRIPTS = (
     "live-detail.js",
     "live-chain.js",
     "live-chain-groups.js",
+    "live-chain-steps.js",
     "live-kinds.js",
+    "live-focus.js",
+    "live-students.js",
 )
 LIVE_STYLES = ("live.css",)
 LIVE_ASSETS = LIVE_SCRIPTS + LIVE_STYLES

@@ -1,70 +1,15 @@
 import { clear, el, emptyState, formatDateTime, metaRow, pill } from "./render.js";
+import { formatMs, renderSpanTree } from "./trace-spans.js";
 
 const POLL_INTERVAL_MS = 2500;
 const TERMINAL_STAGES = new Set(["completed", "failed"]);
 
-function formatMs(value) {
-  if (value === null || value === undefined) {
-    return "—";
-  }
-  return value >= 1000 ? `${(value / 1000).toFixed(2)} s` : `${Math.round(value)} ms`;
-}
-
-function tokensOf(span) {
-  const total = span.attributes["gen_ai.usage.tokens"];
-  if (typeof total === "number") {
-    return `${total} tok`;
-  }
-  const input = span.attributes["gen_ai.usage.input_tokens"];
-  const output = span.attributes["gen_ai.usage.output_tokens"];
-  if (typeof input === "number" || typeof output === "number") {
-    return `${input || 0}+${output || 0} tok`;
-  }
-  return "";
-}
-
-function spanRow(span, depth, maxDuration) {
-  const width = maxDuration > 0 ? Math.max(1.5, (span.duration_ms / maxDuration) * 100) : 1.5;
-  const failed = span.status === "error";
-  return el("div", { class: "span-row" }, [
-    el("div", { class: "span-name", style: `padding-left:${depth * 16}px` }, [
-      el("span", { class: "mono", text: span.name }),
-      span.stage ? pill(span.stage, failed ? "failed" : "succeeded") : null,
-      failed ? el("span", { class: "span-error", text: "error" }) : null,
-    ]),
-    el("div", { class: "span-bar-track" },
-      el("div", { class: `span-bar${failed ? " is-error" : ""}`, style: `width:${width}%` })),
-    el("span", { class: "span-duration", text: formatMs(span.duration_ms) }),
-    el("span", { class: "span-tokens", text: tokensOf(span) }),
-  ]);
-}
-
-export function renderSpanTree(target, spans) {
-  const children = new Map();
-  const ids = new Set(spans.map((span) => span.span_id));
-  spans.forEach((span) => {
-    const parent = span.parent_id && ids.has(span.parent_id) ? span.parent_id : null;
-    if (!children.has(parent)) {
-      children.set(parent, []);
-    }
-    children.get(parent).push(span);
-  });
-  const maxDuration = Math.max(0, ...spans.map((span) => span.duration_ms));
-  const tree = el("div", { class: "span-tree" });
-  const walk = (parentId, depth) => {
-    (children.get(parentId) || []).forEach((span) => {
-      tree.append(spanRow(span, depth, maxDuration));
-      walk(span.span_id, depth + 1);
-    });
-  };
-  walk(null, 0);
-  target.append(tree);
-}
+export { renderSpanTree };
 
 function metricsTable(metrics) {
   const head = el("div", { class: "span-row" }, [
     el("span", { class: "upload-note", text: "stage" }),
-    el("span", { class: "upload-note", text: "calls" }),
+    el("span", { class: "upload-note", text: "spans" }),
     el("span", { class: "span-duration upload-note", text: "p95" }),
     el("span", { class: "span-tokens upload-note", text: "tokens" }),
   ]);
@@ -101,7 +46,9 @@ export function renderTraceDetail(target, trace) {
   ]));
   target.append(metaRow([
     el("span", { class: "mono", text: `trace ${trace.trace_id}` }),
-    trace.recorded_at ? `audited ${formatDateTime(trace.recorded_at)}` : "audit pending",
+    trace.recorded_at
+      ? `audit record written ${formatDateTime(trace.recorded_at)}`
+      : "audit record pending",
   ]));
   if (trace.error) {
     target.append(el("ul", { class: "reasons" }, el("li", { class: "reason", text: trace.error })));
@@ -109,17 +56,17 @@ export function renderTraceDetail(target, trace) {
   target.append(el("p", { class: "section-title", text: "Pipeline stages" }));
   target.append(el("div", { class: "stage-track" },
     trace.stages.map((stage) => pill(`${stage.name} · ${stage.status}`, stage.status))));
-  target.append(el("p", { class: "section-title", text: "Span tree" }));
+  target.append(el("p", { class: "section-title", text: "What ran, and how long it took" }));
   if (trace.spans.length) {
     renderSpanTree(target, trace.spans);
   } else {
     target.append(emptyState("No spans persisted yet", "The audit event lands when the job finishes a run."));
   }
   if (trace.metrics) {
-    target.append(el("p", { class: "section-title", text: "Metrics snapshot" }));
+    target.append(el("p", { class: "section-title", text: "Per-stage totals" }));
     target.append(metricsTable(trace.metrics));
   }
-  target.append(el("p", { class: "section-title", text: "Audit tail" }));
+  target.append(el("p", { class: "section-title", text: "Audit records written" }));
   if (trace.events.length) {
     target.append(auditTail(trace.events));
   } else {

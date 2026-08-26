@@ -4,6 +4,13 @@ function shortSha(value) {
   return value ? `${value.slice(0, 12)}…` : "—";
 }
 
+function navigate(name, argument) {
+  const go = window[name];
+  if (typeof go === "function") {
+    go(argument);
+  }
+}
+
 function scopeCell(capabilities) {
   if (!capabilities.length) {
     return el("span", { class: "list-sub", text: "no external capability" });
@@ -11,7 +18,7 @@ function scopeCell(capabilities) {
   return el(
     "span",
     { class: "stage-track" },
-    capabilities.map((capability) => pill(capability, "pending"))
+    capabilities.map((capability) => pill(capability, "info"))
   );
 }
 
@@ -31,7 +38,13 @@ function agentRow(agent) {
   return el("tr", {}, [
     el("td", { class: "numeric", text: String(agent.fleet_index) }),
     el("td", {}, [
-      el("div", { text: agent.display_name }),
+      el("button", {
+        class: "ghost agent-link",
+        type: "button",
+        text: agent.display_name,
+        onclick: () => navigate("goToMissionControl", { agentId: agent.agent_id }),
+      }),
+      el("div", { class: "list-sub", text: agent.role }),
       el("div", { class: "mono list-sub", text: agent.agent_id }),
     ]),
     el("td", {}, [
@@ -87,7 +100,7 @@ export function renderFleet(summaryTarget, agentsTarget, report) {
         "div",
         { class: "list" },
         infrastructure.map((principal) =>
-          el("div", { class: "list-item" }, [
+          el("div", { class: "list-item is-static" }, [
             el("span", { class: "list-title" }, [
               el("span", { class: "mono", text: principal.principal_id }),
               pill(

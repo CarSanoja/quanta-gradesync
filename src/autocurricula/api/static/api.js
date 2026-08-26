@@ -93,6 +93,7 @@ export const endpoints = {
   approve: (reviewId) => `/review/${encodeURIComponent(reviewId)}/approve`,
   dismiss: (reviewId) => `/review/${encodeURIComponent(reviewId)}/dismiss`,
   bulkApprove: () => "/review/bulk-approve",
+  teacherSummary: () => "/teacher/summary",
   pageImage: (reviewId, index) =>
     `/review/${encodeURIComponent(reviewId)}/page-image?index=${index}`,
   optimizer: () => "/optimizer/report",

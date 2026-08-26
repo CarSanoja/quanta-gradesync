@@ -47,6 +47,15 @@ export function verificationOf(attributes) {
   return String((attributes || {})["evidence.span_verification"] || "unchecked");
 }
 
+const VERIFICATION_LABELS = {
+  verified: "evidence verified",
+  failed: "evidence check failed",
+};
+
+export function verificationLabel(attributes) {
+  return VERIFICATION_LABELS[verificationOf(attributes)] || "evidence not verified yet";
+}
+
 export function clockTime(value) {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {

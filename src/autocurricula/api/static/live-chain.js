@@ -1,44 +1,15 @@
-import { clear, el, emptyState, pill } from "./render.js";
-import { classifyEvent, injectionDetected, verificationOf } from "./live-kinds.js";
+import { clear, el, emptyState, formatPercent, pill } from "./render.js";
+import { classifyEvent } from "./live-kinds.js";
 import { groupByStudent } from "./live-chain-groups.js";
+import {
+  armorStep,
+  denialSteps,
+  faithfulnessStep,
+  gradedStep,
+  llmCalls,
+} from "./live-chain-steps.js";
 
-const CONFIDENCE_KEYS = ["grading.confidence", "submission.confidence", "confidence"];
 const OPEN_SEQ = Number.MAX_SAFE_INTEGER;
-
-function callText(count) {
-  return `${count} llm call${count === 1 ? "" : "s"}`;
-}
-
-function llmCalls(events) {
-  return events.filter((event) => event.kind === "llm_call");
-}
-
-function tokensOf(calls) {
-  return calls.reduce((total, event) => {
-    const llm = event.llm || {};
-    const parts = (Number(llm.input_tokens) || 0) + (Number(llm.output_tokens) || 0);
-    return total + (Number(llm.total_tokens) || parts);
-  }, 0);
-}
-
-function fallbackTokens(attributes) {
-  const inbound = Number(attributes["gen_ai.usage.input_tokens"]) || 0;
-  const outbound = Number(attributes["gen_ai.usage.output_tokens"]) || 0;
-  return inbound + outbound;
-}
-
-function confidenceOf(attributes) {
-  for (const key of CONFIDENCE_KEYS) {
-    const value = attributes[key];
-    if (typeof value === "number") {
-      return value;
-    }
-    if (typeof value === "string" && value !== "" && !Number.isNaN(Number(value))) {
-      return Number(value);
-    }
-  }
-  return null;
-}
 
 function segment(events, kind) {
   const matching = events.filter((event) => classifyEvent(event) === kind);
@@ -54,74 +25,40 @@ function segment(events, kind) {
   return { start, end, calls, present: Boolean(anchor), source: end || start };
 }
 
-function armorStep(armor) {
-  const attributes = (armor.source && armor.source.attributes) || {};
-  const severity = String(attributes["armor.severity"] || "none");
-  const calls = callText(armor.calls.length);
-  if (!armor.end) {
-    return { label: "Armor screen", detail: `screening · ${calls}`, tone: "warn" };
+function stepNode(step, onSelect) {
+  return el(
+    "button",
+    {
+      type: "button",
+      class: `chain-step is-${step.tone}`,
+      disabled: !step.seq,
+      onclick: () => {
+        if (onSelect && step.seq) {
+          onSelect(step.seq);
+        }
+      },
+    },
+    [
+      el("span", { class: "mono", text: step.label }),
+      el("span", { class: "list-sub", text: step.detail }),
+    ]
+  );
+}
+
+function outcomeNodes(summary) {
+  if (!summary) {
+    return [];
   }
-  if (injectionDetected(attributes)) {
-    return {
-      label: "Armor screen",
-      detail: `injection detected · ${severity} · ${calls}`,
-      tone: severity === "high" ? "error" : "warn",
-    };
-  }
-  return { label: "Armor screen", detail: `clean · ${calls}`, tone: "ok" };
+  return [
+    summary.percentage === null ? null : el("span", { text: formatPercent(summary.percentage) }),
+    summary.lowestConfidence === null
+      ? null
+      : el("span", { text: `confidence ${summary.lowestConfidence.toFixed(2)}` }),
+    summary.sisStatus ? pill(summary.sisStatus, summary.sisStatus) : null,
+  ].filter(Boolean);
 }
 
-function gradedStep(events, grading, armor, faith) {
-  const attributes = (grading.source && grading.source.attributes) || {};
-  const calls = llmCalls(events);
-  const own = Math.max(calls.length - armor.calls.length - faith.calls.length, 0);
-  const outcome = String(attributes["submission.outcome"] || "");
-  const failed = outcome === "failed" || (grading.end && grading.end.status === "error");
-  const parts = [grading.end ? outcome || "graded" : "running"];
-  const confidence = confidenceOf(attributes);
-  if (confidence !== null) {
-    parts.push(`confidence ${confidence.toFixed(2)}`);
-  }
-  parts.push(callText(own), `${tokensOf(calls) || fallbackTokens(attributes)} tok`);
-  return {
-    label: "Graded",
-    detail: parts.join(" · "),
-    tone: !grading.end ? "warn" : failed ? "error" : "ok",
-  };
-}
-
-function faithfulnessStep(faith) {
-  const attributes = (faith.source && faith.source.attributes) || {};
-  const status = faith.present ? verificationOf(attributes) : "unchecked";
-  const detail = faith.present ? `${status} · ${callText(faith.calls.length)}` : "unchecked";
-  const tone = status === "verified" ? "ok" : status === "failed" ? "error" : "warn";
-  return { label: "Faithfulness", detail, tone };
-}
-
-function denialSteps(events) {
-  return events
-    .filter((event) => classifyEvent(event) === "permission" && event.kind !== "span_start")
-    .map((event) => {
-      const attributes = event.attributes || {};
-      const capability =
-        attributes["agent.capability"] || attributes["permission.target"] || "capability";
-      const reason = String(attributes["permission.reason"] || "");
-      return {
-        label: "Permission denied",
-        detail: [capability, reason].filter(Boolean).join(" · "),
-        tone: "error",
-      };
-    });
-}
-
-function stepNode(step) {
-  return el("div", { class: `chain-step is-${step.tone}` }, [
-    el("span", { class: "mono", text: step.label }),
-    el("span", { class: "list-sub", text: step.detail }),
-  ]);
-}
-
-function chainCard(student, events) {
+function chainCard(student, events, summary, onSelect) {
   const armor = segment(events, "armor");
   const grading = segment(events, "grading");
   const faith = segment(events, "faithfulness");
@@ -129,15 +66,22 @@ function chainCard(student, events) {
   steps.push(gradedStep(events, grading, armor, faith), faithfulnessStep(faith));
   denialSteps(events).forEach((step) => steps.push(step));
   const failed = steps.some((step) => step.tone === "error");
+  const warned = steps.some((step) => step.tone === "warn");
   const running = !grading.end;
-  const state = failed ? "failed" : running ? "running" : "succeeded";
-  const label = failed ? "attention" : running ? "in flight" : "settled";
+  const settledState = warned ? "quarantined" : "succeeded";
+  const settledLabel = warned ? "settled with warnings" : "settled";
+  const state = failed ? "failed" : running ? "running" : settledState;
+  const label = failed ? "attention" : running ? "in flight" : settledLabel;
   return el("div", { class: "chain-card" }, [
     el("div", { class: "chain-student" }, [
       el("span", { class: "mono", text: student }),
-      pill(label, state),
+      el("div", { class: "chain-outcome" }, outcomeNodes(summary).concat(pill(label, state))),
     ]),
-    el("div", { class: "chain-steps" }, steps.map(stepNode)),
+    el(
+      "div",
+      { class: "chain-steps" },
+      steps.map((step) => stepNode(step, onSelect))
+    ),
     running
       ? el("div", {
           class: "chain-note",
@@ -147,7 +91,7 @@ function chainCard(student, events) {
   ]);
 }
 
-export function renderChains(target, events, meta) {
+export function renderChains(target, events, meta, onSelect) {
   clear(target);
   const groups = groupByStudent(events);
   if (!groups.size) {
@@ -162,9 +106,10 @@ export function renderChains(target, events, meta) {
     );
     return;
   }
+  const summaries = meta && meta.students instanceof Map ? meta.students : new Map();
   const chain = el("div", { class: "chain" });
   groups.forEach((studentEvents, student) => {
-    chain.append(chainCard(student, studentEvents));
+    chain.append(chainCard(student, studentEvents, summaries.get(student) || null, onSelect));
   });
   target.append(chain);
 }

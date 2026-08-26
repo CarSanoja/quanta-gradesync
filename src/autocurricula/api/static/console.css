@@ -79,6 +79,9 @@ button { font: inherit; cursor: pointer; }
   border: 1px solid var(--line);
 }
 
+button.chip { font: inherit; font-size: 12px; cursor: pointer; }
+button.chip:hover { border-color: var(--accent); }
+
 .chip[data-tone="ok"] { background: var(--ok-soft); color: var(--ok); border-color: #cfe9dd; }
 .chip[data-tone="warn"] { background: var(--warn-soft); color: var(--warn); border-color: #f2e0c2; }
 .chip[data-tone="danger"] { background: var(--danger-soft); color: var(--danger); border-color: #f4cfcc; }
@@ -182,6 +185,7 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .list-item:last-child { border-bottom: none; }
 .list-item:hover { background: var(--surface-alt); }
 .list-item.is-active { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+.list-item.is-static:hover { background: transparent; }
 .list-title { font-weight: 600; font-size: 13px; display: flex; justify-content: space-between; gap: 10px; }
 .list-sub { font-size: 12px; color: var(--muted); display: flex; gap: 8px; flex-wrap: wrap; }
 
@@ -204,6 +208,7 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .pill[data-state="running"] { background: var(--accent-soft); color: var(--accent); border-color: #d7ddfb; }
 .pill[data-state="quarantined"], .pill[data-state="pending"] { background: var(--warn-soft); color: var(--warn); border-color: #f2e0c2; }
 .pill[data-state="failed"], .pill[data-state="dismissed"] { background: var(--danger-soft); color: var(--danger); border-color: #f4cfcc; }
+.pill[data-state="info"] { background: #eef1f6; color: var(--ink-soft); border-color: var(--line); }
 
 .stage-track { display: flex; flex-wrap: wrap; gap: 4px; }
 .stage-track .pill { text-transform: capitalize; }
@@ -298,6 +303,17 @@ code, .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monos
 .callout-why { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
 
 .actions { display: flex; gap: 10px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+.actions.is-inline { margin-top: 12px; padding-top: 0; border-top: none; flex-wrap: wrap; }
+
+.row-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.row-actions.is-left { justify-content: flex-start; margin-top: 4px; }
+button.ghost.batch-link { padding: 1px 8px; font-size: 11.5px; }
+.row-actions button.ghost { padding: 4px 10px; font-size: 12px; }
+.row-expanded > td { background: var(--surface-alt); padding: 6px 10px 12px; }
+.variant-actions { margin-top: 10px; }
+
+button.ghost.agent-link { padding: 3px 9px; font-size: 13px; font-weight: 600; color: var(--ink); }
+button.ghost.agent-link:hover { border-color: var(--accent); color: var(--accent); }
 
 .variant-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
 
@@ -474,6 +490,23 @@ code, .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monos
 }
 
 .span-row:last-child { border-bottom: none; }
+
+button.span-row {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+button.span-row:hover { background: var(--surface-alt); }
+button.span-row.is-selected { background: var(--accent-soft); }
+
+.span-detail { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+
 .span-name { display: flex; align-items: center; gap: 7px; min-width: 0; }
 .span-name .mono { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .span-error { color: var(--danger); font-weight: 600; }

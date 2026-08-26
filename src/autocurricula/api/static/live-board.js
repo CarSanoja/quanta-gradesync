@@ -2,25 +2,29 @@ import { clear, el, emptyState, pill } from "./render.js";
 
 const IDLE = { calls: 0, tokens: 0, errors: 0, lastSeq: 0, active: false, done: false };
 const ACTIVE_WINDOW_MS = 5000;
+const STAGE_NOTE = "Stage-level spans are not attributed to an agent yet.";
 
-function statusPill(entry) {
+function statusPill(agent, entry) {
   if (entry.active) {
     return pill("working", "running");
   }
   if (entry.errors) {
-    return pill(`${entry.errors} error${entry.errors === 1 ? "" : "s"}`, "failed");
+    return pill(`${entry.errors} failed span${entry.errors === 1 ? "" : "s"}`, "failed");
   }
   if (entry.done) {
     return pill("done", "succeeded");
   }
-  return pill("idle", "pending");
+  if (agent.wired === false) {
+    return pill("not wired in this runtime", "info");
+  }
+  return pill("no events attributed", "info");
 }
 
 function stageChips(stages) {
   if (!stages || !stages.length) {
     return el("div", { class: "agent-meta", text: "no stage binding" });
   }
-  return el("div", { class: "stage-track" }, stages.map((stage) => pill(stage, "pending")));
+  return el("div", { class: "stage-track" }, stages.map((stage) => pill(stage, "info")));
 }
 
 function principalOf(agent) {
@@ -42,25 +46,39 @@ function cardClass(entry) {
   return classes.join(" ");
 }
 
-function agentCard(agent, entry) {
-  return el("div", { class: cardClass(entry) }, [
-    el("div", { class: "agent-name" }, [
-      el("span", { text: agent.display_name || agent.agent_id }),
-      statusPill(entry),
-    ]),
-    el("div", { class: "agent-meta" }, [
-      el("span", { class: "mono", text: agent.model_id || "deterministic" }),
-      agent.lifecycle && agent.lifecycle !== "active"
-        ? el("span", { text: agent.lifecycle })
-        : null,
-    ]),
-    el("div", { class: "agent-meta" }, el("span", { class: "mono", text: principalOf(agent) })),
-    stageChips(agent.stages),
-    el("div", { class: "agent-meta" }, [
-      el("span", { text: `${entry.calls} call${entry.calls === 1 ? "" : "s"}` }),
-      el("span", { text: `${entry.tokens.toLocaleString()} tok` }),
-    ]),
-  ]);
+function agentCard(agent, entry, isFiltered, onPick) {
+  const role = typeof agent.role === "string" && agent.role ? agent.role : "";
+  return el(
+    "button",
+    {
+      type: "button",
+      class: cardClass(entry) + (isFiltered ? " is-filtered" : ""),
+      onclick: () => {
+        if (onPick) {
+          onPick(agent.agent_id);
+        }
+      },
+    },
+    [
+      el("div", { class: "agent-name" }, [
+        el("span", { text: agent.display_name || agent.agent_id }),
+        statusPill(agent, entry),
+      ]),
+      role ? el("div", { class: "list-sub", text: role }) : null,
+      el("div", { class: "agent-meta" }, [
+        el("span", { class: "mono", text: agent.model_id || "deterministic" }),
+        agent.lifecycle && agent.lifecycle !== "active"
+          ? el("span", { text: agent.lifecycle })
+          : null,
+      ]),
+      el("div", { class: "agent-meta" }, el("span", { class: "mono", text: principalOf(agent) })),
+      stageChips(agent.stages),
+      el("div", { class: "agent-meta" }, [
+        el("span", { text: `${entry.calls} call${entry.calls === 1 ? "" : "s"}` }),
+        el("span", { text: `${entry.tokens.toLocaleString()} tok` }),
+      ]),
+    ]
+  );
 }
 
 export function boardActivity(events, settled, newest) {
@@ -119,8 +137,21 @@ export function boardAgents(fleet, events) {
   return fleet && fleet.length ? fleet : agentsFromEvents(events);
 }
 
-export function renderBoard(target, fleetAgents, activity) {
+function unattributedNote(entries, totals) {
+  const attributed = [...entries.values()].reduce((sum, entry) => sum + (entry.calls || 0), 0);
+  const missing = ((totals && totals.calls) || 0) - attributed;
+  if (missing <= 0) {
+    return null;
+  }
+  return el("div", {
+    class: "list-sub board-note",
+    text: `${missing} model call${missing === 1 ? "" : "s"} not attributed to an agent`,
+  });
+}
+
+export function renderBoard(target, fleetAgents, activity, options) {
   clear(target);
+  const settings = options || {};
   const agents = Array.isArray(fleetAgents) ? fleetAgents : [];
   if (!agents.length) {
     target.append(
@@ -136,7 +167,19 @@ export function renderBoard(target, fleetAgents, activity) {
     el(
       "div",
       { class: "agent-grid" },
-      agents.map((agent) => agentCard(agent, { ...IDLE, ...(entries.get(agent.agent_id) || {}) }))
+      agents.map((agent) =>
+        agentCard(
+          agent,
+          { ...IDLE, ...(entries.get(agent.agent_id) || {}) },
+          settings.agentFilter === agent.agent_id,
+          settings.onPick
+        )
+      )
     )
   );
+  target.append(el("div", { class: "list-sub board-note", text: STAGE_NOTE }));
+  const missing = unattributedNote(entries, settings.totals);
+  if (missing) {
+    target.append(missing);
+  }
 }

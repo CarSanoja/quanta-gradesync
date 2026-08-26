@@ -1,6 +1,18 @@
 import { clear, el, pill } from "./render.js";
+import { classifyEvent, isFailure } from "./live-kinds.js";
 
 export const MAX_FEED_ERRORS = 3;
+
+const TAB_CAPTIONS = {
+  activity: "Every agent, every model call and every screen, in the order they happened.",
+  chains:
+    "One card per student: the armor screen, the grading call, the evidence check, and where the grade landed.",
+  postrun:
+    "The span tree persisted to the audit store after the job finished - what ran, how long it took, and what was written.",
+};
+
+const TRACE_NOTE =
+  "Needs Google Cloud access. Without it, the Post-run trace tab shows the same spans in-product.";
 
 function elapsedLabel(oldest, newest, settled) {
   if (!oldest) {
@@ -15,11 +27,18 @@ function elapsedLabel(oldest, newest, settled) {
 }
 
 export function summariseEvents(events) {
-  const totals = { calls: 0, tokens: 0, oldest: 0, newest: 0 };
+  const totals = { calls: 0, tokens: 0, oldest: 0, newest: 0, students: 0, flagged: 0 };
+  const students = new Set();
   events.forEach((event) => {
     if (event.kind === "llm_call") {
       totals.calls += 1;
       totals.tokens += (event.llm && Number(event.llm.total_tokens)) || 0;
+    }
+    if (event.student_id) {
+      students.add(event.student_id);
+    }
+    if (isFailure(event, classifyEvent(event))) {
+      totals.flagged += 1;
     }
     const at = Date.parse(event.recorded_at);
     if (Number.isNaN(at)) {
@@ -28,6 +47,7 @@ export function summariseEvents(events) {
     totals.oldest = totals.oldest ? Math.min(totals.oldest, at) : at;
     totals.newest = Math.max(totals.newest, at);
   });
+  totals.students = students.size;
   return totals;
 }
 
@@ -41,6 +61,32 @@ function statusLabel(state) {
   return state.settled ? `settled · ${state.stage || "done"}` : "live";
 }
 
+function writeStat(id, value, tone) {
+  const node = document.getElementById(id);
+  if (!node) {
+    return;
+  }
+  node.textContent = String(value);
+  const tile = node.closest(".stat");
+  if (!tile) {
+    return;
+  }
+  if (tone) {
+    tile.dataset.tone = tone;
+  } else {
+    delete tile.dataset.tone;
+  }
+}
+
+function writeTraceNote(visible) {
+  const note = document.getElementById("live-trace-note");
+  if (!note) {
+    return;
+  }
+  note.textContent = TRACE_NOTE;
+  note.hidden = !visible;
+}
+
 export function renderHeader(dom, state, totals) {
   const job = state.jobs.find((candidate) => candidate.job_id === state.activeJobId);
   clear(dom.liveStageTrack);
@@ -51,12 +97,31 @@ export function renderHeader(dom, state, totals) {
   dom.liveCalls.textContent = String(totals.calls);
   dom.liveTokens.textContent = totals.tokens.toLocaleString();
   dom.liveEventsCount.textContent = String(state.events.length);
+  writeStat("live-students", totals.students, null);
+  writeStat("live-flagged", totals.flagged, totals.flagged ? "danger" : null);
   dom.livePoll.classList.toggle("is-live", !state.settled && state.feedTimer !== null);
   dom.liveStatusText.textContent = statusLabel(state);
+  dom.liveExport.disabled = !state.events.length;
   dom.liveTraceLink.hidden = !state.cloudTraceUrl;
+  writeTraceNote(Boolean(state.cloudTraceUrl));
   if (state.cloudTraceUrl) {
     dom.liveTraceLink.href = state.cloudTraceUrl;
   }
+}
+
+export function activateTab(dom, tab) {
+  const target = tab || "activity";
+  dom.liveTabs.querySelectorAll(".tab-button").forEach((candidate) => {
+    candidate.classList.toggle("is-active", candidate.dataset.liveTab === target);
+  });
+  document.querySelectorAll(".live-tab").forEach((pane) => {
+    pane.classList.toggle("is-active", pane.id === `live-tab-${target}`);
+  });
+  const caption = document.getElementById("live-tab-caption");
+  if (caption) {
+    caption.textContent = TAB_CAPTIONS[target] || "";
+  }
+  return target;
 }
 
 export function wireChrome(dom, handlers) {
@@ -65,16 +130,10 @@ export function wireChrome(dom, handlers) {
     if (!button) {
       return;
     }
-    const tab = button.dataset.liveTab;
-    dom.liveTabs.querySelectorAll(".tab-button").forEach((candidate) => {
-      candidate.classList.toggle("is-active", candidate === button);
-    });
-    document.querySelectorAll(".live-tab").forEach((pane) => {
-      pane.classList.toggle("is-active", pane.id === `live-tab-${tab}`);
-    });
-    handlers.onTab(tab);
+    handlers.onTab(activateTab(dom, button.dataset.liveTab));
   });
   dom.liveExport.addEventListener("click", handlers.onExport);
+  activateTab(dom, "activity");
 }
 
 export function exportJsonl(events, jobId) {

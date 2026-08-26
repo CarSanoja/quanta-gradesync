@@ -11,6 +11,19 @@ const PILL_STATES = {
   skipped: "pending", failed: "failed",
 };
 
+const DEPLOYED_HINT =
+  "Copies the 16 fabricated exams server-side into a fresh demo prefix; the storage "
+  + "notifications start the grading job with no further clicks.";
+const LOCAL_HINT =
+  "Available on the deployed service only - in local mode, drop files above instead.";
+
+function navigate(name, argument) {
+  const go = window[name];
+  if (typeof go === "function") {
+    go(argument);
+  }
+}
+
 function suffixOf(name) {
   const dot = name.lastIndexOf(".");
   return dot < 0 ? "" : name.slice(dot).toLowerCase();
@@ -26,7 +39,7 @@ function uploadRow(item) {
   ]);
 }
 
-export function renderUploads(target, counter, uploads) {
+export function renderUploads(target, counter, uploads, followJobId) {
   clear(target);
   const done = uploads.filter((item) => PILL_STATES[item.status] === "succeeded").length;
   counter.textContent = uploads.length ? `${done}/${uploads.length} stored` : "";
@@ -35,14 +48,33 @@ export function renderUploads(target, counter, uploads) {
     return;
   }
   uploads.slice().reverse().forEach((item) => target.append(uploadRow(item)));
+  if (!followJobId) {
+    return;
+  }
+  const follow = el("button", {
+    class: "primary", type: "button", text: "Follow this batch in Mission control",
+    onclick: () => navigate("goToMissionControl", { jobId: followJobId }),
+  });
+  target.append(el("div", { class: "actions is-inline" }, follow));
 }
 
 export function createIngestController({ dom, toast, postForm, postJson, endpoints, onAuthError, guard }) {
   const uploads = [];
   let dialogResolver = null;
+  let followJobId = null;
+  let localMode = false;
 
   function paint() {
-    renderUploads(dom.uploadList, dom.uploadCount, uploads);
+    renderUploads(dom.uploadList, dom.uploadCount, uploads, followJobId);
+  }
+
+  function setMode(mode) {
+    localMode = mode === "local";
+    const hint = document.getElementById("sample-batch-hint");
+    dom.sampleBatchButton.disabled = localMode;
+    if (hint) {
+      hint.textContent = localMode ? LOCAL_HINT : DEPLOYED_HINT;
+    }
   }
 
   function askCollision(fileName) {
@@ -196,9 +228,12 @@ export function createIngestController({ dom, toast, postForm, postJson, endpoin
   });
 
   dom.sampleBatchButton.addEventListener("click", async () => {
+    if (localMode) {
+      return;
+    }
     dom.sampleBatchButton.disabled = true;
     const payload = await guard(() => postJson(endpoints.sampleBatch()));
-    dom.sampleBatchButton.disabled = false;
+    dom.sampleBatchButton.disabled = localMode;
     if (!payload) {
       return;
     }
@@ -207,10 +242,14 @@ export function createIngestController({ dom, toast, postForm, postJson, endpoin
       status: "stored",
       note: `${payload.count} objects copied · job ${payload.expected_job_id}`,
     });
+    followJobId = payload.expected_job_id || null;
     paint();
-    toast(`Sample batch loaded. Watch job ${payload.expected_job_id} in Live trace.`, "neutral");
+    toast(
+      `Sample batch loaded. Watch job ${payload.expected_job_id} in Mission control.`,
+      "neutral"
+    );
   });
 
   paint();
-  return { paint };
+  return { paint, setMode };
 }

@@ -9,8 +9,9 @@ import {
   isTickerEvent,
   toneOf,
   tokenText,
-  verificationOf,
+  verificationLabel,
 } from "./live-kinds.js";
+import { filterLabel, matchesFocus } from "./live-focus.js";
 
 export { renderEventDetail } from "./live-detail.js";
 
@@ -19,6 +20,11 @@ const DECISION_LABELS = {
   quarantine: "QUARANTINED",
   allow: "ALLOWED",
 };
+
+function withError(meta, event, attributes) {
+  const type = event.status === "error" ? attributes["error.type"] : "";
+  return [meta, type].filter(Boolean).join(" · ");
+}
 
 function describe(event, kind) {
   const attributes = event.attributes || {};
@@ -52,20 +58,24 @@ function describe(event, kind) {
     const settled = [outcome || event.status, tokens].filter(Boolean).join(" · ");
     return {
       label: event.student_id || event.name.replace("Grading_", ""),
-      meta: event.kind === "span_start" ? "grading started" : settled,
+      meta: withError(event.kind === "span_start" ? "grading started" : settled, event, attributes),
     };
   }
   if (kind === "stage") {
     return {
       label: event.stage || event.name.replace("Stage_", ""),
-      meta: event.kind === "span_start" ? "running" : String(event.status),
+      meta: withError(
+        event.kind === "span_start" ? "running" : String(event.status),
+        event,
+        attributes
+      ),
     };
   }
   if (kind === "faithfulness") {
     const verified = attributes["evidence.spans_verified"];
     const spans = verified === undefined ? "" : `${verified} spans verified`;
     return {
-      label: verificationOf(attributes),
+      label: verificationLabel(attributes),
       meta: [event.student_id, spans].filter(Boolean).join(" · "),
     };
   }
@@ -107,6 +117,22 @@ function tickerRow(event, selectedSeq, onSelect) {
   );
 }
 
+function filterRow(label, onClearFilter) {
+  return el("div", { class: "ticker-filter" }, [
+    el("span", { text: `showing ${label}` }),
+    el("button", {
+      type: "button",
+      class: "ghost",
+      text: "clear",
+      onclick: () => {
+        if (onClearFilter) {
+          onClearFilter();
+        }
+      },
+    }),
+  ]);
+}
+
 function scrollAnchor(target) {
   const existing = target.querySelector(".ticker");
   if (!existing || existing.scrollTop <= 0) {
@@ -123,20 +149,32 @@ function restoreScroll(ticker, anchor) {
   ticker.scrollTop = anchor.top + grown;
 }
 
-export function renderTicker(target, events, selectedSeq, onSelect) {
+export function renderTicker(target, events, selectedSeq, onSelect, options) {
+  const settings = options || {};
   const anchor = scrollAnchor(target);
   clear(target);
+  const label = filterLabel(settings);
   const rows = (events || [])
     .filter(isTickerEvent)
+    .filter((event) => matchesFocus(event, settings))
     .slice()
     .sort((left, right) => right.seq - left.seq);
+  const ticker = el("div", { class: "ticker" });
+  if (label) {
+    ticker.append(filterRow(label, settings.onClearFilter));
+  }
   if (!rows.length) {
-    target.append(
-      emptyState("No fleet activity yet", "Spans and model calls stream here while the job runs.")
+    ticker.append(
+      label
+        ? emptyState("Nothing matches this filter", "Clear it to see the whole stream again.")
+        : emptyState(
+            "No fleet activity yet",
+            "Spans and model calls stream here while the job runs."
+          )
     );
+    target.append(ticker);
     return;
   }
-  const ticker = el("div", { class: "ticker" });
   rows.forEach((event) => ticker.append(tickerRow(event, selectedSeq, onSelect)));
   target.append(ticker);
   restoreScroll(ticker, anchor);

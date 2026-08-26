@@ -9,120 +9,24 @@ import {
   readiness,
   setToken,
 } from "./api.js";
-import { clear, emptyState } from "./render.js";
-import {
-  renderJobDetail,
-  renderJobsList,
-  renderOptimizer,
-  renderReviewDetail,
-  renderReviewList,
-} from "./views.js";
+import { createChrome, resolveDom } from "./console-dom.js";
+import { renderJobDetail, renderJobsList, renderOptimizer } from "./views.js";
+import { createReviewController } from "./console-review.js";
 import { renderFleet } from "./fleet.js";
 import { createIngestController } from "./ingest.js";
 import { createSisController } from "./sis.js";
 import { createLiveController } from "./live.js";
 
-const dom = {
-  rail: document.getElementById("rail"),
-  modeChip: document.getElementById("mode-chip"),
-  queueChip: document.getElementById("queue-chip"),
-  refresh: document.getElementById("refresh-button"),
-  tokenButton: document.getElementById("token-button"),
-  gate: document.getElementById("token-gate"),
-  tokenForm: document.getElementById("token-form"),
-  tokenInput: document.getElementById("token-input"),
-  tokenCancel: document.getElementById("token-cancel"),
-  tokenError: document.getElementById("token-error"),
-  toast: document.getElementById("toast"),
-  jobsList: document.getElementById("jobs-list"),
-  jobsCount: document.getElementById("jobs-count"),
-  jobDetail: document.getElementById("job-detail"),
-  reviewList: document.getElementById("review-list"),
-  reviewCount: document.getElementById("review-count"),
-  reviewDetail: document.getElementById("review-detail"),
-  optimizerVariants: document.getElementById("optimizer-variants"),
-  optimizerCycles: document.getElementById("optimizer-cycles"),
-  cyclesCount: document.getElementById("cycles-count"),
-  fleetSummary: document.getElementById("fleet-summary"),
-  fleetAgents: document.getElementById("fleet-agents"),
-  fleetCount: document.getElementById("fleet-count"),
-  sisRecords: document.getElementById("sis-records"),
-  sisCount: document.getElementById("sis-count"),
-  sisPoll: document.getElementById("sis-poll"),
-  liveJobs: document.getElementById("live-jobs"),
-  liveStageTrack: document.getElementById("live-stage-track"),
-  liveElapsed: document.getElementById("live-elapsed"),
-  liveCalls: document.getElementById("live-calls"),
-  liveTokens: document.getElementById("live-tokens"),
-  liveEventsCount: document.getElementById("live-events-count"),
-  livePoll: document.getElementById("live-poll"),
-  liveStatusText: document.getElementById("live-status-text"),
-  liveTraceLink: document.getElementById("live-trace-link"),
-  liveExport: document.getElementById("live-export"),
-  liveTabs: document.getElementById("live-tabs"),
-  liveBoard: document.getElementById("live-board"),
-  liveTicker: document.getElementById("live-ticker"),
-  liveDetail: document.getElementById("live-detail"),
-  liveChain: document.getElementById("live-chain"),
-  livePostrun: document.getElementById("live-postrun"),
-  lotCodeInput: document.getElementById("lot-code-input"),
-  dropzone: document.getElementById("dropzone"),
-  fileInput: document.getElementById("file-input"),
-  sampleBatchButton: document.getElementById("sample-batch-button"),
-  uploadList: document.getElementById("upload-list"),
-  uploadCount: document.getElementById("upload-count"),
-  collisionGate: document.getElementById("collision-gate"),
-  collisionMessage: document.getElementById("collision-message"),
-  collisionRenameInput: document.getElementById("collision-rename-input"),
-  collisionError: document.getElementById("collision-error"),
-  collisionCancel: document.getElementById("collision-cancel"),
-  collisionReplace: document.getElementById("collision-replace"),
-  collisionRename: document.getElementById("collision-rename"),
-};
+const dom = resolveDom();
+const chrome = createChrome(dom, {
+  ApiError,
+  getToken,
+  setToken,
+  onToken: () => refreshAll(),
+});
+const { guard, toast } = chrome;
 
-const state = {
-  view: "jobs",
-  jobs: [],
-  activeJobId: null,
-  jobDetail: null,
-  jobCache: new Map(),
-  reviews: [],
-  activeReviewId: null,
-  reviewContext: { item: null, criteria: [], imageUrl: null },
-};
-
-let toastTimer = null;
-
-function toast(message, tone) {
-  dom.toast.textContent = message;
-  dom.toast.dataset.tone = tone || "neutral";
-  dom.toast.hidden = false;
-  window.clearTimeout(toastTimer);
-  toastTimer = window.setTimeout(() => {
-    dom.toast.hidden = true;
-  }, 4000);
-}
-
-function openGate(message) {
-  dom.tokenError.textContent = message || "";
-  dom.tokenError.hidden = !message;
-  dom.tokenInput.value = getToken();
-  dom.gate.hidden = false;
-  dom.tokenInput.focus();
-}
-
-async function guard(action) {
-  try {
-    return await action();
-  } catch (error) {
-    if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
-      openGate("The API rejected that token. Paste the deployment token to continue.");
-      return null;
-    }
-    toast(error.message, "danger");
-    return null;
-  }
-}
+const state = { view: "jobs", mode: "", jobs: [], activeJobId: null, jobCache: new Map() };
 
 function setView(view) {
   state.view = view;
@@ -132,19 +36,8 @@ function setView(view) {
   document.querySelectorAll(".view").forEach((section) => {
     section.classList.toggle("is-active", section.id === `view-${view}`);
   });
-  if (sisController) {
-    view === "sis" ? sisController.start() : sisController.stop();
-  }
-  if (liveController) {
-    view === "trace" ? liveController.start() : liveController.stop();
-  }
-}
-
-function releaseImage() {
-  if (state.reviewContext.imageUrl) {
-    URL.revokeObjectURL(state.reviewContext.imageUrl);
-  }
-  state.reviewContext.imageUrl = null;
+  view === "sis" ? sisController.start() : sisController.stop();
+  view === "trace" ? liveController.start() : liveController.stop();
 }
 
 async function jobDetailFor(jobId) {
@@ -160,9 +53,9 @@ async function jobDetailFor(jobId) {
 
 async function selectJob(jobId) {
   state.activeJobId = jobId;
-  state.jobDetail = await jobDetailFor(jobId);
+  const detail = await jobDetailFor(jobId);
   renderJobsList(dom.jobsList, state.jobs, state.activeJobId, selectJob);
-  renderJobDetail(dom.jobDetail, state.jobDetail, openReviewFromJob);
+  renderJobDetail(dom.jobDetail, detail, openReviewFromJob);
 }
 
 async function loadJobs() {
@@ -173,8 +66,7 @@ async function loadJobs() {
   state.jobs = payload.items;
   state.jobCache.clear();
   dom.jobsCount.textContent = `${payload.count} batch${payload.count === 1 ? "" : "es"}`;
-  const stillListed = state.jobs.some((job) => job.job_id === state.activeJobId);
-  if (!stillListed) {
+  if (!state.jobs.some((job) => job.job_id === state.activeJobId)) {
     state.activeJobId = state.jobs.length ? state.jobs[0].job_id : null;
   }
   renderJobsList(dom.jobsList, state.jobs, state.activeJobId, selectJob);
@@ -182,61 +74,6 @@ async function loadJobs() {
     await selectJob(state.activeJobId);
   } else {
     renderJobDetail(dom.jobDetail, null, openReviewFromJob);
-  }
-}
-
-async function selectReview(reviewId) {
-  const item = state.reviews.find((candidate) => candidate.review_id === reviewId);
-  releaseImage();
-  state.activeReviewId = reviewId;
-  state.reviewContext = { item: item || null, criteria: [], imageUrl: null };
-  renderReviewList(dom.reviewList, state.reviews, state.activeReviewId, selectReview);
-  renderReviewDetail(dom.reviewDetail, state.reviewContext, reviewHandlers);
-  if (!item) {
-    return;
-  }
-  const detail = await jobDetailFor(item.job_id);
-  const student = detail
-    ? detail.students.find((candidate) => candidate.student_id === item.student_id)
-    : null;
-  state.reviewContext.criteria = student ? student.criteria : [];
-  if (item.document_paths.length) {
-    try {
-      state.reviewContext.imageUrl = await getObjectUrl(endpoints.pageImage(reviewId, 0));
-    } catch (error) {
-      state.reviewContext.imageUrl = null;
-    }
-  }
-  if (state.activeReviewId === reviewId) {
-    renderReviewDetail(dom.reviewDetail, state.reviewContext, reviewHandlers);
-  }
-}
-
-async function loadReviews() {
-  const payload = await guard(() => getJson(endpoints.pending()));
-  if (!payload) {
-    return;
-  }
-  state.reviews = payload.items;
-  dom.reviewCount.textContent = `${payload.count} item${payload.count === 1 ? "" : "s"}`;
-  dom.queueChip.textContent = `queue: ${payload.count} pending`;
-  dom.queueChip.dataset.tone = payload.count ? "warn" : "ok";
-  const stillPending = state.reviews.some((item) => item.review_id === state.activeReviewId);
-  const nextId = stillPending
-    ? state.activeReviewId
-    : state.reviews.length
-      ? state.reviews[0].review_id
-      : null;
-  renderReviewList(dom.reviewList, state.reviews, nextId, selectReview);
-  if (nextId) {
-    await selectReview(nextId);
-  } else {
-    releaseImage();
-    state.activeReviewId = null;
-    state.reviewContext = { item: null, criteria: [], imageUrl: null };
-    clear(dom.reviewDetail).append(
-      emptyState("Queue is clear", "Nothing is waiting for a teacher decision.")
-    );
   }
 }
 
@@ -254,53 +91,28 @@ async function loadFleet() {
   if (!report) {
     return;
   }
-  dom.fleetCount.textContent = `${report.summary.agent_count} agent${report.summary.agent_count === 1 ? "" : "s"}`;
+  const count = report.summary.agent_count;
+  dom.fleetCount.textContent = `${count} agent${count === 1 ? "" : "s"}`;
   renderFleet(dom.fleetSummary, dom.fleetAgents, report);
-}
-
-async function decide(reviewId, endpoint, verb) {
-  const decided = await guard(() => postJson(endpoint(reviewId)));
-  if (!decided) {
-    return;
-  }
-  toast(`${decided.student_id} ${verb}.`, "neutral");
-  state.jobCache.clear();
-  await Promise.all([loadReviews(), loadJobs()]);
-}
-
-const reviewHandlers = {
-  onApprove: (reviewId) => decide(reviewId, endpoints.approve, "approved and written to the SIS"),
-  onDismiss: (reviewId) => decide(reviewId, endpoints.dismiss, "dismissed without a SIS write"),
-};
-
-async function openReviewFromJob(reviewId) {
-  setView("review");
-  const pending = state.reviews.some((item) => item.review_id === reviewId);
-  if (!pending) {
-    await loadReviews();
-  }
-  if (state.reviews.some((item) => item.review_id === reviewId)) {
-    await selectReview(reviewId);
-  } else {
-    toast("That record is no longer pending review.", "neutral");
-  }
 }
 
 async function loadMode() {
   try {
     const payload = await readiness();
+    state.mode = payload.mode;
     dom.modeChip.textContent = `backend: ${payload.mode} · ${payload.status}`;
     dom.modeChip.dataset.tone = payload.status === "ready" ? "ok" : "danger";
   } catch (error) {
     dom.modeChip.textContent = "backend: unreachable";
     dom.modeChip.dataset.tone = "danger";
   }
+  ingestController.setMode(state.mode);
 }
 
 async function refreshAll() {
   dom.refresh.disabled = true;
   await loadMode();
-  await Promise.all([loadJobs(), loadReviews(), loadOptimizer(), loadFleet()]);
+  await Promise.all([loadJobs(), reviewController.load(), loadOptimizer(), loadFleet()]);
   if (state.view === "sis") {
     await sisController.load();
   }
@@ -312,16 +124,43 @@ async function refreshAll() {
 
 const sisController = createSisController({ dom, guard, getJson, endpoints });
 const liveController = createLiveController({ dom, guard, getJson, endpoints });
-createIngestController({
-  dom,
-  toast,
-  postForm,
-  postJson,
-  endpoints,
-  guard,
-  onAuthError: () =>
-    openGate("The API rejected that token. Paste the deployment token to continue."),
+const ingestController = createIngestController({
+  dom, toast, postForm, postJson, endpoints, guard, onAuthError: chrome.onAuthError,
 });
+const reviewController = createReviewController({
+  dom,
+  guard,
+  getJson,
+  postJson,
+  getObjectUrl,
+  endpoints,
+  toast,
+  setView,
+  jobDetailFor,
+  onDecided: async () => {
+    state.jobCache.clear();
+    await loadJobs();
+  },
+});
+
+window.goToMissionControl = (focus) => {
+  setView("trace");
+  if (typeof liveController.focusLive === "function") {
+    liveController.focusLive(focus || {});
+  }
+};
+window.goToSisLedger = (jobId) => {
+  setView("sis");
+  sisController.load(jobId);
+};
+window.goToJobsBatch = (jobId) => {
+  setView("jobs");
+  selectJob(jobId);
+};
+
+function openReviewFromJob(reviewId) {
+  return reviewController.openFromJob(reviewId);
+}
 
 dom.rail.addEventListener("click", (event) => {
   const button = event.target.closest(".rail-item");
@@ -330,29 +169,16 @@ dom.rail.addEventListener("click", (event) => {
   }
 });
 
-dom.refresh.addEventListener("click", refreshAll);
-dom.tokenButton.addEventListener("click", () => openGate(""));
-dom.tokenCancel.addEventListener("click", () => {
-  dom.gate.hidden = true;
-});
+if (dom.queueChip) {
+  dom.queueChip.addEventListener("click", () => setView("review"));
+}
 
-dom.tokenForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const value = dom.tokenInput.value.trim();
-  if (!value) {
-    dom.tokenError.textContent = "A bearer token is required.";
-    dom.tokenError.hidden = false;
-    return;
-  }
-  setToken(value);
-  dom.gate.hidden = true;
-  await refreshAll();
-});
+dom.refresh.addEventListener("click", refreshAll);
 
 async function start() {
   await loadMode();
   if (!getToken()) {
-    openGate("");
+    chrome.openGate("");
     return;
   }
   await refreshAll();

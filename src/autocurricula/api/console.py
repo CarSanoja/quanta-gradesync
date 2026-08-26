@@ -13,10 +13,17 @@ ASSET_MEDIA_TYPES = {
     "console.js": "text/javascript; charset=utf-8",
     "api.js": "text/javascript; charset=utf-8",
     "views.js": "text/javascript; charset=utf-8",
+    "views-jobs.js": "text/javascript; charset=utf-8",
+    "views-review.js": "text/javascript; charset=utf-8",
+    "views-optimizer.js": "text/javascript; charset=utf-8",
+    "views-criteria.js": "text/javascript; charset=utf-8",
+    "console-dom.js": "text/javascript; charset=utf-8",
+    "console-review.js": "text/javascript; charset=utf-8",
     "render.js": "text/javascript; charset=utf-8",
     "sis.js": "text/javascript; charset=utf-8",
     "ingest.js": "text/javascript; charset=utf-8",
     "trace.js": "text/javascript; charset=utf-8",
+    "trace-spans.js": "text/javascript; charset=utf-8",
     "fleet.js": "text/javascript; charset=utf-8",
     "live.css": "text/css; charset=utf-8",
     "live.js": "text/javascript; charset=utf-8",
@@ -26,7 +33,10 @@ ASSET_MEDIA_TYPES = {
     "live-detail.js": "text/javascript; charset=utf-8",
     "live-chain.js": "text/javascript; charset=utf-8",
     "live-chain-groups.js": "text/javascript; charset=utf-8",
+    "live-chain-steps.js": "text/javascript; charset=utf-8",
     "live-kinds.js": "text/javascript; charset=utf-8",
+    "live-focus.js": "text/javascript; charset=utf-8",
+    "live-students.js": "text/javascript; charset=utf-8",
 }
 
 

@@ -1,61 +1,43 @@
-import { clear, emptyState } from "./render.js";
-import { boardActivity, boardAgents, renderBoard } from "./live-board.js";
+import { renderTraceJobs } from "./trace.js";
+import { createStudentLoader } from "./live-students.js";
+import { MAX_FEED_ERRORS, activateTab, exportJsonl, wireChrome } from "./live-header.js";
 import {
-  MAX_FEED_ERRORS,
-  exportJsonl,
-  renderHeader,
-  summariseEvents,
-  wireChrome,
-} from "./live-header.js";
-import { renderChains } from "./live-chain.js";
-import { renderEventDetail, renderTicker } from "./live-ticker.js";
-import { renderTraceDetail, renderTraceJobs } from "./trace.js";
+  FRESH, applyFocus, createPostrunLoader, isTerminal, jobsChanged, mergeFeed,
+  nextPendingFocus, renderPanes, resetPostrun,
+} from "./live-focus.js";
 
 const JOBS_POLL_MS = 2500;
 const FEED_POLL_MS = 1500;
-const MAX_EVENTS = 3000;
 const SETTLED_EMPTY_POLLS = 2;
-const TERMINAL_STAGES = new Set(["completed", "failed"]);
-
-const FRESH = {
-  events: [], after: 0, selectedSeq: null, settled: false,
-  cloudTraceUrl: null, postrunJobId: null, feedErrors: 0, settledEmptyPolls: 0,
-};
+const MAX_FOCUS_POLLS = 10;
 
 export function createLiveController({ dom, guard, getJson, endpoints }) {
   const state = {
     ...FRESH,
     jobs: [], activeJobId: null, stage: "", tab: "activity",
     fleet: null, jobsTimer: null, feedTimer: null,
+    jobsSignature: "", jobsRenderedFor: null, pendingFocus: null, focusPolls: 0,
   };
 
-  function safely(target, title, action) {
-    try {
-      action();
-    } catch (error) {
-      const reason = error && error.message ? error.message : String(error);
-      clear(target).append(emptyState(title, reason));
-    }
-  }
+  const handlers = {
+    onSelectEvent: (seq) => {
+      state.selectedSeq = seq;
+      renderAll();
+    },
+    onPickAgent: (agentId) =>
+      focusLive({ agentId: state.agentFilter === agentId ? null : agentId, tab: "activity" }),
+    onSelectStep: (seq) => focusLive({ seq, tab: "activity" }),
+    onClearFilter: () => focusLive({ agentId: null, studentId: null }),
+  };
 
   function renderAll() {
-    const totals = summariseEvents(state.events);
-    renderHeader(dom, state, totals);
-    const meta = { cloudTraceUrl: state.cloudTraceUrl, jobId: state.activeJobId };
-    const selected = state.events.find((event) => event.seq === state.selectedSeq) || null;
-    const agents = boardAgents(state.fleet, state.events);
-    const activity = boardActivity(state.events, state.settled, totals.newest);
-    safely(dom.liveBoard, "Fleet board unavailable", () =>
-      renderBoard(dom.liveBoard, agents, activity));
-    safely(dom.liveTicker, "Ticker unavailable", () =>
-      renderTicker(dom.liveTicker, state.events, state.selectedSeq, selectEvent));
-    safely(dom.liveDetail, "Event detail unavailable", () =>
-      renderEventDetail(dom.liveDetail, selected, meta));
-    if (state.tab === "chains") {
-      safely(dom.liveChain, "Reasoning chains unavailable", () =>
-        renderChains(dom.liveChain, state.events, meta));
-    }
+    renderPanes(dom, state, handlers);
   }
+
+  const loadStudents = createStudentLoader({
+    state, guard, getJson, endpoints, onLoaded: () => renderAll(),
+  });
+  const loadPostrun = createPostrunLoader({ dom, state, guard, getJson, endpoints });
 
   function stopFeed() {
     window.clearInterval(state.feedTimer);
@@ -70,26 +52,20 @@ export function createLiveController({ dom, guard, getJson, endpoints }) {
     }
   }
 
-  async function loadPostrun() {
-    const jobId = state.activeJobId;
-    if (!jobId || state.postrunJobId === jobId) {
+  function settle() {
+    if (state.settled) {
       return;
     }
-    state.postrunJobId = jobId;
-    const trace = await guard(() => getJson(endpoints.trace(jobId)));
-    if (!trace || trace.job_id !== state.activeJobId) {
-      state.postrunJobId = null;
-      return;
-    }
-    safely(dom.livePostrun, "Post-run trace unavailable", () =>
-      renderTraceDetail(dom.livePostrun, trace));
+    state.settled = true;
+    state.jobDetailId = null;
+    loadStudents();
   }
 
   function syncStage() {
     const job = state.jobs.find((candidate) => candidate.job_id === state.activeJobId);
     state.stage = job ? job.stage : "";
-    if (!state.settled && job && TERMINAL_STAGES.has(job.stage)) {
-      state.settled = true;
+    if (job && isTerminal(job.stage)) {
+      settle();
     }
     if (state.settled) {
       loadPostrun();
@@ -114,16 +90,13 @@ export function createLiveController({ dom, guard, getJson, endpoints }) {
       return;
     }
     state.feedErrors = 0;
-    const events = Array.isArray(payload.events) ? payload.events : [];
-    state.events = events.length ? state.events.concat(events).slice(-MAX_EVENTS) : state.events;
-    state.after = Number.isFinite(payload.next_after)
-      ? payload.next_after
-      : events.reduce((highest, event) => Math.max(highest, event.seq || 0), state.after);
-    state.cloudTraceUrl = payload.cloud_trace_url || state.cloudTraceUrl;
-    state.settled = state.settled || payload.settled === true || TERMINAL_STAGES.has(payload.stage);
+    const arrived = mergeFeed(state, payload);
+    if (payload.settled === true || isTerminal(payload.stage)) {
+      settle();
+    }
     if (state.settled) {
       loadPostrun();
-      state.settledEmptyPolls = events.length ? 0 : state.settledEmptyPolls + 1;
+      state.settledEmptyPolls = arrived ? 0 : state.settledEmptyPolls + 1;
       if (state.settledEmptyPolls >= SETTLED_EMPTY_POLLS) {
         stopFeed();
       }
@@ -133,18 +106,27 @@ export function createLiveController({ dom, guard, getJson, endpoints }) {
 
   function selectJob(jobId) {
     Object.assign(state, FRESH, { events: [], activeJobId: jobId });
-    clear(dom.livePostrun).append(emptyState(
-      "Waiting for the run to settle",
-      "The persisted span tree, metrics and audit tail land here once the job finishes."
-    ));
+    resetPostrun(dom);
+    state.jobsRenderedFor = jobId;
     renderTraceJobs(dom.liveJobs, state.jobs, jobId, selectJob);
     syncStage();
+    loadStudents();
     renderAll();
     startFeed();
   }
 
-  function selectEvent(seq) {
-    state.selectedSeq = seq;
+  function focusLive(focus) {
+    const request = focus || {};
+    if (request.jobId && request.jobId !== state.activeJobId) {
+      if (!state.jobs.some((job) => job.job_id === request.jobId)) {
+        state.pendingFocus = request;
+        state.focusPolls = 0;
+        return;
+      }
+      selectJob(request.jobId);
+    }
+    applyFocus(state, request);
+    activateTab(dom, state.tab);
     renderAll();
   }
 
@@ -162,10 +144,20 @@ export function createLiveController({ dom, guard, getJson, endpoints }) {
       return;
     }
     state.jobs = payload.items || [];
+    const stale = jobsChanged(state);
+    const pending = nextPendingFocus(state, MAX_FOCUS_POLLS);
+    if (pending) {
+      focusLive(pending);
+      return;
+    }
     if (!state.activeJobId && state.jobs.length) {
       selectJob(state.jobs[0].job_id);
       return;
     }
+    if (!stale) {
+      return;
+    }
+    state.jobsRenderedFor = state.activeJobId;
     renderTraceJobs(dom.liveJobs, state.jobs, state.activeJobId, selectJob);
     syncStage();
     renderAll();
@@ -192,6 +184,7 @@ export function createLiveController({ dom, guard, getJson, endpoints }) {
     dom.livePoll.classList.remove("is-live");
   }
 
+  resetPostrun(dom);
   wireChrome(dom, {
     onTab: (tab) => {
       state.tab = tab;
@@ -200,5 +193,5 @@ export function createLiveController({ dom, guard, getJson, endpoints }) {
     onExport: () => exportJsonl(state.events, state.activeJobId),
   });
 
-  return { start, stop, load };
+  return { start, stop, load, focusLive };
 }

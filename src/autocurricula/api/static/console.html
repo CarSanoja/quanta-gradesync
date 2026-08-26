@@ -18,7 +18,7 @@
   </div>
   <div class="topbar-meta">
     <span class="chip" id="mode-chip" data-tone="neutral">backend: checking</span>
-    <span class="chip" id="queue-chip" data-tone="neutral">queue: &mdash;</span>
+    <button type="button" class="chip" id="queue-chip" data-tone="neutral">queue: &mdash;</button>
     <button class="ghost" id="token-button" type="button">Session token</button>
     <button class="primary" id="refresh-button" type="button">Refresh</button>
   </div>
@@ -85,7 +85,7 @@
       </header>
       <div class="split">
         <div class="panel" id="review-list-panel">
-          <div class="panel-head"><h3>Pending</h3><span class="counter" id="review-count"></span></div>
+          <div class="panel-head"><h3>Pending</h3><span class="counter" id="review-count"></span><button class="ghost" id="review-bulk-button" type="button" hidden></button></div>
           <div class="panel-body" id="review-list"></div>
         </div>
         <div class="panel" id="review-detail-panel">
@@ -152,7 +152,7 @@
             <div class="actions">
               <button class="primary" id="sample-batch-button" type="button">Load sample batch</button>
             </div>
-            <p class="hint">Copies the 8 fabricated exams server-side into a fresh demo prefix;
+            <p class="hint" id="sample-batch-hint">Copies the 16 fabricated exams server-side into a fresh demo prefix;
               the storage notifications start the grading job with no further clicks.</p>
           </div>
         </div>
@@ -208,20 +208,30 @@
               <span class="stat-label">Events</span>
               <span class="stat-value" id="live-events-count">0</span>
             </div>
+            <div class="stat">
+              <span class="stat-label">Students</span>
+              <span class="stat-value" id="live-students">0</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Flagged</span>
+              <span class="stat-value" id="live-flagged">0</span>
+            </div>
           </div>
           <span class="poll-note">
             <span class="poll-dot" id="live-poll"></span><span id="live-status-text">idle</span>
           </span>
           <a class="ghost" id="live-trace-link" hidden target="_blank" rel="noreferrer">Open in Cloud Trace</a>
-          <button class="ghost" id="live-export" type="button">Export JSONL</button>
+          <span class="list-sub" id="live-trace-note" hidden></span>
+          <button class="ghost" id="live-export" type="button">Export live events (.jsonl)</button>
         </div>
       </div>
 
       <div class="live-tabs" id="live-tabs">
         <button type="button" class="tab-button is-active" data-live-tab="activity">Fleet activity</button>
-        <button type="button" class="tab-button" data-live-tab="chains">Reasoning chains</button>
+        <button type="button" class="tab-button" data-live-tab="chains">Reasoning per student</button>
         <button type="button" class="tab-button" data-live-tab="postrun">Post-run trace</button>
       </div>
+      <p class="live-caption" id="live-tab-caption"></p>
 
       <div class="live-tab is-active" id="live-tab-activity">
         <div id="live-board"></div>
