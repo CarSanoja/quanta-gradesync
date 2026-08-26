@@ -248,10 +248,17 @@ job = "e2e-2026-08-19-matematicas-10a-parcial1"
 for name in ("checkpoints",):
     for suffix in ("", "::session"):
         c.collection(name).document(job + suffix).delete()
-for doc in c.collection("audit").document(job).collection("events").stream():
-    doc.reference.delete()
+audit = c.collection("audit").document(job)
+for subcollection in ("events", "live"):
+    for doc in audit.collection(subcollection).stream():
+        doc.reference.delete()
+audit.delete()
 PY
 ```
+
+Firestore does not cascade-delete subcollections, so `events` and `live` have to
+be walked explicitly — deleting `audit/{job}` alone leaves the live events (and
+the prompt excerpts they carry) behind.
 
 The vector index is reusable; keep it. Stop uvicorn with `Ctrl+C` (or
 `pkill -f "uvicorn autocurricula.api.main:app"`).

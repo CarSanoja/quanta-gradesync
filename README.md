@@ -201,7 +201,7 @@ pytest
 Expected, on any machine:
 
 ```
-506 passed, 8 skipped
+599 passed, 8 skipped
 ```
 
 The 8 skips are the live contract tests under `tests/live/`, which call real
@@ -213,13 +213,13 @@ offline suite exercises the production code paths rather than test doubles.
 
 | What you want to verify | Command | Tests | Credentials |
 |---|---|---|---|
-| The engine's logic, gates and failure handling | `pytest` | 506 | none |
+| The engine's logic, gates and failure handling | `pytest` | 599 | none |
 | Throughput and concurrency behaviour | `pytest -m benchmark` | 2 | none |
 | Calibration maths and the promotion gate, against fixed ground truth | `pytest -m calibration` | 59 | none |
 | Contracts against the real models | `pytest -m live` | 8 | Gemini + GCP |
 | A batch graded end to end, on your machine | see [Local demo run](#local-demo-run) | | Gemini |
 
-The benchmark and calibration markers select subsets of the same 506; only the
+The benchmark and calibration markers select subsets of the same 599; only the
 live tests sit outside it.
 
 Run `pytest` before creating a `.env`: the settings loader reads `.env` from the
@@ -355,6 +355,12 @@ All variables use the `GRADESYNC_` prefix and are read from the environment or a
 | `GRADESYNC_TELEMETRY_AUDIT_ENABLED` | `true` | Append-only audit trail of material pipeline decisions |
 | `GRADESYNC_FIRESTORE_AUDIT_COLLECTION` | `audit` | Audit-trail collection |
 | `GRADESYNC_FIRESTORE_DEAD_LETTER_COLLECTION` | `dead_letter` | Dead-letter collection |
+| `GRADESYNC_TELEMETRY_LIVE_ENABLED` | `true` | Stream live span / LLM / armor / denial events to `audit/{job}/live` (locally `{data dir}/live/{job}.jsonl`) |
+| `GRADESYNC_TELEMETRY_CLOUD_TRACE_ENABLED` | `true` | Export OTel spans (incl. ADK `call_llm`) to Cloud Trace; no-op in local mode |
+| `GRADESYNC_TELEMETRY_CLOUD_METRICS_ENABLED` | `true` | Export OTel metrics to Cloud Monitoring; requires cloud trace export, no-op in local mode |
+| `GRADESYNC_TELEMETRY_CAPTURE_CONTENT` | `true` | Record prompt/response excerpts; `false` keeps names, timings, tokens and verdicts only |
+| `GRADESYNC_TELEMETRY_PAYLOAD_MAX_CHARS` | `4000` | Truncation cap applied to every captured excerpt |
+| `GRADESYNC_LOG_JSON` | `false` local / `true` GCP | Structured JSON logs on stdout, correlated to the job's trace |
 | `GRADESYNC_BATCH_SETTLE_INTERVAL_SECONDS` | `0` local / `5` GCP | Poll interval while a multi-object upload settles (`0` disables the settler) |
 | `GRADESYNC_BATCH_SETTLE_MAX_ROUNDS` | `6` | Maximum settle polls before the batch is processed as-is |
 | `GRADESYNC_SIS_BASE_URL` | *(empty)* | School Information System API base URL |
@@ -516,6 +522,42 @@ resumes from its Firestore checkpoint without recomputing finished stages.
   pipeline ingests without hand-editing. The full case matrix and expected
   behavior per image are documented in [`scripts/README.md`](scripts/README.md).
 
+## Observability
+
+Three layers over the same run, none of which the fleet can opt out of:
+
+1. **Cloud Trace** — every job executes under a deterministic trace id derived
+   from its own `trace_id` (identity if already 32 hex, otherwise the SHA-256
+   prefix), so a job id is enough to open the trace. The tree is
+   `Stage_<name>` → `Grading_<submission_id>` → the ADK `call_llm` span of each
+   Gemini call, with request/response payloads, `gen_ai.request.model`, token
+   usage and finish reason; armor verdicts and `CapabilityDenied` spans sit in
+   the same tree. Spans are exported to `telemetry.googleapis.com`; structured
+   JSON logs on stdout carry `logging.googleapis.com/trace`, so Cloud Logging
+   and Cloud Trace show the same run from both sides.
+2. **Mission control** — the tracer also streams typed live events (span start,
+   span end, LLM exchange with prompt and response excerpts, armor verdict,
+   permission denial) to `audit/{job}/live` while the job is still running.
+   `GET /jobs/{job_id}/live` serves them and the Mission control view of
+   `/console` renders them: fleet board, event ticker, payload drawer,
+   per-student reasoning chains, an Open-in-Cloud-Trace link and a JSONL export.
+   In local mode the same stream is appended to
+   `{GRADESYNC_LOCAL_DATA_DIR}/live/{job_id}.jsonl` and nothing leaves the machine.
+3. **Metrics** — OTel metrics to Cloud Monitoring, plus a committed dashboard
+   for the Cloud Run service (request count, p95 latency, instance count, CPU
+   and memory utilization, service logs):
+   [`docs/gcp/monitoring-dashboard.json`](docs/gcp/monitoring-dashboard.json).
+
+`GRADESYNC_TELEMETRY_CAPTURE_CONTENT=false` is the data-sovereignty switch: no
+prompt or response text is recorded anywhere, while names, timings, token
+counts, model ids, armor verdicts and permission decisions keep flowing — the
+fleet board stays readable without student manuscript text in telemetry.
+Excerpts are truncated at `GRADESYNC_TELEMETRY_PAYLOAD_MAX_CHARS` and page
+images never reach a span.
+
+IAM, verification steps and troubleshooting live in the
+[observability runbook](docs/runbooks/observability.md).
+
 ## Human review API (the one-click approval)
 
 All endpoints require the same `Authorization: Bearer $GRADESYNC_PUBSUB_PUSH_TOKEN`.
@@ -530,6 +572,7 @@ All endpoints require the same `Authorization: Bearer $GRADESYNC_PUBSUB_PUSH_TOK
 | `POST /ingest/exam` | Multipart exam upload with domain-aware name-collision handling |
 | `POST /ingest/sample-batch` | Server-side copy of the demo batch that triggers the pipeline |
 | `GET /jobs/{job_id}/trace` | Span tree, metrics snapshot and audit tail for a job |
+| `GET /jobs/{job_id}/live` | Live event stream of a job (spans, LLM exchanges, armor verdicts, denials) for mission control |
 
 ## Project layout
 

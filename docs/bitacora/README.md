@@ -32,3 +32,4 @@ verification) live in the [requests registry](../solicitudes/README.md).
 | 2026-08-21 | [Implementation 011: fleet registry, per-agent identity, red-team arena](2026-08-21-implementacion-011-fleet-registry-identity.md) | Implementation |
 | 2026-08-21 | [Implementation 012: repaying measured technical debt](2026-08-21-implementacion-012-technical-debt.md) | Implementation |
 | 2026-08-21 | [Implementation 013: feedback bands and the triage surface](2026-08-21-implementacion-013-feedback-bands-triage.md) | Implementation |
+| 2026-08-25 | [Implementation 014: native traces, live mission control, committed dashboard](2026-08-25-implementacion-014-live-telemetry.md) | Implementation |
