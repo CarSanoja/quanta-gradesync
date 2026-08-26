@@ -11,6 +11,7 @@ from autocurricula.api.job_views import JobStageView, build_summary
 from autocurricula.api.webhooks import require_push_token
 from autocurricula.config.clients import get_firestore_client
 from autocurricula.config.settings import Settings
+from autocurricula.core.telemetry.trace_ids import cloud_trace_id, cloud_trace_url
 from autocurricula.schemas.common import StrictBaseModel
 from autocurricula.schemas.telemetry import TypedSpan
 
@@ -32,6 +33,8 @@ class TraceEventView(StrictBaseModel):
 class TraceResponse(StrictBaseModel):
     job_id: str
     trace_id: str
+    cloud_trace_id: str = ""
+    cloud_trace_url: str | None = None
     stage: str
     error: str | None = None
     stages: list[JobStageView] = Field(default_factory=list)
@@ -79,6 +82,12 @@ def read_remote_audit_events(
     ]
     events.sort(key=lambda event: str(event.get(FIELD_RECORDED_AT) or ""))
     return events
+
+
+def cloud_trace_link(settings: Settings, trace_id: str) -> str | None:
+    if settings.local_mode or not settings.gcp_project_id:
+        return None
+    return cloud_trace_url(settings.gcp_project_id, trace_id)
 
 
 def parse_spans(event: dict[str, Any]) -> list[TypedSpan]:
@@ -142,6 +151,8 @@ async def job_trace(
     return TraceResponse(
         job_id=record.job_id,
         trace_id=record.event.trace_id,
+        cloud_trace_id=cloud_trace_id(record.event.trace_id),
+        cloud_trace_url=cloud_trace_link(container.settings, record.event.trace_id),
         stage=summary.stage,
         error=summary.error,
         stages=summary.stages,
