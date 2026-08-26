@@ -1,8 +1,30 @@
-import re
 from collections.abc import Callable, Iterator
-from difflib import SequenceMatcher
 from typing import Any, Protocol, runtime_checkable
 
+from autocurricula.core.harness.faithfulness_text import (
+    DEFAULT_MATCH_THRESHOLD as DEFAULT_MATCH_THRESHOLD,
+)
+from autocurricula.core.harness.faithfulness_text import (
+    MIN_FUZZY_QUOTE_CHARS as MIN_FUZZY_QUOTE_CHARS,
+)
+from autocurricula.core.harness.faithfulness_text import (
+    NEAR_MATCH_RATIO as NEAR_MATCH_RATIO,
+)
+from autocurricula.core.harness.faithfulness_text import (
+    compact_text as compact_text,
+)
+from autocurricula.core.harness.faithfulness_text import (
+    fold_symbols as fold_symbols,
+)
+from autocurricula.core.harness.faithfulness_text import (
+    longest_common_coverage as longest_common_coverage,
+)
+from autocurricula.core.harness.faithfulness_text import (
+    near_match_ratio as near_match_ratio,
+)
+from autocurricula.core.harness.faithfulness_text import (
+    normalize_text as normalize_text,
+)
 from autocurricula.schemas.common import FrozenStrictModel
 from autocurricula.schemas.grading import GradingResult
 from autocurricula.schemas.telemetry import (
@@ -11,55 +33,10 @@ from autocurricula.schemas.telemetry import (
     VERIFICATION_VERIFIED,
 )
 
-_WHITESPACE = re.compile(r"\s+")
-
-DEFAULT_MATCH_THRESHOLD = 0.75
-MIN_FUZZY_QUOTE_CHARS = 12
-
-
-def normalize_text(text: str) -> str:
-    return _WHITESPACE.sub(" ", text.strip().lower())
-
 
 @runtime_checkable
 class PageTextProvider(Protocol):
     def page_text(self, submission_id: str, page: int) -> str | None: ...
-
-
-SYMBOL_FOLDS = {
-    "×": "*",
-    "·": "*",
-    "∙": "*",
-    "÷": "/",
-    "−": "-",
-    "–": "-",
-    "—": "-",
-    "²": "^2",
-    "³": "^3",
-    "\u2019": "'",
-    "\u201c": '"',
-    "\u201d": '"',
-}
-_DECIMAL_COMMA = re.compile(r"(?<=\d),(?=\d)")
-
-
-def fold_symbols(text: str) -> str:
-    folded = text
-    for symbol, replacement in SYMBOL_FOLDS.items():
-        folded = folded.replace(symbol, replacement)
-    return _DECIMAL_COMMA.sub(".", folded)
-
-
-def compact_text(text: str) -> str:
-    return _WHITESPACE.sub("", fold_symbols(normalize_text(text)))
-
-
-def longest_common_coverage(quote: str, page_text: str) -> float:
-    if not quote:
-        return 1.0
-    matcher = SequenceMatcher(None, quote, page_text, autojunk=False)
-    match = matcher.find_longest_match(0, len(quote), 0, len(page_text))
-    return match.size / len(quote)
 
 
 def span_status(
@@ -77,7 +54,11 @@ def span_status(
     if match_threshold is None or len(normalized_quote) < MIN_FUZZY_QUOTE_CHARS:
         return VERIFICATION_FAILED
     coverage = longest_common_coverage(compact_quote, compact_page)
-    return VERIFICATION_VERIFIED if coverage >= match_threshold else VERIFICATION_FAILED
+    if coverage >= match_threshold:
+        return VERIFICATION_VERIFIED
+    if near_match_ratio(compact_quote, compact_page) >= NEAR_MATCH_RATIO:
+        return VERIFICATION_VERIFIED
+    return VERIFICATION_FAILED
 
 
 def span_is_faithful(

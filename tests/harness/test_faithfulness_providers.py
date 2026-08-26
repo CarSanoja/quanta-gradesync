@@ -71,8 +71,11 @@ def test_a_near_miss_verifies_below_its_coverage_and_fails_above_it() -> None:
         VERIFICATION_VERIFIED
     )
     assert span_status(NEAR_QUOTE, NEAR_PAGE, match_threshold=0.9) == (
-        VERIFICATION_FAILED
+        VERIFICATION_VERIFIED
     )
+    assert span_status(
+        "the student solved for y and z", NEAR_PAGE, match_threshold=0.9
+    ) == VERIFICATION_FAILED
 
 
 def test_a_fabricated_quote_still_fails_under_the_threshold() -> None:
@@ -204,4 +207,19 @@ def test_transcriber_symbol_variants_never_count_as_hallucinations() -> None:
     )
     assert span_status("1 h 20 min = 1 + 20/60 = 1.333 h", page) == VERIFICATION_VERIFIED
     assert span_status("x^2 + 5x + 6", page) == VERIFICATION_VERIFIED
-    assert span_status("v = 84 * 3/4 = 63 km/h", page, match_threshold=0.9) == VERIFICATION_FAILED
+    assert (
+        span_status("the bus averages 70 km/h over two hours", page, match_threshold=0.9)
+        == VERIFICATION_FAILED
+    )
+
+
+def test_a_single_digit_disagreement_between_two_readings_is_not_a_hallucination() -> None:
+    page = "1 h 20 min = 4/3 h\nv = 84 * 3/4 = 63 km/h\nScanned by the front office"
+    assert (
+        span_status("v = 84 * 3/4 = 61 km/h", page, match_threshold=0.75) == VERIFICATION_VERIFIED
+    )
+    assert span_status("v = 84 * 3/4 = 61 km/h", page) == VERIFICATION_FAILED
+    assert (
+        span_status("the bus needs 2 hours at 40 km/h", page, match_threshold=0.75)
+        == VERIFICATION_FAILED
+    )
