@@ -33,3 +33,4 @@ verification) live in the [requests registry](../solicitudes/README.md).
 | 2026-08-21 | [Implementation 012: repaying measured technical debt](2026-08-21-implementacion-012-technical-debt.md) | Implementation |
 | 2026-08-21 | [Implementation 013: feedback bands and the triage surface](2026-08-21-implementacion-013-feedback-bands-triage.md) | Implementation |
 | 2026-08-25 | [Implementation 014: native traces, live mission control, committed dashboard](2026-08-25-implementacion-014-live-telemetry.md) | Implementation |
+| 2026-08-26 | [Implementación 015: telemetría verificada en producción](2026-08-26-implementacion-015-telemetry-produccion.md) | Implementation |
