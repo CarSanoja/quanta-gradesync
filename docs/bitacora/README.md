@@ -35,3 +35,4 @@ verification) live in the [requests registry](../solicitudes/README.md).
 | 2026-08-25 | [Implementation 014: native traces, live mission control, committed dashboard](2026-08-25-implementacion-014-live-telemetry.md) | Implementation |
 | 2026-08-26 | [Implementación 015: telemetría verificada en producción](2026-08-26-implementacion-015-telemetry-produccion.md) | Implementation |
 | 2026-08-26 | [Implementación 016: legibilidad de la consola](2026-08-26-implementacion-016-consola-legibilidad.md) | Implementation |
+| 2026-08-26 | [Implementación 017: evidencia verificada en producción y consola cerrada](2026-08-26-implementacion-017-evidencia-transcrita.md) | Implementation |
