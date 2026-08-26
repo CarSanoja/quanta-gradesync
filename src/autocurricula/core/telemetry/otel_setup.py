@@ -29,6 +29,18 @@ def gcp_hooks(settings: Settings) -> Any | None:
         return None
 
 
+def gcp_resource(settings: Settings) -> Any | None:
+    if settings.local_mode or not settings.telemetry_cloud_trace_enabled:
+        return None
+    try:
+        from google.adk.telemetry.google_cloud import get_gcp_resource
+
+        return get_gcp_resource(settings.gcp_project_id)
+    except Exception as error:
+        logger.warning("gcp otel resource unavailable: %s", error)
+        return None
+
+
 def install_telemetry(settings: Settings, capture: LlmSpanCapture) -> bool:
     global _installed
     if _installed:
@@ -44,7 +56,7 @@ def install_telemetry(settings: Settings, capture: LlmSpanCapture) -> bool:
         exporters = gcp_hooks(settings)
         if exporters is not None:
             hooks.append(exporters)
-        maybe_set_otel_providers(hooks)
+        maybe_set_otel_providers(hooks, gcp_resource(settings))
     except Exception as error:
         logger.warning("otel provider setup failed: %s", error)
         return False

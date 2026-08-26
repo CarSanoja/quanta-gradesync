@@ -31,7 +31,7 @@ def fresh_install() -> Iterator[None]:
 def installed_hooks(monkeypatch: pytest.MonkeyPatch) -> list[Any]:
     recorded: list[Any] = []
 
-    def fake_setup(hooks: list[Any]) -> None:
+    def fake_setup(hooks: list[Any], resource: Any = None) -> None:
         recorded.extend(hooks)
 
     monkeypatch.setattr(adk_setup, "maybe_set_otel_providers", fake_setup)
@@ -96,7 +96,7 @@ def test_disabling_content_capture_silences_adk_payloads(
 def test_provider_failures_are_reported_not_raised(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    def explode(hooks: list[Any]) -> None:
+    def explode(*args: Any) -> None:
         raise RuntimeError("no provider today")
 
     monkeypatch.setattr(adk_setup, "maybe_set_otel_providers", explode)
@@ -148,3 +148,30 @@ def test_gcp_install_appends_the_cloud_hooks(
     assert install_telemetry(settings, LlmSpanCapture(settings)) is True
     assert installed_hooks[-1] is sentinel
     assert len(installed_hooks) == 2
+
+
+def test_gcp_install_forwards_a_project_scoped_resource(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from google.adk.telemetry import google_cloud as adk_google_cloud
+
+    captured: dict[str, Any] = {}
+
+    def fake_setup(hooks: list[Any], resource: Any = None) -> None:
+        captured["resource"] = resource
+
+    monkeypatch.setattr(adk_setup, "maybe_set_otel_providers", fake_setup)
+    monkeypatch.setattr(
+        adk_google_cloud, "get_gcp_resource", lambda project_id: {"pid": project_id}
+    )
+    from autocurricula.core.telemetry import otel_setup as otel_setup_module
+
+    monkeypatch.setattr(otel_setup_module, "gcp_hooks", lambda settings: None)
+
+    assert install_telemetry(gcp_settings(), LlmSpanCapture(gcp_settings())) is True
+    assert captured["resource"] == {"pid": "quanta-gradesync"}
+    reset_telemetry_install()
+
+    captured.clear()
+    assert install_telemetry(local_settings(), LlmSpanCapture(local_settings())) is True
+    assert captured["resource"] is None
