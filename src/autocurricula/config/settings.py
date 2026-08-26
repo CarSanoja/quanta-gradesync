@@ -69,6 +69,12 @@ class Settings(BaseSettings):
     model_fallback_confidence_factor: float = Field(default=0.9, gt=0.0, le=1.0)
     dead_letter_max_attempts: int = Field(default=3, ge=1, le=10)
     telemetry_audit_enabled: bool = True
+    telemetry_live_enabled: bool = True
+    telemetry_cloud_trace_enabled: bool = True
+    telemetry_cloud_metrics_enabled: bool = True
+    telemetry_capture_content: bool = True
+    telemetry_payload_max_chars: int = Field(default=4000, ge=200, le=20000)
+    log_json: bool | None = None
     firestore_audit_collection: str = "audit"
     firestore_dead_letter_collection: str = "dead_letter"
 
@@ -110,6 +116,12 @@ class Settings(BaseSettings):
     @property
     def is_gcp_configured(self) -> bool:
         return bool(self.gcp_project_id)
+
+    @property
+    def resolved_log_json(self) -> bool:
+        if self.log_json is not None:
+            return self.log_json
+        return not self.local_mode
 
 
 @lru_cache(maxsize=1)

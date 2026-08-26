@@ -17,6 +17,7 @@ from autocurricula.api.fleet import fleet_router
 from autocurricula.api.ingest import ingest_router
 from autocurricula.api.jobs import jobs_router
 from autocurricula.api.labels import labels_router
+from autocurricula.api.live import live_router
 from autocurricula.api.optimizer import optimizer_router
 from autocurricula.api.readiness import (
     BackendUnavailable,
@@ -30,6 +31,11 @@ from autocurricula.api.teacher import teacher_router
 from autocurricula.api.trace import trace_router
 from autocurricula.api.webhooks import pubsub_router
 from autocurricula.config.genai_env import configure_genai_env
+from autocurricula.core.telemetry import (
+    LlmSpanCapture,
+    install_structured_logging,
+    install_telemetry,
+)
 
 APP_TITLE = "AutoCurricula & GradeSync Engine"
 
@@ -40,6 +46,8 @@ health_router = APIRouter(tags=["health"])
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     container = build_container()
     configure_genai_env(container.settings)
+    install_structured_logging(container.settings)
+    install_telemetry(container.settings, LlmSpanCapture(container.settings))
     set_container(app, container)
     try:
         yield
@@ -86,6 +94,7 @@ def create_app() -> FastAPI:
     application.include_router(labels_router)
     application.include_router(jobs_router)
     application.include_router(trace_router)
+    application.include_router(live_router)
     application.include_router(sis_router)
     application.include_router(ingest_router)
     application.include_router(optimizer_router)

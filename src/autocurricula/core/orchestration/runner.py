@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from collections.abc import Sequence
 
@@ -6,6 +7,13 @@ from autocurricula.agents.evaluator import GradingEvaluator
 from autocurricula.agents.meta_optimizer import MetaOptimizerAgent
 from autocurricula.agents.risk_detector import RiskDetector
 from autocurricula.config.settings import get_settings
+from autocurricula.core.evolution.prompt_mutator import PromptVariant
+from autocurricula.core.fleet import (
+    FIRESTORE_CHECKPOINT,
+    ORCHESTRATOR_PRINCIPAL,
+    authorize_firestore_write,
+)
+from autocurricula.core.harness import BatchAnomalyBreaker, CapabilityLedger, capability_scope
 from autocurricula.core.memory.manager import MemoryManager
 from autocurricula.core.memory.session_memory import SessionMemory, SessionState, StageStatus
 from autocurricula.core.orchestration.catalog import JobCatalog, build_job_catalog
@@ -16,23 +24,18 @@ from autocurricula.core.orchestration.job_state import (
     JobRecord,
     JobStage,
 )
+from autocurricula.core.orchestration.stage_execution import execute_stage
 from autocurricula.core.orchestration.stages_outcome import TermResolver, default_term
 from autocurricula.core.orchestration.verifier import DEFAULT_VERIFY_MAX_ITERATIONS
-from autocurricula.core.evolution.prompt_mutator import PromptVariant
-from autocurricula.core.fleet import (
-    FIRESTORE_CHECKPOINT,
-    ORCHESTRATOR_PRINCIPAL,
-    authorize_firestore_write,
-)
-from autocurricula.core.harness import BatchAnomalyBreaker, CapabilityLedger, capability_scope
 from autocurricula.core.resilience import DeadLetterStore, SchemaRepairAgent
 from autocurricula.core.review import DEFAULT_CONFIDENCE_THRESHOLD, ReviewStore, build_review_store
-from autocurricula.core.orchestration.stage_execution import execute_stage
-from autocurricula.core.telemetry import AuditLogger, Recorder, collect_metrics
+from autocurricula.core.telemetry import AuditLogger, LiveSink, Recorder, collect_metrics
 from autocurricula.schemas.common import utc_now
 from autocurricula.schemas.events import PubSubJobEvent
 from autocurricula.tools.gcs_fetcher import Fetcher
 from autocurricula.tools.sis_connector import SISConnector
+
+LIVE_FLUSH_TIMEOUT_SECONDS = 5.0
 
 
 class JobRunner:
@@ -64,6 +67,7 @@ class JobRunner:
         dead_letter: DeadLetterStore | None = None,
         dead_letter_max_attempts: int = 3,
         audit_logger: AuditLogger | None = None,
+        live_sink: LiveSink | None = None,
     ) -> None:
         self._memory_manager = memory_manager
         self._checkpoint_store = checkpoint_store
@@ -98,6 +102,7 @@ class JobRunner:
             dead_letter_max_attempts=dead_letter_max_attempts,
         )
         self._audit_logger = audit_logger
+        self._live_sink = live_sink
 
     @property
     def pipeline(self) -> list[StageStep]:
@@ -122,7 +127,7 @@ class JobRunner:
             await self._restore_session(session, existing)
         record.stage_statuses = dict(session.state.stage_statuses)
         await self._checkpoint_store.save(record)
-        recorder = Recorder(event.trace_id)
+        recorder = Recorder(event.trace_id, sink=self._live_sink, job_id=event.job_id)
         context = JobContext(event=event, session=session, recorder=recorder)
         for step in self._pipeline:
             if context.stage_done(step.name):
@@ -131,6 +136,7 @@ class JobRunner:
             try:
                 context = await execute_stage(step, context, recorder)
             except Exception as error:
+                await self._flush_live()
                 record = await self._fail(record, session, step.name, error)
                 await self._audit(recorder, record, ledger)
                 return record
@@ -141,10 +147,19 @@ class JobRunner:
         record.stage = JobStage.COMPLETED
         record.error = None
         record.updated_at = utc_now()
+        await self._flush_live()
         await self._checkpoint_store.save_state(event.job_id, session.state)
         await self._checkpoint_store.save(record)
         await self._audit(recorder, record, ledger)
         return record
+
+    async def _flush_live(self) -> None:
+        if self._live_sink is None:
+            return
+        try:
+            await asyncio.to_thread(self._live_sink.flush, LIVE_FLUSH_TIMEOUT_SECONDS)
+        except Exception as error:
+            logging.getLogger(__name__).warning("live sink flush failed: %s", error)
 
     async def _audit(
         self,

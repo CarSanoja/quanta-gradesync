@@ -14,6 +14,7 @@ from autocurricula.agents.optimizer_factory import build_optimizer_fleet
 from autocurricula.agents.rework_evaluator import build_rework_evaluator
 from autocurricula.agents.risk_detector import RiskDetector
 from autocurricula.config.settings import Settings, get_settings
+from autocurricula.core.harness import BatchAnomalyBreaker
 from autocurricula.core.memory.manager import MemoryManager
 from autocurricula.core.orchestration.batch_settle import BatchSettler, build_batch_settler
 from autocurricula.core.orchestration.catalog import JobCatalog, build_job_catalog
@@ -23,13 +24,12 @@ from autocurricula.core.orchestration.job_state import (
     build_checkpoint_store,
 )
 from autocurricula.core.orchestration.runner import JobRunner
-from autocurricula.core.harness import BatchAnomalyBreaker
 from autocurricula.core.resilience import (
     SchemaRepairAgent,
     build_dead_letter_store,
 )
 from autocurricula.core.review import ReviewService, ReviewStore, build_review_store
-from autocurricula.core.telemetry import build_audit_logger
+from autocurricula.core.telemetry import LiveSink, build_audit_logger, build_live_sink
 from autocurricula.tools.gcs_fetcher import Fetcher, build_fetcher
 from autocurricula.tools.sis_connector import SISConnector, build_sis_connector
 
@@ -53,6 +53,7 @@ class AppContainer:
     rework_evaluator: GradingEvaluator | None = None
     fallback_evaluator: GradingEvaluator | None = None
     batch_settler: BatchSettler | None = None
+    live_sink: LiveSink | None = None
     in_flight: set[asyncio.Task[JobRecord]] = field(default_factory=set)
     claimed_jobs: set[str] = field(default_factory=set)
 
@@ -72,6 +73,7 @@ def build_container(settings: Settings | None = None) -> AppContainer:
     rework_evaluator = build_rework_evaluator(resolved)
     fallback_evaluator = build_rework_evaluator(resolved)
     review_store: ReviewStore = build_review_store(resolved)
+    live_sink = build_live_sink(resolved)
     review_service = ReviewService(
         store=review_store,
         sis_connector=sis_connector,
@@ -104,6 +106,7 @@ def build_container(settings: Settings | None = None) -> AppContainer:
             if resolved.telemetry_audit_enabled
             else None
         ),
+        live_sink=live_sink,
     )
     return AppContainer(
         settings=resolved,
@@ -121,6 +124,7 @@ def build_container(settings: Settings | None = None) -> AppContainer:
         rework_evaluator=rework_evaluator,
         fallback_evaluator=fallback_evaluator,
         batch_settler=build_batch_settler(resolved),
+        live_sink=live_sink,
     )
 
 
