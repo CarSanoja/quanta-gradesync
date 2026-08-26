@@ -201,7 +201,7 @@ pytest
 Expected, on any machine:
 
 ```
-599 passed, 8 skipped
+610 passed, 8 skipped
 ```
 
 The 8 skips are the live contract tests under `tests/live/`, which call real
@@ -213,13 +213,13 @@ offline suite exercises the production code paths rather than test doubles.
 
 | What you want to verify | Command | Tests | Credentials |
 |---|---|---|---|
-| The engine's logic, gates and failure handling | `pytest` | 599 | none |
+| The engine's logic, gates and failure handling | `pytest` | 610 | none |
 | Throughput and concurrency behaviour | `pytest -m benchmark` | 2 | none |
 | Calibration maths and the promotion gate, against fixed ground truth | `pytest -m calibration` | 59 | none |
 | Contracts against the real models | `pytest -m live` | 8 | Gemini + GCP |
 | A batch graded end to end, on your machine | see [Local demo run](#local-demo-run) | | Gemini |
 
-The benchmark and calibration markers select subsets of the same 599; only the
+The benchmark and calibration markers select subsets of the same 610; only the
 live tests sit outside it.
 
 Run `pytest` before creating a `.env`: the settings loader reads `.env` from the
@@ -539,9 +539,16 @@ Three layers over the same run, none of which the fleet can opt out of:
    span end, LLM exchange with prompt and response excerpts, armor verdict,
    permission denial) to `audit/{job}/live` while the job is still running.
    `GET /jobs/{job_id}/live` serves them and the Mission control view of
-   `/console` renders them: fleet board, event ticker, payload drawer,
-   per-student reasoning chains, an Open-in-Cloud-Trace link and a JSONL export.
-   In local mode the same stream is appended to
+   `/console` renders them under three tabs. **Fleet activity** is the fleet
+   board — one card per agent, clicked to filter the ticker to that agent —
+   plus the event ticker and the payload drawer. **Reasoning per student**
+   gives each student one card: the armor screen, the grading call, the
+   evidence check, the percentage, the lowest criterion confidence and the SIS
+   outcome, with every step opening the exact event that produced it on Fleet
+   activity. **Post-run trace** renders the span tree persisted to the audit
+   store once the job finished. The header counts Elapsed, Model calls, Tokens,
+   Events, Students and Flagged, next to an Open-in-Cloud-Trace link and
+   `Export live events (.jsonl)`. In local mode the same stream is appended to
    `{GRADESYNC_LOCAL_DATA_DIR}/live/{job_id}.jsonl` and nothing leaves the machine.
 3. **Metrics** — OTel metrics to Cloud Monitoring, plus a committed dashboard
    for the Cloud Run service (request count, p95 latency, instance count, CPU

@@ -158,6 +158,14 @@ Export is batched, so spans surface a few seconds after they close. An empty
 Trace explorer immediately after a run is not yet a failure — reload before
 concluding anything.
 
+Without a Cloud Trace seat, the same tree is readable from `GET
+/jobs/{job_id}/trace` and from the **Post-run trace** tab of Mission control,
+which lays it out as `Pipeline stages`, `What ran, and how long it took` (the
+span tree itself), `Per-stage totals` and `Audit records written`. The `spans`
+column of `Per-stage totals` counts spans, not model calls — a grading span with
+its armor and faithfulness children contributes several spans and a different
+number of `call_llm` exchanges.
+
 ## 5. Read live events
 
 Live events are the streaming layer: one document per span start, span end and
@@ -171,9 +179,18 @@ LLM exchange, written while the job is still running.
   The response carries `cloud_trace_id` / `cloud_trace_url`, the current
   `stage`, `settled` (the job reached `completed` or `failed`), `next_after` to
   poll with, and the `events` themselves.
-- UI: the Mission control view of `/console` — fleet board, event ticker,
-  payload drawer, per-student reasoning chains, an Open-in-Cloud-Trace link and
-  a JSONL export of exactly what the API returned.
+- UI: the Mission control view of `/console`, three tabs over the same stream.
+  **Fleet activity** — the fleet board (each agent card is a button that filters
+  the ticker to that agent), the event ticker, and the payload drawer, whose
+  attribute rows carry plain-English labels rather than raw span keys.
+  **Reasoning per student** — one card per student, each step opening the exact
+  event that produced it back on Fleet activity. **Post-run trace** — the
+  persisted span tree, where a span row opens its own attributes. Beside them,
+  an Open-in-Cloud-Trace link and `Export live events (.jsonl)`, which exports
+  exactly what the API returned.
+- A stage-level span carries no `agent_id` (it belongs to the stage, not to any
+  one agent), so the per-agent totals on the fleet board legitimately add up to
+  less than the header totals. That gap is not a lost event.
 
 Read them from the command line:
 
