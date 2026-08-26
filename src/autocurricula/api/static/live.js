@@ -27,6 +27,7 @@ export function createLiveController({ dom, guard, getJson, endpoints }) {
     onPickAgent: (agentId) =>
       focusLive({ agentId: state.agentFilter === agentId ? null : agentId, tab: "activity" }),
     onSelectStep: (seq) => focusLive({ seq, tab: "activity" }),
+    onFocusStudent: (studentId) => focusLive({ studentId, tab: "activity" }),
     onClearFilter: () => focusLive({ agentId: null, studentId: null }),
   };
 
@@ -104,8 +105,11 @@ export function createLiveController({ dom, guard, getJson, endpoints }) {
     renderAll();
   }
 
-  function selectJob(jobId) {
-    Object.assign(state, FRESH, { events: [], activeJobId: jobId });
+  function selectJob(jobId, keepFocus) {
+    const kept = keepFocus === true
+      ? { agentFilter: state.agentFilter, studentFilter: state.studentFilter }
+      : {};
+    Object.assign(state, FRESH, { events: [], activeJobId: jobId }, kept);
     resetPostrun(dom);
     state.jobsRenderedFor = jobId;
     renderTraceJobs(dom.liveJobs, state.jobs, jobId, selectJob);
@@ -151,7 +155,7 @@ export function createLiveController({ dom, guard, getJson, endpoints }) {
       return;
     }
     if (!state.activeJobId && state.jobs.length) {
-      selectJob(state.jobs[0].job_id);
+      selectJob(state.jobs[0].job_id, true);
       return;
     }
     if (!stale) {

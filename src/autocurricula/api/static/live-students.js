@@ -18,7 +18,13 @@ export function createStudentLoader({ state, guard, getJson, endpoints, onLoaded
     }
     state.jobDetailId = jobId;
     const detail = await guard(() => getJson(endpoints.job(jobId)));
-    if (!detail || state.activeJobId !== jobId) {
+    if (!detail) {
+      if (state.jobDetailId === jobId) {
+        state.jobDetailId = null;
+      }
+      return;
+    }
+    if (state.activeJobId !== jobId) {
       return;
     }
     state.students = studentSummaries(detail);

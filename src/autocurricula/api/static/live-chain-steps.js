@@ -1,4 +1,11 @@
-import { classifyEvent, injectionDetected, verificationLabel, verificationOf } from "./live-kinds.js";
+import {
+  classifyEvent,
+  injectionDetected,
+  transcriptionTokens,
+  verificationDetail,
+  verificationLabel,
+  verificationOf,
+} from "./live-kinds.js";
 
 export function callText(count) {
   return `${count} llm call${count === 1 ? "" : "s"}`;
@@ -46,10 +53,11 @@ export function armorStep(armor) {
   return { label: "Armor screen", detail: `clean · ${calls}`, tone: "ok", seq };
 }
 
-export function gradedStep(events, grading, armor, faith) {
+export function gradedStep(events, grading, nested) {
   const attributes = (grading.source && grading.source.attributes) || {};
   const calls = llmCalls(events);
-  const own = Math.max(calls.length - armor.calls.length - faith.calls.length, 0);
+  const elsewhere = (nested || []).reduce((total, part) => total + part.calls.length, 0);
+  const own = Math.max(calls.length - elsewhere, 0);
   const outcome = String(attributes["submission.outcome"] || "");
   const failed = outcome === "failed" || (grading.end && grading.end.status === "error");
   const parts = [grading.end ? outcome || "graded" : "running"];
@@ -62,14 +70,39 @@ export function gradedStep(events, grading, armor, faith) {
   };
 }
 
+export function transcriptionStep(transcription) {
+  const attributes = (transcription.source && transcription.source.attributes) || {};
+  const tokens = transcriptionTokens(attributes);
+  const running = !transcription.end;
+  const failed = Boolean(transcription.end && transcription.end.status === "error");
+  const parts = [running ? "reading the page" : "page text captured", tokens];
+  return {
+    label: "Page transcription",
+    detail: parts.filter(Boolean).join(" · "),
+    tone: failed ? "error" : "neutral",
+    seq: anchorSeq(transcription),
+  };
+}
+
 export function faithfulnessStep(faith) {
   const attributes = (faith.source && faith.source.attributes) || {};
   const status = verificationOf(attributes);
-  const detail = faith.present
-    ? `${verificationLabel(attributes)} · ${callText(faith.calls.length)}`
-    : verificationLabel({});
-  const tone = status === "verified" ? "ok" : status === "failed" ? "error" : "warn";
-  return { label: "Faithfulness", detail, tone, seq: anchorSeq(faith) };
+  if (!faith.present) {
+    return {
+      label: "Evidence check: not run for this student",
+      detail: "no verification span recorded",
+      tone: "neutral",
+      seq: null,
+    };
+  }
+  const tone = status === "verified" ? "ok" : status === "failed" ? "error" : "neutral";
+  const calls = faith.calls.length ? callText(faith.calls.length) : "";
+  return {
+    label: verificationLabel(attributes),
+    detail: [verificationDetail(attributes), calls].filter(Boolean).join(" · ") || "no quotes cited",
+    tone,
+    seq: anchorSeq(faith),
+  };
 }
 
 export function denialSteps(events) {

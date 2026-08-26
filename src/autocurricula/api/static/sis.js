@@ -108,32 +108,39 @@ export function createSisController({ dom, guard, getJson, endpoints }) {
     );
   }
 
+  function focusJob(jobId) {
+    jobFilter = jobId || null;
+  }
+
   async function load(jobId) {
     if (jobId !== undefined) {
-      jobFilter = jobId || null;
+      focusJob(jobId);
     }
     if (loading) {
       return;
     }
     loading = true;
+    const requested = jobFilter;
     try {
-      const payload = await guard(() => getJson(endpoints.sisRecords(jobFilter, PAGE_LIMIT)));
-      if (payload) {
+      const payload = await guard(() => getJson(endpoints.sisRecords(requested, PAGE_LIMIT)));
+      if (payload && requested === jobFilter) {
         paintCount(payload);
         renderSisRecords(dom.sisRecords, payload, (id) => load(id));
       }
     } finally {
       loading = false;
     }
+    if (requested !== jobFilter) {
+      await load();
+    }
   }
 
   function start() {
-    if (timer !== null) {
-      return;
-    }
     dom.sisPoll.classList.add("is-live");
     load();
-    timer = window.setInterval(() => load(), POLL_INTERVAL_MS);
+    if (timer === null) {
+      timer = window.setInterval(() => load(), POLL_INTERVAL_MS);
+    }
   }
 
   function stop() {
@@ -144,5 +151,5 @@ export function createSisController({ dom, guard, getJson, endpoints }) {
     dom.sisPoll.classList.remove("is-live");
   }
 
-  return { start, stop, load };
+  return { start, stop, load, focusJob };
 }

@@ -7,6 +7,7 @@ import {
   faithfulnessStep,
   gradedStep,
   llmCalls,
+  transcriptionStep,
 } from "./live-chain-steps.js";
 
 const OPEN_SEQ = Number.MAX_SAFE_INTEGER;
@@ -58,12 +59,32 @@ function outcomeNodes(summary) {
   ].filter(Boolean);
 }
 
-function chainCard(student, events, summary, onSelect) {
+function focusButton(student, onFocusStudent) {
+  if (!onFocusStudent) {
+    return null;
+  }
+  return el("div", { class: "chain-actions" }, [
+    el("button", {
+      type: "button",
+      class: "ghost chain-focus",
+      text: "Show only this student's events",
+      onclick: () => onFocusStudent(student),
+    }),
+  ]);
+}
+
+function chainCard(student, events, summary, actions) {
+  const onSelect = actions.onSelect;
   const armor = segment(events, "armor");
   const grading = segment(events, "grading");
+  const transcription = segment(events, "transcription");
   const faith = segment(events, "faithfulness");
   const steps = armor.present ? [armorStep(armor)] : [];
-  steps.push(gradedStep(events, grading, armor, faith), faithfulnessStep(faith));
+  steps.push(gradedStep(events, grading, [armor, faith, transcription]));
+  if (transcription.present) {
+    steps.push(transcriptionStep(transcription));
+  }
+  steps.push(faithfulnessStep(faith));
   denialSteps(events).forEach((step) => steps.push(step));
   const failed = steps.some((step) => step.tone === "error");
   const warned = steps.some((step) => step.tone === "warn");
@@ -88,10 +109,11 @@ function chainCard(student, events, summary, onSelect) {
           text: `Still in flight · ${events.length} events so far`,
         })
       : null,
+    focusButton(student, actions.onFocusStudent),
   ]);
 }
 
-export function renderChains(target, events, meta, onSelect) {
+export function renderChains(target, events, meta, actions) {
   clear(target);
   const groups = groupByStudent(events);
   if (!groups.size) {
@@ -109,7 +131,9 @@ export function renderChains(target, events, meta, onSelect) {
   const summaries = meta && meta.students instanceof Map ? meta.students : new Map();
   const chain = el("div", { class: "chain" });
   groups.forEach((studentEvents, student) => {
-    chain.append(chainCard(student, studentEvents, summaries.get(student) || null, onSelect));
+    chain.append(
+      chainCard(student, studentEvents, summaries.get(student) || null, actions || {})
+    );
   });
   target.append(chain);
 }

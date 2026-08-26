@@ -1,4 +1,6 @@
 import { clear, el, emptyState, pill } from "./render.js";
+import { createCollisionGate } from "./ingest-collision.js";
+import { wireDropzone } from "./ingest-dropzone.js";
 
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 const MAX_FILES_PER_DROP = 40;
@@ -60,7 +62,7 @@ export function renderUploads(target, counter, uploads, followJobId) {
 
 export function createIngestController({ dom, toast, postForm, postJson, endpoints, onAuthError, guard }) {
   const uploads = [];
-  let dialogResolver = null;
+  const askCollision = createCollisionGate(dom);
   let followJobId = null;
   let localMode = false;
 
@@ -76,44 +78,6 @@ export function createIngestController({ dom, toast, postForm, postJson, endpoin
       hint.textContent = localMode ? LOCAL_HINT : DEPLOYED_HINT;
     }
   }
-
-  function askCollision(fileName) {
-    dom.collisionMessage.textContent =
-      `A scan named ${fileName} already exists in this batch. The file stem is the student id: ` +
-      "replace that student's scan, or store this file under a different student.";
-    dom.collisionRenameInput.hidden = true;
-    dom.collisionRenameInput.value = "";
-    dom.collisionError.hidden = true;
-    dom.collisionGate.hidden = false;
-    return new Promise((resolve) => {
-      dialogResolver = resolve;
-    });
-  }
-
-  function settleDialog(result) {
-    if (dialogResolver) {
-      dom.collisionGate.hidden = true;
-      dialogResolver(result);
-      dialogResolver = null;
-    }
-  }
-
-  dom.collisionCancel.addEventListener("click", () => settleDialog({ action: "cancel" }));
-  dom.collisionReplace.addEventListener("click", () => settleDialog({ action: "replace" }));
-  dom.collisionRename.addEventListener("click", () => {
-    if (dom.collisionRenameInput.hidden) {
-      dom.collisionRenameInput.hidden = false;
-      dom.collisionRenameInput.focus();
-      return;
-    }
-    const name = dom.collisionRenameInput.value.trim();
-    if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(name)) {
-      dom.collisionError.textContent = "Student id: letters, digits, dot, dash or underscore.";
-      dom.collisionError.hidden = false;
-      return;
-    }
-    settleDialog({ action: "rename", name });
-  });
 
   async function send(file, lotCode, mode, newName) {
     const form = new FormData();
@@ -196,36 +160,7 @@ export function createIngestController({ dom, toast, postForm, postJson, endpoin
     paint();
   }
 
-  dom.dropzone.addEventListener("click", () => dom.fileInput.click());
-  dom.dropzone.addEventListener("keydown", (event) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      dom.fileInput.click();
-    }
-  });
-  dom.fileInput.addEventListener("change", () => {
-    if (dom.fileInput.files.length) {
-      handleFiles(dom.fileInput.files);
-      dom.fileInput.value = "";
-    }
-  });
-  ["dragenter", "dragover"].forEach((name) =>
-    dom.dropzone.addEventListener(name, (event) => {
-      event.preventDefault();
-      dom.dropzone.classList.add("is-dragover");
-    })
-  );
-  ["dragleave", "drop"].forEach((name) =>
-    dom.dropzone.addEventListener(name, (event) => {
-      event.preventDefault();
-      dom.dropzone.classList.remove("is-dragover");
-    })
-  );
-  dom.dropzone.addEventListener("drop", (event) => {
-    if (event.dataTransfer && event.dataTransfer.files.length) {
-      handleFiles(event.dataTransfer.files);
-    }
-  });
+  wireDropzone(dom, (files) => handleFiles(files));
 
   dom.sampleBatchButton.addEventListener("click", async () => {
     if (localMode) {

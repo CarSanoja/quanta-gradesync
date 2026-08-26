@@ -17,6 +17,7 @@ const IDS = {
   reviewCount: "review-count",
   reviewDetail: "review-detail",
   reviewBulkButton: "review-bulk-button",
+  reviewBulkNote: "review-bulk-note",
   optimizerVariants: "optimizer-variants",
   optimizerCycles: "optimizer-cycles",
   cyclesCount: "cycles-count",

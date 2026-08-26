@@ -150,8 +150,8 @@ window.goToMissionControl = (focus) => {
   }
 };
 window.goToSisLedger = (jobId) => {
+  sisController.focusJob(jobId);
   setView("sis");
-  sisController.load(jobId);
 };
 window.goToJobsBatch = (jobId) => {
   setView("jobs");

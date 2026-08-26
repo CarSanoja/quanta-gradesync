@@ -147,7 +147,10 @@ export function renderPanes(dom, state, handlers) {
     dom.liveDetail, selected, meta));
   if (state.tab === "chains") {
     safely(dom.liveChain, "Reasoning per student unavailable", () => renderChains(
-      dom.liveChain, state.events, meta, handlers.onSelectStep));
+      dom.liveChain, state.events, meta, {
+        onSelect: handlers.onSelectStep,
+        onFocusStudent: handlers.onFocusStudent,
+      }));
   }
 }
 

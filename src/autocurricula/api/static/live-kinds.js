@@ -5,6 +5,7 @@ export const KIND_LABELS = {
   stage: "stage",
   grading: "grading",
   faithfulness: "evidence",
+  transcription: "transcript",
   span: "span",
 };
 
@@ -21,6 +22,9 @@ export function classifyEvent(event) {
   }
   if (name === "FaithfulnessVerification") {
     return "faithfulness";
+  }
+  if (name.startsWith("EvidenceTranscription")) {
+    return "transcription";
   }
   if (name.startsWith("Stage_")) {
     return "stage";
@@ -48,12 +52,35 @@ export function verificationOf(attributes) {
 }
 
 const VERIFICATION_LABELS = {
-  verified: "evidence verified",
-  failed: "evidence check failed",
+  verified: "Evidence check: cited quotes found on the page",
+  failed: "Evidence check: a cited quote is NOT on the page",
+  unchecked: "Evidence check: no reference text to verify against",
 };
 
 export function verificationLabel(attributes) {
-  return VERIFICATION_LABELS[verificationOf(attributes)] || "evidence not verified yet";
+  return VERIFICATION_LABELS[verificationOf(attributes)] || VERIFICATION_LABELS.unchecked;
+}
+
+export function verificationDetail(attributes) {
+  const bag = attributes || {};
+  if (verificationOf(bag) === "unchecked") {
+    const pending = Number(bag["evidence.spans_unchecked"]) || 0;
+    return pending ? `${pending} cited quote${pending === 1 ? "" : "s"}, none verifiable` : "";
+  }
+  const verified = bag["evidence.spans_verified"];
+  if (verified === undefined) {
+    return "";
+  }
+  return `${verified} quote${Number(verified) === 1 ? "" : "s"} checked`;
+}
+
+export function transcriptionTokens(attributes) {
+  const bag = attributes || {};
+  const total =
+    Number(bag["gen_ai.usage.tokens"]) ||
+    (Number(bag["gen_ai.usage.input_tokens"]) || 0) +
+      (Number(bag["gen_ai.usage.output_tokens"]) || 0);
+  return total ? `${total} tok` : "";
 }
 
 export function clockTime(value) {
@@ -107,7 +134,10 @@ export function toneOf(event, kind) {
     if (verification === "failed") {
       return "failed";
     }
-    return verification === "verified" ? "succeeded" : "pending";
+    return verification === "verified" ? "succeeded" : "info";
+  }
+  if (kind === "transcription") {
+    return event.kind === "span_start" ? "running" : "info";
   }
   if (kind === "llm" || event.kind === "span_start") {
     return "running";

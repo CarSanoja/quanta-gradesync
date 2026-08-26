@@ -3,6 +3,10 @@ import { renderQueueCleared, renderReviewDetail, renderReviewList } from "./view
 
 const EMPTY_CONTEXT = { item: null, criteria: [], imageUrl: null };
 
+function heldLabel(count) {
+  return `${count} exam${count === 1 ? "" : "s"} held only by the batch rule`;
+}
+
 function refusalNote(error) {
   const body = error && error.body;
   const refused = body && Array.isArray(body.refused) ? body.refused : [];
@@ -16,7 +20,10 @@ function refusalNote(error) {
 export function createReviewController(deps) {
   const { dom, guard, getJson, postJson, endpoints, toast, setView } = deps;
   const { getObjectUrl, jobDetailFor, onDecided } = deps;
-  const state = { items: [], activeId: null, context: { ...EMPTY_CONTEXT }, lastJobId: null, held: [] };
+  const state = {
+    items: [], activeId: null, context: { ...EMPTY_CONTEXT },
+    lastJobId: null, held: [], heldNote: "",
+  };
 
   function releaseImage() {
     if (state.context.imageUrl) {
@@ -72,13 +79,20 @@ export function createReviewController(deps) {
     }
     const count = state.held.length;
     button.hidden = count === 0;
-    button.textContent = `Release ${count} held only by the batch rule`;
+    button.textContent = `Release ${heldLabel(count)}`;
+    const note = dom.reviewBulkNote;
+    if (!note) {
+      return;
+    }
+    note.textContent = count ? state.heldNote : "";
+    note.hidden = !count || !state.heldNote;
   }
 
   async function loadHeld() {
     const summary = await guard(() => getJson(endpoints.teacherSummary()));
     const group = summary && summary.batch_hold ? summary.batch_hold : null;
     state.held = group && group.count > 0 && Array.isArray(group.items) ? group.items : [];
+    state.heldNote = group && typeof group.note === "string" ? group.note : "";
     paintBulkButton();
   }
 
@@ -135,7 +149,7 @@ export function createReviewController(deps) {
     if (!items.length) {
       return;
     }
-    const question = `Release ${items.length} exam(s) held only by the batch rule into the SIS?`;
+    const question = `Release ${heldLabel(items.length)} into the SIS?`;
     if (!window.confirm(question)) {
       return;
     }

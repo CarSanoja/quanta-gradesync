@@ -9,6 +9,8 @@ import {
   isTickerEvent,
   toneOf,
   tokenText,
+  transcriptionTokens,
+  verificationDetail,
   verificationLabel,
 } from "./live-kinds.js";
 import { filterLabel, matchesFocus } from "./live-focus.js";
@@ -71,12 +73,19 @@ function describe(event, kind) {
       ),
     };
   }
+  if (kind === "transcription") {
+    const tokens = transcriptionTokens(attributes);
+    const done = event.kind !== "span_start";
+    const label = done ? "Page transcribed" : "Transcribing the page";
+    return {
+      label: [label, tokens].filter(Boolean).join(" · "),
+      meta: [event.student_id, event.agent_id].filter(Boolean).join(" · "),
+    };
+  }
   if (kind === "faithfulness") {
-    const verified = attributes["evidence.spans_verified"];
-    const spans = verified === undefined ? "" : `${verified} spans verified`;
     return {
       label: verificationLabel(attributes),
-      meta: [event.student_id, spans].filter(Boolean).join(" · "),
+      meta: [event.student_id, verificationDetail(attributes)].filter(Boolean).join(" · "),
     };
   }
   return { label: event.name, meta: event.stage || String(event.status) };

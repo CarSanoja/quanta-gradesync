@@ -21,7 +21,13 @@ LIVE_SCRIPTS = (
     "live-students.js",
 )
 LIVE_STYLES = ("live.css",)
-LIVE_ASSETS = LIVE_SCRIPTS + LIVE_STYLES
+INGEST_SCRIPTS = (
+    "ingest.js",
+    "ingest-collision.js",
+    "ingest-dropzone.js",
+)
+CONSOLE_SCRIPTS = LIVE_SCRIPTS + INGEST_SCRIPTS
+LIVE_ASSETS = CONSOLE_SCRIPTS + LIVE_STYLES
 
 
 @pytest.mark.parametrize("asset", LIVE_ASSETS)
@@ -34,7 +40,7 @@ def test_mission_control_assets_are_bundled(asset: str) -> None:
     assert asset_path(asset).is_file()
 
 
-@pytest.mark.parametrize("asset", LIVE_SCRIPTS)
+@pytest.mark.parametrize("asset", CONSOLE_SCRIPTS)
 async def test_live_scripts_are_served_as_javascript(
     client: httpx.AsyncClient, asset: str
 ) -> None:

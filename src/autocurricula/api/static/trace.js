@@ -1,9 +1,6 @@
 import { clear, el, emptyState, formatDateTime, metaRow, pill } from "./render.js";
 import { formatMs, renderSpanTree } from "./trace-spans.js";
 
-const POLL_INTERVAL_MS = 2500;
-const TERMINAL_STAGES = new Set(["completed", "failed"]);
-
 export { renderSpanTree };
 
 function metricsTable(metrics) {
@@ -95,72 +92,4 @@ export function renderTraceJobs(target, jobs, activeId, onSelect) {
     ]));
   });
   target.append(list);
-}
-
-export function createTraceController({ dom, guard, getJson, endpoints }) {
-  const state = { jobs: [], activeJobId: null, timer: null };
-
-  function indicator(live, label) {
-    dom.tracePoll.classList.toggle("is-live", live);
-    dom.traceStatus.textContent = label;
-  }
-
-  async function loadDetail() {
-    if (!state.activeJobId) {
-      renderTraceDetail(dom.traceDetail, null);
-      return;
-    }
-    const trace = await guard(() => getJson(endpoints.trace(state.activeJobId)));
-    if (!trace || trace.job_id !== state.activeJobId) {
-      return;
-    }
-    renderTraceDetail(dom.traceDetail, trace);
-    if (TERMINAL_STAGES.has(trace.stage)) {
-      stopTimer();
-      indicator(false, `settled · ${trace.stage}`);
-    }
-  }
-
-  async function tick() {
-    const payload = await guard(() => getJson(endpoints.jobs()));
-    if (payload) {
-      state.jobs = payload.items;
-      if (!state.activeJobId && state.jobs.length) {
-        state.activeJobId = state.jobs[0].job_id;
-      }
-      renderTraceJobs(dom.traceJobs, state.jobs, state.activeJobId, select);
-    }
-    await loadDetail();
-  }
-
-  function stopTimer() {
-    if (state.timer !== null) {
-      window.clearInterval(state.timer);
-      state.timer = null;
-    }
-  }
-
-  function startTimer() {
-    stopTimer();
-    indicator(true, "polling");
-    state.timer = window.setInterval(tick, POLL_INTERVAL_MS);
-    tick();
-  }
-
-  function select(jobId) {
-    state.activeJobId = jobId;
-    renderTraceJobs(dom.traceJobs, state.jobs, state.activeJobId, select);
-    startTimer();
-  }
-
-  function start() {
-    startTimer();
-  }
-
-  function stop() {
-    stopTimer();
-    indicator(false, "");
-  }
-
-  return { start, stop, load: tick };
 }
