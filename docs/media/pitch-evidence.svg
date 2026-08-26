@@ -59,9 +59,9 @@
   <g>
     <rect x="1266" y="518" width="553" height="310" rx="14" fill="#ffffff" stroke="#dadce0" stroke-width="2"/>
     <rect x="1268" y="530" width="7" height="286" rx="3.5" fill="#5f6368"/>
-    <text x="1306" y="650" font-size="104" font-weight="bold" fill="#5f6368">506</text>
+    <text x="1306" y="650" font-size="104" font-weight="bold" fill="#5f6368">639</text>
     <text x="1306" y="702" font-size="22" fill="#202124">offline tests over the pipeline and</text>
-    <text x="1306" y="730" font-size="22" fill="#202124">its gates — 8 skipped of 514 collected</text>
+    <text x="1306" y="730" font-size="22" fill="#202124">its gates — 10 skipped of 649 collected</text>
     <line x1="1306" y1="780" x2="1779" y2="780" stroke="#f1f3f4" stroke-width="2"/>
     <text x="1306" y="810" font-size="20" font-style="italic" fill="#80868b">offline suite, run on every change</text>
   </g>

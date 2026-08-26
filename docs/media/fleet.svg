@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1680 1030" font-family="Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1680 1160" font-family="Helvetica, Arial, sans-serif">
   <defs>
     <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M0 0 L10 5 L0 10 z" fill="#5f6368"/>
@@ -7,11 +7,11 @@
       <path d="M0 0 L10 5 L0 10 z" fill="#d93025"/>
     </marker>
   </defs>
-  <rect width="1680" height="1030" fill="#ffffff"/>
+  <rect width="1680" height="1160" fill="#ffffff"/>
 
-  <text x="40" y="52" font-size="27" font-weight="bold" fill="#202124">The agent fleet — eleven declared components, three planes</text>
+  <text x="40" y="52" font-size="27" font-weight="bold" fill="#202124">The agent fleet — twelve declared components, three planes</text>
   <text x="40" y="76" font-size="14" fill="#5f6368">Every field below is derived by GET /fleet/registry from the running configuration — model id, stage binding, capability scope, principal, prompt variant — so documentation drift is detectable rather than assumed.</text>
-  <text x="40" y="97" font-size="12.5" fill="#5f6368">Registry summary in GCP mode: 11 agents, 11 wired · by model — gemini-3.5-flash 2, gemini-3.5-flash-lite 5, deterministic 4 · 14 principals, 1 dedicated service account.</text>
+  <text x="40" y="97" font-size="12.5" fill="#5f6368">Registry summary in GCP mode: 12 agents, 12 wired · by model — gemini-3.5-flash 2, gemini-3.5-flash-lite 6, deterministic 4 · 15 principals, 1 dedicated service account.</text>
   <rect x="1100" y="87" width="15" height="12" rx="3" fill="#ffffff" stroke="#1a73e8" stroke-width="1.5"/>
   <text x="1122" y="97" font-size="11" fill="#5f6368">model-backed</text>
   <rect x="1222" y="87" width="15" height="12" rx="3" fill="#ffffff" stroke="#80868b" stroke-width="1.5"/>
@@ -20,7 +20,7 @@
   <text x="1362" y="97" font-size="11" fill="#5f6368">governance — stops something</text>
 
   <!-- ============ HOT PATH ============ -->
-  <rect x="40" y="118" width="1600" height="196" rx="12" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2"/>
+  <rect x="40" y="118" width="1600" height="326" rx="12" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2"/>
   <text x="58" y="142" font-size="14" font-weight="bold" fill="#174ea6">HOT PATH — runs inside the Pub/Sub push request, once per exam; the batch is acknowledged only when all of it succeeded</text>
 
   <g>
@@ -71,6 +71,22 @@
     <text x="1256" y="254" font-size="11" fill="#5f6368" font-style="italic">z-scores and longitudinal slopes over L3 history</text>
   </g>
 
+  <g>
+    <rect x="56" y="282" width="380" height="118" rx="10" fill="#ffffff" stroke="#1a73e8" stroke-width="1.5"/>
+    <text x="68" y="307" font-size="14" font-weight="bold" fill="#174ea6">12 · Evidence transcriber</text>
+    <rect x="376" y="292" width="48" height="20" rx="4" fill="#1a73e8"/>
+    <text x="400" y="306" font-size="11" fill="#ffffff" text-anchor="middle">grade</text>
+    <text x="68" y="328" font-size="12.5" fill="#0d652d">gemini-3.5-flash-lite</text>
+    <text x="68" y="347" font-size="11.5" fill="#3c4043">llm.invoke</text>
+    <text x="424" y="347" font-size="11" fill="#80868b" text-anchor="end">no prompt variant</text>
+    <text x="68" y="365" font-size="11" fill="#5f6368">agent://evidence-transcriber</text>
+    <text x="68" y="384" font-size="11" fill="#5f6368" font-style="italic">independent page reading; cited quotes are verified against it</text>
+  </g>
+  <text x="452" y="312" font-size="11.5" fill="#3c4043">Closes the production gap where real scans carry no reference text: before grading, a second model reads each page verbatim;</text>
+  <text x="452" y="331" font-size="11.5" fill="#3c4043">the faithfulness verifier then matches every cited quote against that transcript (longest-common-substring coverage, threshold 0.75).</text>
+  <text x="452" y="350" font-size="11.5" fill="#3c4043">Sidecar ground truth keeps strict precedence; a failed transcription degrades to unchecked and never blocks grading.</text>
+  <text x="452" y="372" font-size="11" fill="#5f6368" font-style="italic">verified live 2026-08-26 against the sample page: printed header and handwritten factoring verify, a fabricated quote does not.</text>
+  <g transform="translate(0,130)">
   <text x="58" y="294" font-size="11" fill="#5f6368" font-style="italic">measured 2026-08-19 — 8-exam batch: 16 LLM calls, 40.2 s of stage spans, 43.9 s wall clock, $0.31275 total → $0.0391 and 5.0 s per exam.</text>
 
   <!-- ============ RECOVERY ============ -->
@@ -171,9 +187,9 @@
 
   <!-- ============ IDENTITY BAND ============ -->
   <rect x="40" y="762" width="1600" height="204" rx="12" fill="#ffffff" stroke="#dadce0" stroke-width="1.5"/>
-  <text x="58" y="788" font-size="15" font-weight="bold" fill="#202124">Identity — 14 principals: one per agent, plus three infrastructure principals that own the work no single agent owns</text>
+  <text x="58" y="788" font-size="15" font-weight="bold" fill="#202124">Identity — 15 principals: one per agent, plus three infrastructure principals that own the work no single agent owns</text>
 
-  <text x="58" y="812" font-size="12" fill="#3c4043">All 11 agent principals run as the ambient Cloud Run runtime identity autocurricula-runner@ — and not one of them holds sis.write.</text>
+  <text x="58" y="812" font-size="12" fill="#3c4043">All 12 agent principals run as the ambient Cloud Run runtime identity autocurricula-runner@ — and not one of them holds sis.write.</text>
   <text x="58" y="832" font-size="12" fill="#3c4043">The schema repair component holds no capability at all: it re-invokes the caller's evaluator, so its retry is authorised under the caller's principal.</text>
   <text x="58" y="852" font-size="12" fill="#3c4043">core/harness/capabilities.py checks every external action against the declared set before the network call, so a violation costs zero tokens</text>
   <text x="58" y="872" font-size="12" fill="#3c4043">and writes a CapabilityAuditRecord. An undeclared tool or an unknown agent id is denied: adding an action breaks loudly, never silently inherits.</text>
@@ -195,7 +211,7 @@
 
   <text x="1352" y="806" font-size="11.5" font-weight="bold" fill="#3c4043">The only crossing</text>
   <text x="1352" y="824" font-size="11" fill="#5f6368">No agent principal holds sis.write; the</text>
-  <text x="1352" y="840" font-size="11" fill="#5f6368">other thirteen reach only Google-managed</text>
+  <text x="1352" y="840" font-size="11" fill="#5f6368">other fourteen reach only Google-managed</text>
   <text x="1352" y="856" font-size="11" fill="#5f6368">services under the ambient runtime SA.</text>
 
   <rect x="1352" y="870" width="272" height="76" rx="10" fill="#e8f0fe" stroke="#1a73e8"/>
@@ -203,6 +219,7 @@
   <text x="1488" y="912" font-size="11" fill="#174ea6" text-anchor="middle">+ Firestore sis_records ledger</text>
   <text x="1488" y="930" font-size="11" fill="#174ea6" text-anchor="middle">the school's system of record</text>
 
-  <text x="40" y="994" font-size="11.5" fill="#5f6368">Nothing here is hand-maintained: the registry computes a definition SHA per agent and a registry SHA over the fleet. Offline suite: 506 passed, 8 skipped of 514 collected.</text>
+  <text x="40" y="994" font-size="11.5" fill="#5f6368">Nothing here is hand-maintained: the registry computes a definition SHA per agent and a registry SHA over the fleet. Offline suite: 639 passed, 10 skipped of 649 collected.</text>
   <text x="40" y="1012" font-size="11.5" fill="#5f6368">Impersonation is configuration-gated and falls back to the ambient identity on an IAM failure, logging the fallback — a token outage must not stop grades reaching the school.</text>
+  </g>
 </svg>

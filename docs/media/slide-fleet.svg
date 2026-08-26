@@ -3,7 +3,7 @@
 
   <text x="100" y="74" font-size="24" font-weight="bold" letter-spacing="7" fill="#80868b">THE AGENT FLEET</text>
   <text x="100" y="132" font-size="52" font-weight="bold" fill="#202124">A fleet with a shape, not a pile of prompts.</text>
-  <text x="1820" y="132" font-size="26" fill="#5f6368" text-anchor="end">eleven components</text>
+  <text x="1820" y="132" font-size="26" fill="#5f6368" text-anchor="end">twelve components</text>
   <line x1="100" y1="158" x2="1820" y2="158" stroke="#e8eaed" stroke-width="2"/>
 
   <!-- ============ HOT PATH ============ -->
@@ -11,23 +11,28 @@
   <text x="130" y="254" font-size="30" font-weight="bold" letter-spacing="3" fill="#174ea6">HOT PATH</text>
   <text x="130" y="294" font-size="24" fill="#174ea6">every exam, one push request</text>
 
-  <rect x="118" y="320" width="496" height="110" rx="10" fill="#ffffff" stroke="#1a73e8" stroke-width="2"/>
-  <text x="144" y="366" font-size="28" font-weight="bold" fill="#174ea6">Grading agent</text>
-  <text x="144" y="404" font-size="24" fill="#0d652d">Gemini 3.5 Flash</text>
+  <rect x="118" y="320" width="496" height="96" rx="10" fill="#ffffff" stroke="#1a73e8" stroke-width="2"/>
+  <text x="144" y="360" font-size="28" font-weight="bold" fill="#174ea6">Grading agent</text>
+  <text x="144" y="396" font-size="24" fill="#0d652d">Gemini 3.5 Flash</text>
 
-  <rect x="118" y="444" width="496" height="110" rx="10" fill="#ffffff" stroke="#1a73e8" stroke-width="2"/>
-  <text x="144" y="490" font-size="28" font-weight="bold" fill="#174ea6">Curriculum auditor</text>
-  <text x="144" y="528" font-size="24" fill="#0d652d">Gemini 3.5 Flash-Lite</text>
+  <rect x="118" y="424" width="496" height="96" rx="10" fill="#ffffff" stroke="#1a73e8" stroke-width="2"/>
+  <text x="144" y="464" font-size="28" font-weight="bold" fill="#174ea6">Curriculum auditor</text>
+  <text x="144" y="500" font-size="24" fill="#0d652d">Gemini 3.5 Flash-Lite</text>
 
-  <rect x="118" y="568" width="496" height="110" rx="10" fill="#ffffff" stroke="#d93025" stroke-width="2"/>
-  <text x="144" y="614" font-size="28" font-weight="bold" fill="#a50e0e">Armor screener</text>
-  <text x="144" y="652" font-size="24" fill="#0d652d">Gemini 3.5 Flash-Lite</text>
+  <rect x="118" y="528" width="496" height="96" rx="10" fill="#ffffff" stroke="#d93025" stroke-width="2"/>
+  <text x="144" y="568" font-size="28" font-weight="bold" fill="#a50e0e">Armor screener</text>
+  <text x="144" y="604" font-size="24" fill="#0d652d">Gemini 3.5 Flash-Lite</text>
 
-  <rect x="118" y="692" width="496" height="110" rx="10" fill="#ffffff" stroke="#80868b" stroke-width="2"/>
-  <text x="144" y="738" font-size="28" font-weight="bold" fill="#3c4043">Risk detector</text>
-  <text x="144" y="776" font-size="24" fill="#5f6368">deterministic code</text>
+  <rect x="118" y="632" width="496" height="96" rx="10" fill="#ffffff" stroke="#80868b" stroke-width="2"/>
+  <text x="144" y="672" font-size="28" font-weight="bold" fill="#3c4043">Risk detector</text>
+  <text x="144" y="708" font-size="24" fill="#5f6368">deterministic code</text>
 
-  <!-- ============ RECOVERY ============ -->
+  
+  <rect x="118" y="736" width="496" height="96" rx="10" fill="#ffffff" stroke="#1a73e8" stroke-width="2"/>
+  <text x="144" y="776" font-size="28" font-weight="bold" fill="#174ea6">Evidence transcriber</text>
+  <text x="144" y="812" font-size="24" fill="#0d652d">Gemini 3.5 Flash-Lite</text>
+
+<!-- ============ RECOVERY ============ -->
   <rect x="694" y="200" width="532" height="650" rx="14" fill="#f8f9fa" stroke="#80868b" stroke-width="3" stroke-dasharray="10 7"/>
   <text x="724" y="254" font-size="30" font-weight="bold" letter-spacing="3" fill="#3c4043">RECOVERY</text>
   <text x="724" y="294" font-size="24" fill="#3c4043">only when something breaks</text>
@@ -63,6 +68,6 @@
 
   <!-- ============ FOOTER ============ -->
   <rect x="100" y="890" width="1720" height="110" rx="12" fill="#f8f9fa" stroke="#dadce0" stroke-width="2"/>
-  <text x="960" y="938" font-size="30" font-weight="bold" fill="#202124" text-anchor="middle">Seven model-backed. Four deterministic. Derived live from the running configuration.</text>
+  <text x="960" y="938" font-size="30" font-weight="bold" fill="#202124" text-anchor="middle">Eight model-backed. Four deterministic. Derived live from the running configuration.</text>
   <text x="960" y="978" font-size="24" font-style="italic" fill="#5f6368" text-anchor="middle">GET /fleet/registry &#8212; the list cannot drift from the code</text>
 </svg>
