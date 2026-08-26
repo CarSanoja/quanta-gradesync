@@ -261,5 +261,5 @@
 
   <text x="40" y="1186" font-size="12" font-weight="bold" fill="#3c4043">What this diagram is not claiming</text>
   <text x="40" y="1206" font-size="11.5" fill="#5f6368">Gate 4 labels rather than prevents: armor screens after the grading call, and an exception inside the screen is still read as clean. Gate 5 is inert in production. Gate 8 has never denied a real write.</text>
-  <text x="40" y="1224" font-size="11.5" fill="#5f6368">Each of those is a measured limit from docs/architecture/limits-adversarial-review.md, kept visible here rather than painted over. 639 offline tests exercise this machinery.</text>
+  <text x="40" y="1224" font-size="11.5" fill="#5f6368">Each of those is a measured limit from docs/architecture/limits-adversarial-review.md, kept visible here rather than painted over. 648 offline tests exercise this machinery.</text>
 </svg>
