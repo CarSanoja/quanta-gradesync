@@ -1,41 +1,17 @@
 import json
-import unicodedata
 
 from pydantic import Field, ValidationError, model_validator
 
 from autocurricula.core.orchestration.catalog import CatalogError
+from autocurricula.core.orchestration.subjects import (
+    canonical_subject as canonical_subject,
+)
+from autocurricula.core.orchestration.subjects import (
+    normalize_token as normalize_token,
+)
 from autocurricula.schemas.common import StrictBaseModel
 from autocurricula.schemas.curriculum import CurriculumStandard
 from autocurricula.schemas.rubric import Rubric
-
-SUBJECT_ALIASES = {
-    "math": "matematicas",
-    "maths": "matematicas",
-    "mathematics": "matematicas",
-    "matematica": "matematicas",
-    "matematicas": "matematicas",
-    "language": "lenguaje",
-    "languagearts": "lenguaje",
-    "lengua": "lenguaje",
-    "castellano": "lenguaje",
-    "science": "ciencias",
-    "sciences": "ciencias",
-    "ciencia": "ciencias",
-}
-
-
-def strip_accents(value: str) -> str:
-    decomposed = unicodedata.normalize("NFD", value)
-    return "".join(char for char in decomposed if not unicodedata.combining(char))
-
-
-def normalize_token(value: str) -> str:
-    return strip_accents(value).strip().lower().replace(" ", "-")
-
-
-def canonical_subject(value: str) -> str:
-    normalized = normalize_token(value)
-    return SUBJECT_ALIASES.get(normalized.replace("-", ""), normalized)
 
 
 class CatalogDefaults(StrictBaseModel):

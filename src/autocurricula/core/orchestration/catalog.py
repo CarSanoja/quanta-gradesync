@@ -6,6 +6,7 @@ from typing import Protocol, runtime_checkable
 from pydantic import ValidationError, model_validator
 
 from autocurricula.config import Settings, get_storage_client
+from autocurricula.core.orchestration.subjects import same_subject
 from autocurricula.schemas.common import StrictBaseModel
 from autocurricula.schemas.curriculum import CurriculumStandard
 from autocurricula.schemas.events import PubSubJobEvent
@@ -32,8 +33,11 @@ class BatchManifest(StrictBaseModel):
     def _aligned_content(self) -> "BatchManifest":
         if self.rubric.rubric_id != self.batch.rubric_id:
             raise ValueError("manifest rubric_id does not match the batch rubric_id")
-        if self.rubric.subject != self.batch.subject:
-            raise ValueError("manifest rubric subject does not match the batch subject")
+        if not same_subject(self.rubric.subject, self.batch.subject):
+            raise ValueError(
+                f"manifest rubric subject {self.rubric.subject!r} does not match the "
+                f"batch subject {self.batch.subject!r}"
+            )
         return self
 
 

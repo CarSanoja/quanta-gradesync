@@ -49,3 +49,11 @@ def test_the_error_names_every_subject_the_catalog_binds() -> None:
         catalog.binding_for("Astrophysics")
 
     assert "this catalog binds: Lenguaje, Matematicas" in str(error.value)
+
+
+def test_the_manifest_accepts_a_rubric_whose_subject_is_spelled_differently() -> None:
+    from autocurricula.core.orchestration.subjects import same_subject
+
+    assert same_subject("Mathematics", "Matematicas")
+    assert same_subject("Matemáticas", "matematicas")
+    assert not same_subject("Historia", "Matematicas")
