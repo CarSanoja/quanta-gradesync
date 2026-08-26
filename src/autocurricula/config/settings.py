@@ -95,7 +95,7 @@ class Settings(BaseSettings):
 
     resume_stale_after_seconds: float = Field(default=600.0, gt=0.0)
     batch_settle_interval_seconds: float = Field(default=0.0, ge=0.0, le=120.0)
-    batch_settle_max_rounds: int = Field(default=6, ge=1, le=60)
+    batch_settle_max_rounds: int = Field(default=18, ge=1, le=60)
 
     local_mode: bool = True
     local_data_dir: Path = Path(".local_data")

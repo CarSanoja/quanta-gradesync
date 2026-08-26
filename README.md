@@ -363,7 +363,7 @@ All variables use the `GRADESYNC_` prefix and are read from the environment or a
 | `GRADESYNC_TELEMETRY_PAYLOAD_MAX_CHARS` | `4000` | Truncation cap applied to every captured excerpt |
 | `GRADESYNC_LOG_JSON` | `false` local / `true` GCP | Structured JSON logs on stdout, correlated to the job's trace |
 | `GRADESYNC_BATCH_SETTLE_INTERVAL_SECONDS` | `0` local / `5` GCP | Poll interval while a multi-object upload settles (`0` disables the settler) |
-| `GRADESYNC_BATCH_SETTLE_MAX_ROUNDS` | `6` | Maximum settle polls before the batch is processed as-is |
+| `GRADESYNC_BATCH_SETTLE_MAX_ROUNDS` | `18` | Maximum settle polls before the batch is processed as-is |
 | `GRADESYNC_SIS_BASE_URL` | *(empty)* | School Information System API base URL |
 | `GRADESYNC_SIS_API_TOKEN` | *(empty)* | SIS bearer token |
 | `GRADESYNC_LOCAL_MODE` | auto | `true` selects local offline implementations |

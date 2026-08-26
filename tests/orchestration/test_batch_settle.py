@@ -97,7 +97,7 @@ def test_settler_defaults_to_a_bounded_wait_in_gcp_mode() -> None:
     settings = Settings(local_mode=False, gcp_project_id="quanta-gradesync")
     assert settings.local_mode is False
     assert settings.batch_settle_interval_seconds == GCP_SETTLE_INTERVAL_SECONDS
-    assert settings.batch_settle_max_rounds == 6
+    assert settings.batch_settle_max_rounds == 18
 
 
 def test_explicit_settle_interval_wins_over_mode_default() -> None:
