@@ -14,6 +14,7 @@ from autocurricula.config.settings import Settings
 from autocurricula.core.memory.session_memory import SessionState
 from autocurricula.core.orchestration.job_state import JobRecord, JobStage
 from autocurricula.schemas.events import PubSubJobEvent
+from autocurricula.schemas.labels import Label, LabelDecision, LabelScore
 from autocurricula.schemas.sis_sync import SISGradeRecord, SISWriteRequest
 from autocurricula.tools import sis_connector as sis_connector_module
 from autocurricula.tools import sis_firestore
@@ -324,6 +325,86 @@ async def test_sis_records_reads_the_local_jsonl_newest_first(
     limited = await ledger_client.get("/sis/records?limit=1", headers=ledger_headers)
     assert limited.json()["count"] == 1
     assert limited.json()["items"][0]["student_id"] == "tomas-vega"
+
+
+async def test_human_decision_restores_scores_and_rubric_titles(
+    ledger_client: httpx.AsyncClient,
+    ledger_container: AppContainer,
+    ledger_headers: dict[str, str],
+) -> None:
+    await ledger_container.checkpoint_store.save(make_job_record(JOB_ID))
+    stage_results = make_stage_results("ana-torres")
+    stage_results["fetch"]["rubric"] = {
+        "criteria": [
+            {"criterion_id": "crit-a", "description": "Reasoning"}
+        ]
+    }
+    await ledger_container.checkpoint_store.save_state(
+        JOB_ID, SessionState(job_id=JOB_ID, stage_results=stage_results)
+    )
+    await ledger_container.sis_connector.write_grades(
+        make_write_request(JOB_ID, ["ana-torres"])
+    )
+    await ledger_container.review_service.label_store.put(
+        Label(
+            label_id="review-ana:override",
+            review_id="review-ana",
+            job_id=JOB_ID,
+            student_id="ana-torres",
+            subject="matematicas",
+            decision=LabelDecision.OVERRIDE,
+            scores=[
+                LabelScore(
+                    criterion_id="crit-a",
+                    machine_score=3.5,
+                    human_score=2.5,
+                    max_score=4.0,
+                )
+            ],
+            machine_percentage=87.5,
+            human_percentage=62.5,
+            created_at=GRADED_AT,
+        )
+    )
+
+    response = await ledger_client.get(
+        "/sis/records",
+        params={"student_id": "ana"},
+        headers=ledger_headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["items"][0]["criterion_scores"] == [
+        {
+            "criterion_id": "crit-a",
+            "title": "Reasoning",
+            "score": 2.5,
+            "confidence": 0.92,
+        }
+    ]
+
+
+async def test_student_search_scans_beyond_the_default_recent_window(
+    ledger_client: httpx.AsyncClient,
+    ledger_container: AppContainer,
+    ledger_headers: dict[str, str],
+) -> None:
+    await ledger_container.sis_connector.write_grades(
+        make_write_request("job-old", ["olga-vera"])
+    )
+    for index in range(55):
+        await ledger_container.sis_connector.write_grades(
+            make_write_request(f"job-{index}", [f"student-{index}"])
+        )
+
+    response = await ledger_client.get(
+        "/sis/records",
+        params={"student_id": "olga"},
+        headers=ledger_headers,
+    )
+
+    assert response.status_code == 200
+    assert [item["student_id"] for item in response.json()["items"]] == ["olga-vera"]
 
 
 async def test_sis_records_reads_firestore_in_gcp_mode(

@@ -48,6 +48,7 @@ export function askConfirm(options) {
   dom.confirmAside.textContent = options.aside || "";
   dom.confirmAside.hidden = !options.aside;
   dom.confirmYes.textContent = options.yes;
+  dom.confirmYes.dataset.idleText = options.yes;
   dom.confirmError.hidden = true;
   dom.confirmError.textContent = "";
   confirmAction = options.onYes;
@@ -63,16 +64,20 @@ export function confirmError(message) {
 export function confirmBusy(busy) {
   dom.confirmYes.disabled = busy;
   dom.confirmNo.disabled = busy;
+  dom.confirmYes.textContent = busy ? "Putting them in…" : dom.confirmYes.dataset.idleText;
 }
 
-export function askCollision(studentId) {
+export function askCollision(studentId, position = 1, total = 1) {
+  dom.collisionTitle.textContent = total > 1
+    ? `This student already has a scan — ${position} of ${total}`
+    : "This student already has a scan";
   dom.collisionMessage.textContent =
     `There is already a scan saved for ${prettyName(studentId)} in this assessment. You can `
     + "replace it, or save this one under a different student.";
   dom.collisionNameInput.hidden = true;
   dom.collisionNameInput.value = "";
   dom.collisionError.hidden = true;
-  dom.collisionAll.checked = false;
+  dom.collisionAll.checked = true;
   dom.collisionDifferent.textContent = "This is a different student";
   dom.collisionVeil.hidden = false;
   dom.collisionReplace.focus();
@@ -167,7 +172,7 @@ export function setupDialogs(options) {
     "alert", "alert-text", "alert-retry", "toast", "access-veil", "access-form", "access-input",
     "access-error", "access-cancel", "confirm-veil", "confirm-title", "confirm-body",
     "confirm-aside", "confirm-error", "confirm-yes", "confirm-no", "collision-veil",
-    "collision-message", "collision-name-input", "collision-error", "collision-cancel",
+    "collision-title", "collision-message", "collision-name-input", "collision-error", "collision-cancel",
     "collision-different", "collision-replace", "collision-all", "zoom-veil", "zoom-title", "zoom-body",
     "zoom-close",
   ]);
@@ -175,7 +180,15 @@ export function setupDialogs(options) {
   dom.confirmYes.addEventListener("click", () => { if (confirmAction) { confirmAction(); } });
   dom.zoomClose.addEventListener("click", () => { dom.zoomVeil.hidden = true; });
   dom.alertRetry.addEventListener("click", () => options.onRetry());
-  dom.accessCancel.addEventListener("click", () => { dom.accessVeil.hidden = true; });
+  dom.accessCancel.addEventListener("click", () => {
+    if (getToken()) {
+      dom.accessVeil.hidden = true;
+      return;
+    }
+    dom.accessError.textContent = "GradeSync needs your access code before it can open your page.";
+    dom.accessError.hidden = false;
+    dom.accessInput.focus();
+  });
   dom.accessForm.addEventListener("submit", (event) => {
     event.preventDefault();
     const value = dom.accessInput.value.trim();

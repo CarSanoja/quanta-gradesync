@@ -61,7 +61,10 @@ async def _job_context(container: AppContainer, job_id: str) -> dict[str, Any]:
 
 
 async def read_local_documents(
-    container: AppContainer, job_id: str | None, limit: int
+    container: AppContainer,
+    job_id: str | None,
+    limit: int,
+    student_id: str | None = None,
 ) -> list[dict[str, Any]]:
     events = await asyncio.to_thread(read_local_events, container.settings)
     contexts: dict[str, dict[str, Any]] = {}
@@ -77,6 +80,8 @@ async def read_local_documents(
             try:
                 record = SISGradeRecord.model_validate(raw)
             except ValueError:
+                continue
+            if student_id is not None and student_id.lower() not in record.student_id.lower():
                 continue
             documents.append(
                 build_ledger_document(
@@ -102,6 +107,7 @@ def read_remote_documents(
     settings: Settings,
     job_id: str | None,
     limit: int,
+    student_id: str | None = None,
     client: Any | None = None,
 ) -> list[dict[str, Any]]:
     active = client if client is not None else get_firestore_client()
@@ -110,6 +116,8 @@ def read_remote_documents(
     collection = active.collection(SIS_RECORDS_COLLECTION)
     if job_id is not None:
         snapshots = _job_filtered(collection, job_id).stream()
+    elif student_id is not None:
+        snapshots = collection.stream()
     else:
         snapshots = (
             collection.order_by(FIELD_WRITTEN_AT, direction=DESCENDING)
@@ -120,6 +128,10 @@ def read_remote_documents(
         payload
         for snapshot in snapshots
         if isinstance(payload := snapshot.to_dict(), dict)
+        and (
+            student_id is None
+            or student_id.lower() in str(payload.get("student_id") or "").lower()
+        )
     ]
     documents.sort(key=_written_at, reverse=True)
     return documents[:limit]

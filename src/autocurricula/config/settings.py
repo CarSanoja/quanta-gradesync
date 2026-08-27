@@ -34,6 +34,8 @@ class Settings(BaseSettings):
 
     pubsub_topic: str = ""
     pubsub_push_token: str = ""
+    teacher_notification_webhook_url: str = ""
+    teacher_notification_timeout_seconds: float = Field(default=5.0, gt=0.0, le=30.0)
 
     gcs_bucket: str = ""
     gcs_local_staging_dir: Path = Path(".staging")

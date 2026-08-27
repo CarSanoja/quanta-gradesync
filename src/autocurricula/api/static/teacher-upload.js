@@ -7,7 +7,7 @@ import { prettyName } from "/teacher/assets/teacher-format.js";
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 const RENAME_IDLE_MS = 900;
 
-const SENT = new Set(["received", "failed", "skipped"]);
+const SENT = new Set(["received", "skipped"]);
 const FAILURE_COPY = [
   [/is empty/i, "this file has nothing in it"],
   [/exceeds the/i, "this file is too big"],
@@ -39,6 +39,8 @@ export function uploadState() {
   const rows = uploads.rows;
   const sent = rows.filter((row) => SENT.has(row.state)).length;
   const received = rows.filter((row) => row.state === "received").length;
+  const skipped = rows.filter((row) => row.state === "skipped").length;
+  const sending = rows.filter((row) => row.state === "sending").length;
   const needsName = rows.filter((row) => row.state === "needs-name");
   const held = rows.filter((row) => row.state === "held");
   const failed = rows.filter((row) => row.state === "failed");
@@ -46,6 +48,8 @@ export function uploadState() {
     total: rows.length,
     sent,
     received,
+    skipped,
+    sending,
     needsName,
     held,
     failed,
@@ -162,7 +166,11 @@ async function uploadRow(row, lotCode) {
       finish(row, "sending", "already has a scan");
       changed();
       const decision = uploads.collisionForAll
-        || await hooks.askCollision(result.body.student_id || row.studentId);
+        || await hooks.askCollision(
+          result.body.student_id || row.studentId,
+          uploads.rows.indexOf(row) + 1,
+          uploads.rows.length
+        );
       if (decision.all && decision.action !== "rename") {
         uploads.collisionForAll = { action: decision.action, all: true };
       }
@@ -276,7 +284,7 @@ export function stageFiles(fileList) {
     return;
   }
   const state = uploadState();
-  if (!uploads.running && (state.finished || !uploads.rows.length)) {
+  if (!uploads.running && ((state.finished && !state.failed.length) || !uploads.rows.length)) {
     resetUploads();
   }
   const candidates = files.filter((file) => !looksLikeCamera(fileStem(file.name)));

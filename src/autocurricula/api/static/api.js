@@ -10,15 +10,15 @@ export class ApiError extends Error {
 }
 
 export function getToken() {
-  return sessionStorage.getItem(TOKEN_KEY) || "";
+  return localStorage.getItem(TOKEN_KEY) || "";
 }
 
 export function setToken(value) {
-  sessionStorage.setItem(TOKEN_KEY, value.trim());
+  localStorage.setItem(TOKEN_KEY, value.trim());
 }
 
 export function clearToken() {
-  sessionStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(TOKEN_KEY);
 }
 
 async function failureOf(response) {
@@ -98,10 +98,13 @@ export const endpoints = {
     `/review/${encodeURIComponent(reviewId)}/page-image?index=${index}`,
   optimizer: () => "/optimizer/report",
   fleetRegistry: () => "/fleet/registry",
-  sisRecords: (jobId, limit = 50) => {
+  sisRecords: (jobId, limit = 50, studentId = "") => {
     const params = new URLSearchParams({ limit: String(limit) });
     if (jobId) {
       params.set("job_id", jobId);
+    }
+    if (studentId) {
+      params.set("student_id", studentId);
     }
     return `/sis/records?${params}`;
   },

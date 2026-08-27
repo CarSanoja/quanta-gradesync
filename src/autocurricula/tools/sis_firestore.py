@@ -31,6 +31,14 @@ def term_from_prefix(prefix: str) -> str:
 def criteria_by_student(stage_results: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
     fetch = stage_results.get(STAGE_FETCH_KEY) or {}
     grade = stage_results.get(STAGE_GRADE_KEY) or {}
+    rubric = fetch.get("rubric") or {}
+    titles = {
+        str(criterion.get("criterion_id") or ""): str(
+            criterion.get("description") or criterion.get("criterion_id") or ""
+        )
+        for criterion in rubric.get("criteria") or []
+        if isinstance(criterion, dict)
+    }
     submissions = (fetch.get("batch") or {}).get("submissions") or []
     student_by_submission = {
         submission.get("submission_id"): submission.get("student_id")
@@ -48,13 +56,15 @@ def criteria_by_student(stage_results: dict[str, Any]) -> dict[str, list[dict[st
         for score in result.get("criterion_scores") or []:
             if not isinstance(score, dict):
                 continue
-            rows.append(
-                {
-                    "criterion_id": str(score.get("criterion_id", "")),
-                    "score": score.get("score"),
-                    "confidence": score.get("confidence"),
-                }
-            )
+            criterion_id = str(score.get("criterion_id", ""))
+            row = {
+                "criterion_id": criterion_id,
+                "score": score.get("score"),
+                "confidence": score.get("confidence"),
+            }
+            if titles.get(criterion_id):
+                row["title"] = titles[criterion_id]
+            rows.append(row)
     return criteria
 
 

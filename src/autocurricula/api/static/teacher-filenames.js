@@ -11,6 +11,7 @@ const CAMERA_PATTERNS = [
 const PAGE_MARKER = /^(.+?)[\s._-]*(?:p|pg|page)[\s._-]*(\d{1,3})$/i;
 const COPY_MARKER = /^(.+?)\s*\((\d{1,3})\)$/;
 const BARE_NUMBER = /^(.+?)[\s._-]+(\d{1,3})$/;
+const MAX_IMPLICIT_PAGE_GROUP = 3;
 
 export function fileStem(name) {
   const dot = name.lastIndexOf(".");
@@ -80,7 +81,9 @@ export function detectPageGroups(names) {
   });
   const groups = [];
   byBase.forEach((members) => {
-    if (members.length >= 2 || members.some((member) => member.signal && member.signal.explicit)) {
+    const explicit = members.some((member) => member.signal && member.signal.explicit);
+    const plausibleImplicitGroup = members.length >= 2 && members.length <= MAX_IMPLICIT_PAGE_GROUP;
+    if (explicit || plausibleImplicitGroup) {
       groups.push(members.map((member) => member.name));
     }
   });

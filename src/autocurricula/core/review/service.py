@@ -59,6 +59,9 @@ class ReviewService:
     async def list_pending(self) -> list[ReviewItem]:
         return await self._store.list_pending()
 
+    async def list_recent(self, limit: int = 500) -> list[ReviewItem]:
+        return await self._store.list_recent(limit)
+
     async def approve(
         self,
         review_id: str,

@@ -4,6 +4,7 @@ import { pitchLine, valueBand } from "/teacher/assets/teacher-value.js";
 import {
   examCount, fmt, plural, prettyName, prettySubject, timeAgo, whenSent,
 } from "/teacher/assets/teacher-format.js";
+import { fileStem } from "/teacher/assets/teacher-filenames.js";
 import { renderHeld } from "/teacher/assets/teacher-held.js";
 import { renderUploading } from "/teacher/assets/teacher-uploading.js";
 
@@ -36,20 +37,26 @@ function dropzone(ctx, title, hint, label) {
 
 export function renderHome(host, ctx) {
   const batch = ctx.batch;
+  const complete = batch && batch.settled && batch.in_gradebook >= batch.received;
+  const lede = !batch
+    ? "Nothing is waiting for your decision. Send the scans of an exam and grading starts on "
+      + "its own — when something needs you, it will be waiting here."
+    : complete
+      ? `All ${examCount(batch.in_gradebook)} from ${batch.assessment} are in the gradebook, and `
+        + "your students can see their feedback. When something needs your decision, it will be "
+        + "waiting here."
+      : `${examCount(batch.received)} from ${batch.assessment} were sent. `
+        + `${examCount(batch.still_grading)} are still being graded; nothing needs your decision yet.`;
+  const band = batch ? valueBand(batch) : pitchLine();
   host.className = "screen";
   host.append(
     el("p", { class: "eyebrow", text: batch ? batch.assessment : "Your class" }),
     el("h1", { class: "display", text: "Nothing needs you." }),
     el("p", {
       class: "lede",
-      text: batch
-        ? `All ${examCount(batch.in_gradebook)} from ${batch.assessment} are in the gradebook, and `
-          + "your students can see their feedback. When something needs your decision, it will be "
-          + "waiting here."
-        : "Nothing is waiting for your decision. Send the scans of an exam and grading starts on "
-          + "its own — when something needs you, it will be waiting here.",
+      text: lede,
     }),
-    batch ? valueBand(batch) : pitchLine(),
+    ...(band ? [band] : []),
     dropzone(ctx, "Drop your scans here",
       "Photos or PDFs, as many as you like. You never have to rename a file on your computer — "
       + "you can type each student's name on this page.",
@@ -61,7 +68,9 @@ export function renderHome(host, ctx) {
   const when = whenSent(batch.started_at);
   host.append(el("div", { class: "last-sent" }, [
     el("span", {
-      text: `Last sent${when ? ` ${when}` : ""} — ${examCount(batch.received)}, ${batch.assessment}.`,
+      text: when
+        ? `Last sent ${when} — ${examCount(batch.received)}, ${batch.assessment}.`
+        : `Most recent batch — ${examCount(batch.received)}, ${batch.assessment}.`,
     }),
     el("button", { class: "linkish", type: "button", text: "See those grades", onclick: () => ctx.goGrades() }),
   ]));
@@ -71,6 +80,75 @@ function statusLine(kind, glyph, text) {
   return el("li", { class: `is-${kind}` }, [
     el("span", { class: "glyph", "aria-hidden": "true", text: glyph }),
     el("span", { text }),
+  ]);
+}
+
+function reviewHistory(ctx) {
+  const history = ctx.summary.history || [];
+  if (!history.length) {
+    return null;
+  }
+  return el("section", { class: "panel review-history" }, [
+    el("h2", { text: "Decisions in this batch" }),
+    el("p", { text: "Open any exam again to check the scan and the decision already recorded." }),
+    el("ul", { class: "group-list" }, history.map((item) => el("li", {}, [
+      el("button", {
+        class: "held-open",
+        type: "button",
+        onclick: () => ctx.goReview("history", item.review_id),
+      }, [
+        el("span", { class: "group-student", text: item.student_name }),
+        el("span", {
+          class: "group-reason",
+          text: decisionStatus(item.status),
+        }),
+      ]),
+    ]))),
+  ]);
+}
+
+function decisionStatus(status) {
+  if (status === "overridden") return "Marks changed by you";
+  if (status === "dismissed") return "Returned to you for manual grading";
+  if (status === "resolved") return "Resolved automatically";
+  return "Approved by you";
+}
+
+function examOrder(ctx) {
+  const batch = ctx.batch;
+  const files = batch && batch.files ? batch.files : [];
+  if (!files.length) {
+    return null;
+  }
+  const waiting = ctx.summary.waiting || [];
+  const history = ctx.summary.history || [];
+  return el("section", { class: "panel exam-order" }, [
+    el("h2", { text: "Exams in the order you sent them" }),
+    el("ol", { class: "exam-order-list" }, files.map((file) => {
+      const studentId = fileStem(file);
+      const pending = waiting.find((item) => item.job_id === batch.job_id
+        && item.student_id === studentId);
+      const decided = history.find((item) => item.student_id === studentId);
+      const record = (ctx.batchRecords || []).find((item) => item.job_id === batch.job_id
+        && item.student_id === studentId);
+      const status = pending
+        ? "Waiting for you"
+        : decided
+          ? decisionStatus(decided.status)
+          : record ? "In the gradebook" : batch.settled ? "Could not be graded" : "Still grading";
+      const action = pending
+        ? () => ctx.goReview(pending.group, pending.review_id)
+        : decided
+          ? () => ctx.goReview("history", decided.review_id)
+          : record ? () => ctx.openGrade(studentId) : null;
+      const content = [
+        el("span", { class: "group-student", text: prettyName(studentId) }),
+        el("span", { class: "group-reason", text: status }),
+      ];
+      return el("li", {}, action
+        ? [el("button", { class: "held-open", type: "button", onclick: action }, content)]
+        : content);
+    })),
   ]);
 }
 
@@ -110,6 +188,13 @@ export function renderGrading(host, ctx) {
     text: "This page keeps itself up to date. You can close it and come back — grading carries on "
       + "without you.",
   }));
+  const history = reviewHistory(ctx);
+  const ordered = examOrder(ctx);
+  if (ordered) {
+    host.append(ordered);
+  } else if (history) {
+    host.append(history);
+  }
 }
 
 function classAverage(ctx) {
@@ -133,6 +218,8 @@ function classAverage(ctx) {
 export function renderSettled(host, ctx) {
   const batch = ctx.batch;
   const average = classAverage(ctx);
+  const history = reviewHistory(ctx);
+  const ordered = examOrder(ctx);
   const rows = [
     ["Graded automatically", examCount(batch.graded_automatically)],
     ["Decided by you", examCount(batch.decided_by_you)],
@@ -156,6 +243,8 @@ export function renderSettled(host, ctx) {
       el("span", { text: label }),
       el("span", { text: value }),
     ]))),
+    ...(!ordered && history ? [history] : []),
+    ...(ordered ? [ordered] : []),
     el("div", { class: "button-row" }, [
       el("button", { class: "primary", type: "button", text: "See the grades", onclick: () => ctx.goGrades() }),
       el("button", { class: "secondary", type: "button", text: "Send more scans", onclick: () => ctx.goHome() }),
@@ -172,7 +261,7 @@ export function renderGrades(host, ctx) {
     id: "grades-search",
     placeholder: "Ana, Camila, Julián…",
     autocomplete: "off",
-    oninput: (event) => ctx.setQuery("grades", event.target.value),
+    oninput: (event) => ctx.setGradeQuery(event.target.value),
   });
   input.value = ctx.queries.grades || "";
   host.className = "screen is-wide";
@@ -183,10 +272,29 @@ export function renderGrades(host, ctx) {
       input,
     ])
   );
+  if (ctx.summary.batches.length) {
+    host.append(el("section", { class: "recent-batches", "aria-label": "Recent batches" }, [
+      el("h2", { text: "Recent batches" }),
+      el("div", { class: "recent-batch-list" }, ctx.summary.batches.map((batch) =>
+        el("button", {
+          class: "recent-batch",
+          type: "button",
+          onclick: () => ctx.openBatch(batch.lot_code),
+        }, [
+          el("span", { class: "recent-batch-name", text: batch.assessment }),
+          el("span", {
+            class: "recent-batch-detail",
+            text: `${examCount(batch.received)} · ${batch.settled ? "finished" : "in progress"}`,
+          }),
+        ]))),
+    ]));
+  }
   if (!ctx.records.length) {
     host.append(el("p", {
       class: "empty-line",
-      text: "No grades are in the gradebook yet. They appear here the moment grading finishes.",
+      text: query
+        ? `No grade in the full history matches “${ctx.queries.grades.trim()}”.`
+        : "No grades are in the gradebook yet. They appear here the moment grading finishes.",
     }));
     return;
   }
@@ -196,7 +304,7 @@ export function renderGrades(host, ctx) {
   host.append(el("p", {
     class: "grades-foot",
     text: query
-      ? `${found.length} of ${ctx.records.length} shown.`
+      ? `${found.length} matching ${plural(found.length, "grade", "grades")} shown from the full history.`
       : `Showing the ${ctx.records.length} most recent. Type a name to find a student.`,
   }));
 }

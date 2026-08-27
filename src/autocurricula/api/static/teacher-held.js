@@ -44,8 +44,18 @@ function judgementSection(ctx, group) {
     nodes.push(finder(ctx, group, group.count));
   }
   nodes.push(el("ul", { class: "group-list" }, shown.map((item) => el("li", {}, [
-    el("span", { class: "group-student", text: item.student_name }),
-    el("span", { class: "group-reason", text: item.primary_reason }),
+    el("button", {
+      class: "held-open",
+      type: "button",
+      onclick: () => ctx.goReview("judgement", item.review_id),
+    }, [
+      el("span", { class: "group-student", text: item.student_name }),
+      el("span", {
+        class: "group-reason",
+        text: [item.assessment, item.class_id ? `class ${item.class_id}` : "", item.primary_reason]
+          .filter(Boolean).join(" · "),
+      }),
+    ]),
   ]))));
   if (!found.length) {
     nodes.push(el("p", { class: "group-more", text: `No student here matches “${query.trim()}”.` }));
@@ -62,6 +72,8 @@ function judgementSection(ctx, group) {
 }
 
 function precautionSection(ctx, group) {
+  const shown = group.items.slice(0, LIST_CAP);
+  const hidden = group.items.length - shown.length;
   return el("section", { class: "panel" }, [
     el("h2", { text: `${group.count} ${plural(group.count, "was", "were")} held as a precaution` }),
     el("p", {
@@ -69,6 +81,21 @@ function precautionSection(ctx, group) {
         + "with these ones — they were held only because they arrived together with the rest.",
     }),
     el("p", { text: "You can send them all to the gradebook in one go." }),
+    el("ul", { class: "group-list" }, shown.map((item) => el("li", {}, [
+      el("button", {
+        class: "held-open",
+        type: "button",
+        onclick: () => ctx.goReview("batch_hold", item.review_id),
+      }, [
+        el("span", { class: "group-student", text: item.student_name }),
+        el("span", {
+          class: "group-reason",
+          text: [item.assessment, item.class_id ? `class ${item.class_id}` : ""]
+            .filter(Boolean).join(" · "),
+        }),
+      ]),
+    ]))),
+    hidden > 0 ? el("p", { class: "group-more", text: `and ${hidden} more` }) : null,
     el("div", { class: "button-row" }, [
       el("button", {
         class: "dark",
@@ -93,7 +120,10 @@ export function renderHeld(host, ctx) {
   const both = judged.count > 0 && held.count > 0;
   host.className = "screen is-wide";
   host.append(
-    el("p", { class: "eyebrow", text: ctx.batch ? ctx.batch.assessment : "On hold" }),
+    el("p", {
+      class: "eyebrow",
+      text: ctx.batch ? ctx.batch.assessment : "Across your classes",
+    }),
     el("h1", {
       class: "display is-small",
       text: `We held ${examCount(summary.waiting_count)} for you.`,

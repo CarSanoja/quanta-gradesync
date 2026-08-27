@@ -9,6 +9,7 @@ from autocurricula.config import Settings, get_firestore_client
 from autocurricula.core.review.store import (
     FirestoreReviewStore,
     LocalReviewStore,
+    NotifyingReviewStore,
     ReviewStore,
 )
 from autocurricula.schemas.labels import Label
@@ -125,6 +126,8 @@ def build_label_store(settings: Settings) -> LabelStore:
 
 
 def label_store_for(review_store: ReviewStore) -> LabelStore:
+    if isinstance(review_store, NotifyingReviewStore):
+        return label_store_for(review_store.inner)
     if isinstance(review_store, LocalReviewStore):
         return LocalLabelStore(data_dir=review_store.data_dir)
     if isinstance(review_store, FirestoreReviewStore):

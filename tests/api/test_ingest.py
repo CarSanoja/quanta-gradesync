@@ -151,6 +151,24 @@ async def test_local_upload_lands_in_the_staging_layout(
     assert staged.read_bytes() == JPEG_BYTES
 
 
+async def test_uploaded_batch_is_recent_before_its_grading_job_starts(
+    ingest_client: httpx.AsyncClient,
+    ingest_headers: dict[str, str],
+) -> None:
+    uploaded = await ingest_client.post(
+        "/ingest/exam", headers=ingest_headers, **upload_body()
+    )
+    assert uploaded.status_code == 200
+
+    summary = await ingest_client.get("/teacher/summary", headers=ingest_headers)
+
+    assert summary.status_code == 200
+    batches = summary.json()["batches"]
+    assert [batch["lot_code"] for batch in batches] == [LOT]
+    assert batches[0]["received"] == 1
+    assert batches[0]["still_grading"] == 1
+
+
 async def test_collision_then_replace_then_rename_flow(
     ingest_client: httpx.AsyncClient,
     ingest_container: AppContainer,

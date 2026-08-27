@@ -6,6 +6,7 @@ import { examCount, plural, prettyName } from "/teacher/assets/teacher-format.js
 import { activeBatch, currentReview, followJob, state } from "/teacher/assets/teacher-state.js";
 
 const SUMMARY_PATH = "/teacher/summary";
+const RECORD_LIMIT = 200;
 const BATCH_RECORD_LIMIT = 200;
 
 let refresh = null;
@@ -18,7 +19,9 @@ export async function guard(action) {
       openGate("That access code didn't work. Check it and try again.");
       return null;
     }
-    toast(error.message);
+    toast(error instanceof ApiError
+      ? error.message
+      : "GradeSync could not be reached. Your work is safe — try again in a moment.");
     return null;
   }
 }
@@ -38,9 +41,10 @@ export async function loadSummary() {
   state.summary = summary;
 }
 
-export async function loadRecords() {
-  const payload = await guard(() => getJson(endpoints.sisRecords()));
-  if (payload) {
+export async function loadRecords(studentId = "", stillCurrent = () => true) {
+  const payload = await guard(() =>
+    getJson(endpoints.sisRecords("", RECORD_LIMIT, studentId)));
+  if (payload && stillCurrent()) {
     state.records = payload.items;
   }
 }

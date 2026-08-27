@@ -26,11 +26,12 @@ function lotFields(ctx) {
 
 function pairSection(ctx) {
   const names = uploads.pair.groups.flat();
+  const count = names.length;
   return el("section", { class: "panel is-flagged" }, [
     el("h2", { text: names.length === 2 ? "Two files look like one exam" : "Some files look like one exam" }),
     el("p", {
       text: `${names.join(" and ")} look like pages of the same exam. GradeSync grades one file per `
-        + "student, so two files become two students in the gradebook.",
+        + `student, so ${count} files become ${count} students in the gradebook.`,
     }),
     el("div", { class: "pair-thumbs" }, names.map((name) =>
       el("div", { class: "thumb" }, [el("span", { text: name })]))),
@@ -44,7 +45,7 @@ function pairSection(ctx) {
       el("button", {
         class: "secondary",
         type: "button",
-        text: "Two different students",
+        text: `${count} different students`,
         onclick: () => ctx.answerPair("separate"),
       }),
     ]),
@@ -106,16 +107,19 @@ function troubleSection(ctx, state) {
     ]));
   }
   if (state.failed.length) {
+    const retryable = state.failed.some((row) => !row.local);
     nodes.push(el("section", { class: "panel" }, [
       el("h2", { text: `${state.failed.length} ${plural(state.failed.length, "file did", "files did")} not go through` }),
       el("ul", { class: "group-list" }, state.failed.map((row) =>
         el("li", {}, [
-          el("span", { class: "group-student", text: row.label }),
+          el("span", { class: "group-student", text: row.student || row.name || row.label }),
           el("span", { class: "group-reason", text: row.status }),
         ]))),
-      el("div", { class: "button-row" }, [
-        el("button", { class: "secondary", type: "button", text: "Try those again", onclick: () => ctx.retryFailed() }),
-      ]),
+      retryable
+        ? el("div", { class: "button-row" }, [
+            el("button", { class: "secondary", type: "button", text: "Try those again", onclick: () => ctx.retryFailed() }),
+          ])
+        : null,
     ]));
   }
   return nodes;
@@ -123,26 +127,49 @@ function troubleSection(ctx, state) {
 
 export function renderUploading(host, ctx) {
   const state = uploadState();
-  const arrived = state.sent >= state.total && state.total > 0
+  const arrived = state.received >= state.total && state.total > 0
     ? `All ${state.total} ${plural(state.total, "file", "files")} arrived.`
-    : `${state.sent} of ${state.total} ${plural(state.total, "file has", "files have")} arrived.`;
+    : state.sent >= state.total && state.skipped > 0
+      ? `${state.received} of ${state.total} arrived; ${state.skipped} kept the scan already saved.`
+    : `${state.received} of ${state.total} ${plural(state.total, "file has", "files have")} arrived.`;
+  let note = "Not sent yet. Complete what the page asks for below.";
+  if (state.awaitingLot) {
+    note = "Fill in the three boxes above and sending starts on its own.";
+  } else if (state.running) {
+    note = "Sending is in progress. Keep this page open until every file has arrived.";
+  } else if (state.failed.length) {
+    note = "Some files were not sent. Try those again before you leave this page.";
+  } else if (state.sent === state.total && state.total > 0) {
+    note = state.skipped
+      ? "Every file is accounted for. You can safely leave this page."
+      : "Every file has arrived. You can safely leave this page.";
+  }
   host.className = "screen";
   host.append(
     el("h1", { class: "display is-small", text: "Your scans are arriving" }),
     lotFields(ctx),
     el("p", { class: "lede", style: "margin-bottom:1.25rem", text: arrived }),
-    el("div", { class: "progress-track" }, [
+    el("div", {
+      class: "progress-track",
+      "aria-label": `${state.received} received, ${state.sending} sending, ${state.failed.length} failed`,
+    }, [
       el("span", {
-        class: "progress-fill",
-        style: `width:${state.total ? Math.round((state.sent / state.total) * 100) : 0}%`,
+        class: "progress-fill is-received",
+        style: `width:${state.total ? Math.round((state.received / state.total) * 100) : 0}%`,
+      }),
+      el("span", {
+        class: "progress-fill is-sending",
+        style: `width:${state.total ? Math.round((state.sending / state.total) * 100) : 0}%`,
+      }),
+      el("span", {
+        class: "progress-fill is-failed",
+        style: `width:${state.total ? Math.round((state.failed.length / state.total) * 100) : 0}%`,
       }),
     ]),
     el("p", {
       class: "note",
       style: "margin-bottom:3rem",
-      text: state.awaitingLot
-        ? "Fill in the three boxes above and sending starts on its own."
-        : "You can leave this page — sending continues on its own.",
+      text: note,
     })
   );
   if (uploads.pair) {
@@ -154,6 +181,14 @@ export function renderUploading(host, ctx) {
   }
   troubleSection(ctx, state).forEach((node) => host.append(node));
   host.append(el("div", { class: "button-row", style: "margin-top:2.25rem" }, [
-    el("button", { class: "primary", type: "button", text: "Done — start grading", onclick: () => ctx.goGrading() }),
+    el("button", {
+      class: "primary",
+      type: "button",
+      text: state.running
+        ? `Sending ${state.received} of ${state.total}…`
+        : "Done — start grading",
+      disabled: state.running,
+      onclick: () => ctx.goGrading(),
+    }),
   ]));
 }

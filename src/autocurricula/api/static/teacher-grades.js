@@ -12,7 +12,10 @@ function criterionRow(score) {
     ? `read with ${Math.round(score.confidence * 100)}% confidence`
     : "";
   return el("li", { class: "criterion-row" }, [
-    el("span", { class: "criterion-name", text: criterionTitle(score.criterion_id) }),
+    el("span", {
+      class: "criterion-name",
+      text: score.title || criterionTitle(score.criterion_id),
+    }),
     el("span", { class: "criterion-score", text: fmt(score.score) }),
     confidence ? el("span", { class: "criterion-note", text: confidence }) : null,
   ]);

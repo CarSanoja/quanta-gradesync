@@ -4,10 +4,13 @@ import {
   askRelease, decide, loadBatchRecords, loadRecords, loadSummary, setupActions,
 } from "/teacher/assets/teacher-actions.js";
 import {
-  askCollision, openGate, openZoom, setupDialogs, toast, veilKeydown,
+  askCollision, openGate, openZoom, setupDialogs, showAlert, toast, veilKeydown,
 } from "/teacher/assets/teacher-dialogs.js";
 import { slugify } from "/teacher/assets/teacher-filenames.js";
-import { bumped, decisionButtons, renderReview } from "/teacher/assets/teacher-review.js";
+import { examCount, plural } from "/teacher/assets/teacher-format.js";
+import {
+  bumped, decisionButtons, releaseReviewImages, renderReview,
+} from "/teacher/assets/teacher-review.js";
 import { screenBuilders } from "/teacher/assets/teacher-screens.js";
 import {
   activeBatch, contextLine, currentReview, currentScreen, releaseImage, reviewQueue, screenBatch,
@@ -23,9 +26,64 @@ const MAX_POLLS = 60;
 const builders = screenBuilders();
 const screenHost = document.getElementById("screen");
 const contextHost = document.getElementById("context-line");
+const needsButton = document.getElementById("nav-needs");
 
 let pollTimer = null;
 let fileInput = null;
+let gradeSearchTimer = null;
+let lastWaitingCount = 0;
+
+function syncAddress(push) {
+  const url = new URL(window.location.href);
+  if (state.lotCode) {
+    url.searchParams.set("batch", state.lotCode);
+  } else {
+    url.searchParams.delete("batch");
+  }
+  const review = state.screen === "review" ? currentReview() : null;
+  if (review) {
+    url.searchParams.set("review", review.student_id);
+  } else {
+    url.searchParams.delete("review");
+  }
+  if (state.screen === "grades") {
+    url.searchParams.set("grades", state.queries.grades || "1");
+  } else {
+    url.searchParams.delete("grades");
+  }
+  if (state.screen === "held") {
+    url.searchParams.set("needs", "1");
+  } else {
+    url.searchParams.delete("needs");
+  }
+  if (state.screen === "home") {
+    url.searchParams.set("send", "1");
+  } else {
+    url.searchParams.delete("send");
+  }
+  if (url.href === window.location.href) {
+    return;
+  }
+  window.history[push ? "pushState" : "replaceState"]({}, "", url);
+}
+
+function openBatch(lotCode) {
+  state.lotCode = lotCode;
+  state.following = true;
+  state.screen = "";
+  state.polls = 0;
+  syncAddress(true);
+  refreshAll();
+}
+
+async function openGrade(studentId) {
+  state.queries.grades = studentId;
+  state.queries.open_grade = studentId;
+  state.screen = "grades";
+  syncAddress(true);
+  await loadRecords(studentId);
+  render();
+}
 
 function captureFocus() {
   const node = document.activeElement;
@@ -56,13 +114,18 @@ function acceptFiles(fileList) {
   stageFiles(fileList);
 }
 
-function startReview(group) {
+function startReview(group, reviewId) {
   const key = group || (state.summary && state.summary.judgement.count ? "judgement" : "batch_hold");
   Object.assign(state.review, { group: key, index: 0, editing: false, marks: null, painted: "" });
+  if (reviewId) {
+    const index = reviewQueue().findIndex((item) => item.review_id === reviewId);
+    state.review.index = index >= 0 ? index : 0;
+  }
   if (!currentReview()) {
     return;
   }
   state.screen = "review";
+  syncAddress(true);
   render();
 }
 
@@ -70,7 +133,49 @@ function leaveReview() {
   releaseImage();
   state.screen = "";
   state.review.painted = "";
+  syncAddress(true);
   render();
+}
+
+function moveReview(delta) {
+  const queue = reviewQueue();
+  if (!queue.length) {
+    return;
+  }
+  state.review.index = Math.max(0, Math.min(queue.length - 1, state.review.index + delta));
+  Object.assign(state.review, { editing: false, marks: null, painted: "" });
+  syncAddress(true);
+  render();
+}
+
+function finishUploading() {
+  state.startWhenUploaded = false;
+  state.uploadDismissed = true;
+  state.screen = "";
+  state.following = true;
+  if (uploads.lotCode) {
+    state.lotCode = uploads.lotCode;
+    syncAddress(true);
+  }
+  refreshAll();
+}
+
+function maybeFinishUploading() {
+  if (!state.startWhenUploaded) {
+    return false;
+  }
+  const staged = uploadState();
+  if (staged.running || staged.awaitingLot || staged.needsName.length || uploads.pair
+      || uploads.rows.some((row) => row.state === "ready")) {
+    return false;
+  }
+  if (staged.failed.length) {
+    state.startWhenUploaded = false;
+    toast("Some files were not sent. Try those again before you start grading.");
+    return false;
+  }
+  finishUploading();
+  return true;
 }
 
 function startGrading() {
@@ -79,14 +184,15 @@ function startGrading() {
     toast("Some files still need an answer from you before they can be sent.");
     return;
   }
-  state.uploadDismissed = true;
-  state.screen = "";
-  state.following = true;
-  if (uploads.lotCode) {
-    state.lotCode = uploads.lotCode;
+  if (staged.failed.length) {
+    toast("Some files were not sent. Try those again before you start grading.");
+    return;
   }
+  state.startWhenUploaded = true;
   runQueue(true);
-  refreshAll();
+  if (!maybeFinishUploading()) {
+    render();
+  }
 }
 
 function screenContext(screen) {
@@ -103,10 +209,23 @@ function screenContext(screen) {
     answerPair,
     retryFailed,
     setQuery: (key, value) => { state.queries[key] = value; render(); },
-    goHome: () => { state.screen = "home"; render(); },
-    goGrades: () => { state.screen = "grades"; render(); },
+    setGradeQuery: (value) => {
+      state.queries.grades = value;
+      syncAddress(false);
+      render();
+      window.clearTimeout(gradeSearchTimer);
+      const query = value;
+      gradeSearchTimer = window.setTimeout(async () => {
+        await loadRecords(slugify(query), () => state.queries.grades === query);
+        render();
+      }, 350);
+    },
+    goHome: () => { state.screen = "home"; syncAddress(true); render(); },
+    goGrades: () => { state.screen = "grades"; syncAddress(true); render(); },
     goGrading: startGrading,
     goReview: startReview,
+    openBatch,
+    openGrade,
     askRelease,
   };
 }
@@ -182,6 +301,7 @@ function paintReview() {
     editing: state.review.editing,
     marks: state.review.marks,
     open: state.open,
+    readonly: review.status !== "pending",
     stillOpen: (id) => {
       const open = currentReview();
       return Boolean(open) && open.review_id === id && state.screen === "review";
@@ -191,12 +311,12 @@ function paintReview() {
     onAccept: (button) => decide("accept", [button]),
     onDismiss: (button) => decide("dismiss", [button]),
     onLeave: leaveReview,
+    onPrevious: () => moveReview(-1),
+    onNext: () => moveReview(1),
     onZoom: showZoom,
   }).then((url) => {
     if (state.review.painted === stamp) {
       state.review.imageUrl = url;
-    } else if (url) {
-      URL.revokeObjectURL(url);
     }
   });
 }
@@ -205,6 +325,7 @@ function render() {
   const mark = captureFocus();
   const screen = currentScreen();
   contextHost.textContent = contextLine(screen);
+  syncAddress(false);
   if (screen === "review") {
     paintReview();
     restoreFocus(mark);
@@ -219,6 +340,19 @@ function render() {
     }
     return;
   }
+  const waiting = Number(state.summary.waiting_count) || 0;
+  needsButton.textContent = `Needs me (${waiting})`;
+  needsButton.classList.toggle("has-work", waiting > 0);
+  document.title = waiting
+    ? `(${waiting}) GradeSync — ${examCount(waiting)} ${plural(waiting, "needs", "need")} you`
+    : "GradeSync — Nothing needs you";
+  if (waiting > lastWaitingCount && document.hidden
+      && "Notification" in window && Notification.permission === "granted") {
+    new Notification("GradeSync needs you", {
+      body: `${examCount(waiting)} ${plural(waiting, "is", "are")} waiting for your review.`,
+    });
+  }
+  lastWaitingCount = waiting;
   builders[screen](screenHost, screenContext(screen));
   restoreFocus(mark);
 }
@@ -226,8 +360,14 @@ function render() {
 function schedulePoll() {
   window.clearTimeout(pollTimer);
   const batch = activeBatch();
-  const busy = (batch && !batch.settled) || uploads.running;
-  if (!busy || state.polls >= MAX_POLLS) {
+  const busy = (batch && !batch.settled)
+    || (state.summary && state.summary.waiting_count > 0)
+    || uploads.running;
+  if (!busy) {
+    return;
+  }
+  if (state.polls >= MAX_POLLS) {
+    showAlert("Updates are paused after six minutes. Press Try again to resume checking.");
     return;
   }
   pollTimer = window.setTimeout(() => {
@@ -238,9 +378,35 @@ function schedulePoll() {
 
 async function refreshAll() {
   await loadSummary();
-  await Promise.all([loadRecords(), loadBatchRecords()]);
+  applyRequestedReview();
+  const studentId = state.screen === "grades" ? slugify(state.queries.grades) : "";
+  await Promise.all([loadRecords(studentId), loadBatchRecords()]);
   render();
   schedulePoll();
+}
+
+function applyRequestedReview() {
+  if (!state.requestedReview || !state.summary) {
+    return;
+  }
+  const groups = [
+    ["judgement", state.summary.judgement.items],
+    ["batch_hold", state.summary.batch_hold.items],
+    ["history", state.summary.history || []],
+  ];
+  for (const [group, items] of groups) {
+    const index = items.findIndex((item) => item.review_id === state.requestedReview
+      || item.student_id === state.requestedReview);
+    if (index >= 0) {
+      Object.assign(state.review, { group, index, editing: false, marks: null, painted: "" });
+      state.screen = "review";
+      if (items[index].lot_code) {
+        state.lotCode = items[index].lot_code;
+      }
+      break;
+    }
+  }
+  state.requestedReview = "";
 }
 
 function isTyping(target) {
@@ -272,6 +438,7 @@ function wireFileInput() {
     type: "file",
     multiple: true,
     accept: ".jpg,.jpeg,.png,.pdf,.heic",
+    capture: "environment",
     hidden: true,
   });
   document.body.append(fileInput);
@@ -284,6 +451,9 @@ function wireFileInput() {
 }
 
 function onUploadChange() {
+  if (maybeFinishUploading()) {
+    return;
+  }
   if (uploadState().total && !state.uploadDismissed && state.screen !== "review") {
     state.screen = "uploading";
   }
@@ -298,14 +468,42 @@ document.addEventListener("keydown", (event) => {
 });
 document.getElementById("nav-home").addEventListener("click", () => {
   state.screen = "home";
+  syncAddress(true);
+  render();
+});
+needsButton.addEventListener("click", async () => {
+  if ("Notification" in window && Notification.permission === "default") {
+    await Notification.requestPermission();
+  }
+  state.screen = "held";
+  syncAddress(true);
   render();
 });
 document.getElementById("nav-grades").addEventListener("click", () => {
   state.screen = "grades";
+  syncAddress(true);
   render();
 });
+window.addEventListener("popstate", () => {
+  window.clearTimeout(gradeSearchTimer);
+  const route = new URLSearchParams(window.location.search);
+  state.lotCode = route.get("batch") || "";
+  state.following = Boolean(state.lotCode);
+  state.requestedReview = route.get("review") || "";
+  state.queries.grades = route.get("grades") === "1" ? "" : route.get("grades") || "";
+  state.screen = route.has("grades")
+    ? "grades"
+    : route.has("needs") ? "held" : route.has("send") ? "home" : "";
+  state.polls = 0;
+  refreshAll();
+});
+window.addEventListener("beforeunload", releaseReviewImages);
 
-setupDialogs({ slugify, onRetry: refreshAll, onToken: refreshAll });
+setupDialogs({
+  slugify,
+  onRetry: () => { state.polls = 0; refreshAll(); },
+  onToken: refreshAll,
+});
 setupActions({ refresh: refreshAll });
 setupUploads({
   toast,

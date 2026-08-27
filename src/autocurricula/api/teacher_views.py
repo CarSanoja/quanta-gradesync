@@ -19,10 +19,11 @@ from autocurricula.api.teacher_reasons import (
 )
 from autocurricula.core.memory.session_memory import SessionState
 from autocurricula.core.orchestration.context import STAGE_FETCH, STAGE_GRADE, FetchOutputs
+from autocurricula.core.orchestration.manifest_inference import parse_lot_code
 from autocurricula.core.review.triage import judgement_reasons, triage_group
 from autocurricula.schemas.common import StrictBaseModel, TzAwareDatetime
 from autocurricula.schemas.grading import CriterionScore, GradingBatchResult, GradingResult
-from autocurricula.schemas.review import ReviewItem
+from autocurricula.schemas.review import ReviewItem, ReviewStatus
 from autocurricula.schemas.sis_sync import SISGradeRecord
 
 
@@ -57,6 +58,10 @@ class TeacherReviewView(StrictBaseModel):
     student_name: str
     subject: str
     job_id: str
+    lot_code: str = ""
+    class_id: str = ""
+    assessment: str = ""
+    status: ReviewStatus = ReviewStatus.PENDING
     group: str
     reason_key: str
     primary_reason: str
@@ -179,12 +184,32 @@ async def build_review_view(
     primary = _primary_reason(item)
     criteria = plain_criteria(state, item)
     ceiling = total_ceiling(criteria, record)
+    try:
+        job = await container.checkpoint_store.get(item.job_id)
+    except Exception:
+        job = None
+    lot_code = ""
+    class_id = ""
+    assessment = ""
+    if job is not None:
+        class_id = job.event.class_id
+        try:
+            lot = parse_lot_code(job.event.exam_batch_prefix)
+            lot_code = job.event.exam_batch_prefix.rstrip("/").rsplit("/", 1)[-1]
+            class_id = lot.class_id
+            assessment = display_name(lot.assessment)
+        except Exception:
+            assessment = ""
     return TeacherReviewView(
         review_id=item.review_id,
         student_id=item.student_id,
         student_name=display_name(item.student_id),
         subject=item.subject,
         job_id=item.job_id,
+        lot_code=lot_code,
+        class_id=class_id,
+        assessment=assessment,
+        status=item.status,
         group=triage_group(item),
         reason_key=reason_key(primary),
         primary_reason=translate_reason(primary),

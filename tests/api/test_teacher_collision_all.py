@@ -11,11 +11,11 @@ def test_the_collision_sheet_offers_one_decision_for_the_whole_batch() -> None:
     assert "Do the same for the rest of this batch" in page
 
 
-def test_the_dialog_reports_and_resets_that_choice() -> None:
+def test_the_dialog_reports_and_defaults_to_one_choice_for_the_batch() -> None:
     dialogs = (STATIC / "teacher-dialogs.js").read_text(encoding="utf-8")
 
     assert '"collision-all"' in dialogs
-    assert "dom.collisionAll.checked = false;" in dialogs
+    assert "dom.collisionAll.checked = true;" in dialogs
     assert re.search(r"all:\s*Boolean\(dom\.collisionAll", dialogs)
 
 

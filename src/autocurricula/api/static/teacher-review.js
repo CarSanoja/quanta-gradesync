@@ -3,6 +3,37 @@ import { clear, el } from "/console/assets/render.js";
 import { firstName, fmt, pointsOf } from "/teacher/assets/teacher-format.js";
 
 export const STEP = 0.5;
+const IMAGE_CACHE_LIMIT = 12;
+const imageCache = new Map();
+const imageLoads = new Map();
+
+async function reviewImage(reviewId) {
+  if (imageCache.has(reviewId)) {
+    const url = imageCache.get(reviewId);
+    imageCache.delete(reviewId);
+    imageCache.set(reviewId, url);
+    return url;
+  }
+  if (!imageLoads.has(reviewId)) {
+    const pending = getObjectUrl(endpoints.pageImage(reviewId, 0)).then((url) => {
+      imageCache.set(reviewId, url);
+      while (imageCache.size > IMAGE_CACHE_LIMIT) {
+        const oldest = imageCache.keys().next().value;
+        URL.revokeObjectURL(imageCache.get(oldest));
+        imageCache.delete(oldest);
+      }
+      return url;
+    }).finally(() => imageLoads.delete(reviewId));
+    imageLoads.set(reviewId, pending);
+  }
+  return imageLoads.get(reviewId);
+}
+
+export function releaseReviewImages() {
+  imageCache.forEach((url) => URL.revokeObjectURL(url));
+  imageCache.clear();
+  imageLoads.clear();
+}
 
 export function markValue(ctx, criterion) {
   if (!ctx.editing || !ctx.marks) {
@@ -126,6 +157,14 @@ function quoteBlock(review) {
 
 function decisions(ctx) {
   const review = ctx.review;
+  if (ctx.readonly) {
+    return el("div", { class: "decisions" }, [
+      el("p", {
+        class: "mark-note",
+        text: "This decision is already recorded. You can inspect it, then move to another exam.",
+      }),
+    ]);
+  }
   const approve = el("button", { class: "primary", type: "button" }, [
     ctx.editing ? "Save these marks to the gradebook" : "Put it in the gradebook",
     el("kbd", { text: "A" }),
@@ -187,7 +226,10 @@ export async function renderReview(host, ctx) {
   clear(host);
   host.className = "screen is-review";
   const frame = el("div", { class: "scan-frame" }, [
-    el("span", { class: "scan-placeholder", text: "Loading the scanned page…" }),
+    el("span", {
+      class: "scan-placeholder is-loading",
+      text: "Loading the scanned page…",
+    }),
   ]);
   const zoom = el("button", {
     class: "secondary",
@@ -203,12 +245,28 @@ export async function renderReview(host, ctx) {
         el("span", { class: "review-position", text: `Exam ${ctx.position} of ${ctx.total} waiting` }),
         el("span", { class: "review-student", text: review.student_name }),
       ]),
-      el("button", {
-        class: "linkish",
-        type: "button",
-        text: "Stop for now — the rest keep waiting",
-        onclick: () => ctx.onLeave(),
-      }),
+      el("div", { class: "review-navigation" }, [
+        el("button", {
+          class: "quiet",
+          type: "button",
+          text: "Previous",
+          disabled: ctx.position <= 1,
+          onclick: () => ctx.onPrevious(),
+        }),
+        el("button", {
+          class: "quiet",
+          type: "button",
+          text: "Next",
+          disabled: ctx.position >= ctx.total,
+          onclick: () => ctx.onNext(),
+        }),
+        el("button", {
+          class: "linkish",
+          type: "button",
+          text: "Stop for now — the rest keep waiting",
+          onclick: () => ctx.onLeave(),
+        }),
+      ]),
     ]),
     el("div", { class: "review-grid" }, [
       el("div", { class: "review-scan" }, [frame, el("div", { class: "scan-tools" }, [zoom])]),
@@ -220,9 +278,8 @@ export async function renderReview(host, ctx) {
     return null;
   }
   try {
-    const url = await getObjectUrl(endpoints.pageImage(review.review_id, 0));
+    const url = await reviewImage(review.review_id);
     if (!ctx.stillOpen(review.review_id)) {
-      URL.revokeObjectURL(url);
       return null;
     }
     clear(frame).append(el("img", { src: url, alt: `Scanned exam page from ${review.student_name}` }));

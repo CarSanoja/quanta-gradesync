@@ -32,6 +32,7 @@ from autocurricula.core.review.service import (
 from autocurricula.core.review.store import (
     FirestoreReviewStore,
     LocalReviewStore,
+    NotifyingReviewStore,
     ReviewStore,
     build_review_store,
 )
@@ -58,6 +59,7 @@ __all__ = [
     "LabelStore",
     "LocalLabelStore",
     "LocalReviewStore",
+    "NotifyingReviewStore",
     "OverrideValidationError",
     "ReviewApprovalError",
     "ReviewNotFoundError",

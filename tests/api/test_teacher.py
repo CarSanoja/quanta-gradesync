@@ -270,6 +270,7 @@ async def test_teacher_summary_starts_empty(client: httpx.AsyncClient, auth_head
         ),
         "batch": None,
         "batches": [],
+        "history": [],
     }
 
 
@@ -484,8 +485,17 @@ async def test_summary_counts_the_grades_the_teacher_decided_herself(
         "/review/bulk-approve", json={"job_id": BATCH_JOB_ID}, headers=auth_headers
     )
     assert released.json()["released_count"] == 1
-    payload = await client.get("/teacher/summary", headers=auth_headers)
-    recent = payload.json()["batches"][0]
+    payload = await client.get(
+        "/teacher/summary", params={"batch": LOT_CODE}, headers=auth_headers
+    )
+    body = payload.json()
+    recent = body["batches"][0]
     assert recent["decided_by_you"] == 1
     assert recent["graded_automatically"] == 1
     assert recent["in_gradebook"] == 2
+    assert recent["files"] == ["ana-torres.jpg", "luis-perez.jpg"]
+    assert len(body["history"]) == 1
+    assert body["history"][0]["student_id"] == "ana-torres"
+    assert body["history"][0]["status"] == "approved"
+    assert body["history"][0]["class_id"] == "10A"
+    assert body["history"][0]["assessment"] == "Parcial1"

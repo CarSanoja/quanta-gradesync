@@ -1,16 +1,27 @@
 import { parseLot, prettyName } from "/teacher/assets/teacher-format.js";
 
+const initialRoute = new URLSearchParams(window.location.search);
+
 export const state = {
   summary: null,
   records: [],
   batchRecords: [],
-  screen: "",
+  screen: initialRoute.has("grades")
+    ? "grades"
+    : initialRoute.has("needs") ? "held" : initialRoute.has("send") ? "home" : "",
   following: false,
-  lotCode: new URLSearchParams(window.location.search).get("batch") || "",
-  queries: { judgement: "", batch_hold: "", grades: "", open_grade: "" },
+  lotCode: initialRoute.get("batch") || "",
+  requestedReview: initialRoute.get("review") || "",
+  queries: {
+    judgement: "",
+    batch_hold: "",
+    grades: initialRoute.get("grades") === "1" ? "" : initialRoute.get("grades") || "",
+    open_grade: "",
+  },
   review: { group: "judgement", index: 0, editing: false, marks: null, imageUrl: null, painted: "" },
   open: { student: false, teacher: false },
   uploadDismissed: false,
+  startWhenUploaded: false,
   failed: false,
   polls: 0,
 };
@@ -37,6 +48,9 @@ export function reviewQueue() {
   if (!summary) {
     return [];
   }
+  if (state.review.group === "history") {
+    return summary.history || [];
+  }
   const group = state.review.group === "batch_hold" ? summary.batch_hold : summary.judgement;
   return group.items;
 }
@@ -55,7 +69,9 @@ export function heldBatch() {
   if (!first) {
     return activeBatch();
   }
-  return batchList().find((entry) => entry.job_id === first.job_id) || activeBatch();
+  return batchList().find((entry) => entry.lot_code === first.lot_code)
+    || batchList().find((entry) => entry.job_id === first.job_id)
+    || activeBatch();
 }
 
 export function screenBatch(screen) {
@@ -83,7 +99,7 @@ export function defaultScreen() {
     return "held";
   }
   const batch = activeBatch();
-  if (batch && batch.settled && state.following) {
+  if (batch && batch.settled) {
     return "settled";
   }
   return "home";
@@ -104,6 +120,9 @@ export function contextLine(screen) {
     if (named) {
       return `${named.subject} · class ${named.classId}`;
     }
+    if (review && review.assessment) {
+      return `${review.assessment} · class ${review.class_id}`;
+    }
     return review ? prettyName(review.subject) : "";
   }
   const batch = screenBatch(screen);
@@ -112,8 +131,5 @@ export function contextLine(screen) {
 }
 
 export function releaseImage() {
-  if (state.review.imageUrl) {
-    URL.revokeObjectURL(state.review.imageUrl);
-    state.review.imageUrl = null;
-  }
+  state.review.imageUrl = null;
 }

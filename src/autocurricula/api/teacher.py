@@ -5,6 +5,7 @@ from fastapi.responses import FileResponse
 from pydantic import Field
 
 from autocurricula.api.dependencies import AppContainer, get_container
+from autocurricula.api.ingest_storage import build_ingest_storage
 from autocurricula.api.job_index import list_job_records
 from autocurricula.api.teacher_batch import (
     TeacherBatchProgress,
@@ -13,7 +14,7 @@ from autocurricula.api.teacher_batch import (
     decided_counts,
 )
 from autocurricula.api.teacher_triage import TeacherSummary, build_summary
-from autocurricula.api.teacher_views import build_review_view
+from autocurricula.api.teacher_views import TeacherReviewView, build_review_view
 from autocurricula.api.webhooks import require_push_token
 from autocurricula.core.memory.session_memory import SessionState
 from autocurricula.core.orchestration.job_state import JobRecord
@@ -25,7 +26,7 @@ teacher_router = APIRouter(tags=["teacher"])
 
 STATIC_DIR = Path(__file__).parent / "static"
 TEACHER_PAGE = "teacher.html"
-MAX_RECENT_BATCHES = 3
+MAX_RECENT_BATCHES = 10
 
 TEACHER_MODULES = (
     "teacher.js",
@@ -55,10 +56,12 @@ class TeacherBatchView(TeacherBatchProgress):
     started_at: TzAwareDatetime | None = None
     decided_by_you: int = Field(default=0, ge=0)
     graded_automatically: int = Field(default=0, ge=0)
+    files: list[str] = Field(default_factory=list)
 
 
 class TeacherSummaryView(TeacherSummary):
     batches: list[TeacherBatchView] = Field(default_factory=list)
+    history: list[TeacherReviewView] = Field(default_factory=list)
 
 
 def _not_found(detail: str) -> HTTPException:
@@ -92,6 +95,15 @@ def lot_code_of(record: JobRecord) -> str | None:
 async def recent_lot_codes(container: AppContainer, first: str | None) -> list[str]:
     ordered: list[str] = [first] if first else []
     try:
+        uploaded = await build_ingest_storage(container.settings).list_lot_codes(
+            MAX_RECENT_BATCHES
+        )
+    except Exception:
+        uploaded = []
+    for lot_code in uploaded:
+        if LOT_CODE_PATTERN.fullmatch(lot_code) and lot_code not in ordered:
+            ordered.append(lot_code)
+    try:
         records = await list_job_records(container.settings)
     except Exception:
         records = []
@@ -116,6 +128,10 @@ async def batch_view(
         record = await container.checkpoint_store.get(job_id)
     except Exception:
         record = None
+    try:
+        files = await build_ingest_storage(container.settings).list_files(lot_code)
+    except Exception:
+        files = []
     return TeacherBatchView(
         **progress.model_dump(),
         lot_code=lot_code,
@@ -123,6 +139,7 @@ async def batch_view(
         started_at=record.event.triggered_at if record is not None else None,
         decided_by_you=min(decided, progress.in_gradebook),
         graded_automatically=max(progress.in_gradebook - decided, 0),
+        files=files,
     )
 
 
@@ -151,5 +168,19 @@ async def teacher_summary(
         if view is not None:
             views.append(view)
     named = next((view for view in views if view.lot_code == batch), None)
+    history: list[TeacherReviewView] = []
+    if batch:
+        try:
+            recent = await container.review_service.list_recent(limit=500)
+        except Exception:
+            recent = []
+        target_job = batch_job_id(batch)
+        history = [
+            await build_review_view(container, item, cache)
+            for item in recent
+            if item.job_id == target_job and item.status.value != "pending"
+        ]
     summary = build_summary(waiting, base_progress(named))
-    return TeacherSummaryView(**summary.model_dump(), batches=views)
+    return TeacherSummaryView(
+        **summary.model_dump(), batches=views, history=history
+    )

@@ -42,6 +42,10 @@ class IngestStorage(Protocol):
 
     async def count_objects(self, prefix: str) -> int: ...
 
+    async def list_lot_codes(self, limit: int) -> list[str]: ...
+
+    async def list_files(self, lot_code: str, limit: int = 500) -> list[str]: ...
+
 
 class LocalIngestStorage:
     def __init__(self, settings: Settings) -> None:
@@ -71,6 +75,30 @@ class LocalIngestStorage:
             return sum(1 for path in directory.iterdir() if path.is_file())
 
         return await asyncio.to_thread(_count)
+
+    async def list_lot_codes(self, limit: int) -> list[str]:
+        directory = self._root / UPLOADS_PREFIX
+
+        def _list() -> list[str]:
+            if not directory.is_dir():
+                return []
+            lots = [path for path in directory.iterdir() if path.is_dir()]
+            lots.sort(key=lambda path: path.stat().st_mtime, reverse=True)
+            return [path.name for path in lots[:limit]]
+
+        return await asyncio.to_thread(_list)
+
+    async def list_files(self, lot_code: str, limit: int = 500) -> list[str]:
+        directory = self._root / UPLOADS_PREFIX / lot_code
+
+        def _list() -> list[str]:
+            if not directory.is_dir():
+                return []
+            files = [path for path in directory.iterdir() if path.is_file()]
+            files.sort(key=lambda path: (path.stat().st_mtime_ns, path.name))
+            return [path.name for path in files[:limit]]
+
+        return await asyncio.to_thread(_list)
 
 
 class GcsIngestStorage:
@@ -108,6 +136,51 @@ class GcsIngestStorage:
             return sum(1 for _ in blobs)
 
         return await asyncio.to_thread(_count)
+
+    async def list_lot_codes(self, limit: int) -> list[str]:
+        def _list() -> list[str]:
+            prefix = f"{UPLOADS_PREFIX}/"
+            seen: dict[str, Any] = {}
+            for blob in self._client.list_blobs(self._bucket_name, prefix=prefix):
+                tail = blob.name[len(prefix) :]
+                lot_code = tail.split("/", 1)[0]
+                if not lot_code:
+                    continue
+                updated = getattr(blob, "updated", None)
+                if (lot_code not in seen
+                        or (updated is not None
+                            and (seen[lot_code] is None or updated > seen[lot_code]))):
+                    seen[lot_code] = updated
+            ordered = sorted(
+                seen,
+                key=lambda code: (seen[code] is not None, seen[code]),
+                reverse=True,
+            )
+            return ordered[:limit]
+
+        return await asyncio.to_thread(_list)
+
+    async def list_files(self, lot_code: str, limit: int = 500) -> list[str]:
+        def _list() -> list[str]:
+            prefix = f"{UPLOADS_PREFIX}/{lot_code}/"
+            blobs = list(self._client.list_blobs(self._bucket_name, prefix=prefix))
+            blobs.sort(
+                key=lambda blob: (
+                    (
+                        getattr(blob, "time_created", None)
+                        or getattr(blob, "updated", None)
+                    ).timestamp()
+                    if (
+                        getattr(blob, "time_created", None)
+                        or getattr(blob, "updated", None)
+                    )
+                    else 0,
+                    blob.name,
+                )
+            )
+            return [blob.name.rsplit("/", 1)[-1] for blob in blobs[:limit]]
+
+        return await asyncio.to_thread(_list)
 
 
 def build_ingest_storage(settings: Settings) -> IngestStorage:
