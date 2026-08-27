@@ -203,6 +203,7 @@ async def test_teacher_page_is_public_html(client: httpx.AsyncClient) -> None:
     response = await client.get("/teacher")
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/html")
+    assert response.headers["cache-control"] == "no-store"
     assert "GradeSync" in response.text
     assert "Access code" in response.text
     assert "/teacher/assets/teacher.js" in response.text
@@ -212,9 +213,11 @@ async def test_teacher_assets_are_served_from_a_whitelist(client: httpx.AsyncCli
     styles = await client.get("/teacher/assets/teacher.css")
     assert styles.status_code == 200
     assert styles.headers["content-type"].startswith("text/css")
+    assert styles.headers["cache-control"] == "no-cache, must-revalidate"
     script = await client.get("/teacher/assets/teacher.js")
     assert script.status_code == 200
     assert script.headers["content-type"].startswith("text/javascript")
+    assert script.headers["cache-control"] == "no-cache, must-revalidate"
     for asset in (
         "teacher-actions.js",
         "teacher-dialogs.js",
@@ -230,6 +233,7 @@ async def test_teacher_assets_are_served_from_a_whitelist(client: httpx.AsyncCli
         module = await client.get(f"/teacher/assets/{asset}")
         assert module.status_code == 200
         assert module.headers["content-type"].startswith("text/javascript")
+        assert module.headers["cache-control"] == "no-cache, must-revalidate"
     traversal = await client.get("/teacher/assets/%2e%2e%2fteacher.py")
     assert traversal.status_code == 404
     unknown = await client.get("/teacher/assets/console.js")

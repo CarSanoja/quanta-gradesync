@@ -73,7 +73,11 @@ async def teacher_page() -> FileResponse:
     page = STATIC_DIR / TEACHER_PAGE
     if not page.is_file():
         raise _not_found("teacher page is not bundled")
-    return FileResponse(page, media_type="text/html; charset=utf-8")
+    return FileResponse(
+        page,
+        media_type="text/html; charset=utf-8",
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @teacher_router.get("/teacher/assets/{asset_name}", response_class=FileResponse)
@@ -84,7 +88,11 @@ async def teacher_asset(asset_name: str) -> FileResponse:
     path = STATIC_DIR / asset_name
     if not path.is_file():
         raise _not_found(f"teacher asset {asset_name!r} is not bundled")
-    return FileResponse(path, media_type=media_type)
+    return FileResponse(
+        path,
+        media_type=media_type,
+        headers={"Cache-Control": "no-cache, must-revalidate"},
+    )
 
 
 def lot_code_of(record: JobRecord) -> str | None:
