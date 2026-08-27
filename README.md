@@ -374,15 +374,24 @@ All variables use the `GRADESYNC_` prefix and are read from the environment or a
 ## Deploy with Cloud Build
 
 ```bash
+export CLOUDSDK_CONFIG=$HOME/.gcloud-gradesync
 gcloud builds submit . \
   --config cloudbuild.yaml \
-  --substitutions=SHORT_SHA=$(git rev-parse --short HEAD),_GCS_BUCKET=my-exams-bucket
+  --substitutions=SHORT_SHA=$(git rev-parse --short HEAD)
 ```
+
+Every substitution has a working default, so that command is complete on its
+own. **[`docs/runbooks/deploy.md`](docs/runbooks/deploy.md) is the full
+procedure**: which settings a deploy rewrites and which it keeps from the
+running service, how to verify the revision that took traffic, how to roll
+back, and how to rotate the push token.
 
 Cloud Build runs as the dedicated `gradesync-builder` service account, builds the
 container, pushes it to Artifact Registry (`$_REPOSITORY`), and deploys to Cloud
 Run with scale-to-zero (`--min-instances=0 --max-instances=2`), `--timeout=900`,
-and the runtime service account from `$_SERVICE_ACCOUNT`. The push token is
+CPU allocated outside the request (`--no-cpu-throttling`, required because the
+webhook acks the push and grades in the background), and the runtime service
+account from `$_SERVICE_ACCOUNT`. The push token is
 mounted from Secret Manager (`_PUSH_TOKEN_SECRET`, default `gradesync-push-token`)
 — no secret ever appears in the build config or the command line.
 
