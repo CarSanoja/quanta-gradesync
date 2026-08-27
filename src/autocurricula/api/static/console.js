@@ -15,6 +15,8 @@ import { createReviewController } from "./console-review.js";
 import { renderFleet } from "./fleet.js";
 import { createIngestController } from "./ingest.js";
 import { createSisController } from "./sis.js";
+import { createJobsPoller } from "/console/assets/console-jobs-poll.js";
+import { jobsSignature } from "/console/assets/live-focus.js";
 import { createLiveController } from "./live.js";
 
 const dom = resolveDom();
@@ -26,7 +28,9 @@ const chrome = createChrome(dom, {
 });
 const { guard, toast } = chrome;
 
-const state = { view: "jobs", mode: "", jobs: [], activeJobId: null, jobCache: new Map() };
+const state = {
+  view: "jobs", mode: "", jobs: [], activeJobId: null, jobCache: new Map(), jobsSignature: "",
+};
 
 function setView(view) {
   state.view = view;
@@ -36,6 +40,7 @@ function setView(view) {
   document.querySelectorAll(".view").forEach((section) => {
     section.classList.toggle("is-active", section.id === `view-${view}`);
   });
+  view === "jobs" ? jobsPoller.start() : jobsPoller.stop();
   view === "sis" ? sisController.start() : sisController.stop();
   view === "trace" ? liveController.start() : liveController.stop();
 }
@@ -63,6 +68,11 @@ async function loadJobs() {
   if (!payload) {
     return;
   }
+  const signature = jobsSignature(payload.items);
+  if (signature === state.jobsSignature && state.activeJobId) {
+    return;
+  }
+  state.jobsSignature = signature;
   state.jobs = payload.items;
   state.jobCache.clear();
   dom.jobsCount.textContent = `${payload.count} batch${payload.count === 1 ? "" : "es"}`;
@@ -121,6 +131,16 @@ async function refreshAll() {
   }
   dom.refresh.disabled = false;
 }
+
+const jobsPoller = createJobsPoller({
+  load: loadJobs,
+  jobsOf: () => state.jobs,
+  indicator: (live) => {
+    if (dom.jobsPoll) {
+      dom.jobsPoll.classList.toggle("is-live", live);
+    }
+  },
+});
 
 const sisController = createSisController({ dom, guard, getJson, endpoints });
 const liveController = createLiveController({ dom, guard, getJson, endpoints });

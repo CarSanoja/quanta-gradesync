@@ -12,6 +12,7 @@ const IDS = {
   toast: "toast",
   jobsList: "jobs-list",
   jobsCount: "jobs-count",
+  jobsPoll: "jobs-poll",
   jobDetail: "job-detail",
   reviewList: "review-list",
   reviewCount: "review-count",
