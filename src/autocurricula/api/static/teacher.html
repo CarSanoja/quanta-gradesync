@@ -5,29 +5,43 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>GradeSync — Nothing needs you</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9C%8F%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="/teacher/assets/teacher.css">
+<link rel="stylesheet" href="/teacher/assets/teacher-screens.css">
+<link rel="stylesheet" href="/teacher/assets/teacher-review.css">
+<link rel="stylesheet" href="/teacher/assets/teacher-dialogs.css">
 </head>
 <body>
 <a class="skip-link" href="#screen">Skip to the main content</a>
 
-<header class="masthead">
-  <div class="brand">
-    <span class="wordmark">GradeSync</span>
-    <span class="context" id="context-line"></span>
+<div class="grid-veil" aria-hidden="true"></div>
+
+<div class="frame">
+  <aside class="rail">
+    <button class="rail-mark" id="rail-mark" type="button" title="GradeSync — send scans">GS</button>
+    <span class="rail-label" id="rail-label"></span>
+    <button class="rail-bell is-quiet" id="nav-needs" type="button" aria-label="Nothing needs you">0</button>
+  </aside>
+
+  <div class="column">
+    <header class="masthead">
+      <span class="context" id="context-line"></span>
+      <nav class="masthead-actions" aria-label="Sections">
+        <button class="ghost is-resume" id="nav-resume" type="button" hidden></button>
+        <button class="ghost" id="nav-grades" type="button">Recent grades</button>
+        <button class="ghost" id="nav-home" type="button">Send scans</button>
+      </nav>
+    </header>
+
+    <div class="alert" id="alert" role="alert" hidden>
+      <span id="alert-text"></span>
+      <button class="linkish" id="alert-retry" type="button">Try again</button>
+    </div>
+
+    <main id="screen" tabindex="-1"></main>
   </div>
-  <nav class="masthead-actions" aria-label="Sections">
-    <button class="ghost" id="nav-needs" type="button">Needs me (0)</button>
-    <button class="ghost" id="nav-grades" type="button">Recent grades</button>
-    <button class="ghost" id="nav-home" type="button">Send scans</button>
-  </nav>
-</header>
-
-<div class="alert" id="alert" role="alert" hidden>
-  <span id="alert-text"></span>
-  <button class="linkish" id="alert-retry" type="button">Try again</button>
 </div>
-
-<main id="screen" tabindex="-1"></main>
 
 <div class="veil" id="access-veil" hidden>
   <form class="sheet" id="access-form" role="dialog" aria-modal="true" aria-labelledby="access-title">
@@ -37,8 +51,8 @@
     <input type="password" id="access-input" autocomplete="off" spellcheck="false">
     <p class="sheet-error" id="access-error" hidden></p>
     <div class="sheet-actions">
-      <button type="button" class="quiet" id="access-cancel">Cancel</button>
       <button type="submit" class="primary">Open my page</button>
+      <button type="button" class="quiet" id="access-cancel">Cancel</button>
     </div>
   </form>
 </div>
@@ -88,7 +102,14 @@
   </div>
 </div>
 
-<div class="toast" id="toast" role="status" hidden></div>
+<div class="toast" id="toast" role="status" hidden>
+  <p class="toast-tag" id="toast-tag">Just now</p>
+  <p class="toast-text" id="toast-text"></p>
+  <div class="toast-actions" id="toast-actions" hidden>
+    <button type="button" class="toast-open" id="toast-open">See it now</button>
+    <button type="button" class="toast-later" id="toast-later">Later</button>
+  </div>
+</div>
 
 <script type="module" src="/teacher/assets/teacher.js"></script>
 </body>

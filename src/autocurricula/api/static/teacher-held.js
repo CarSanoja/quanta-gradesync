@@ -55,6 +55,7 @@ function judgementSection(ctx, group) {
         text: [item.assessment, item.class_id ? `class ${item.class_id}` : "", item.primary_reason]
           .filter(Boolean).join(" · "),
       }),
+      el("span", { class: "chip is-waiting-tone", text: "Waiting for you" }),
     ]),
   ]))));
   if (!found.length) {
@@ -68,7 +69,7 @@ function judgementSection(ctx, group) {
     text: "Review these one at a time",
     onclick: () => ctx.goReview("judgement"),
   }));
-  return el("section", { class: "panel is-flagged", style: "margin-bottom:3.25rem" }, nodes);
+  return el("section", { class: "panel is-flagged", style: "margin-bottom:2.5rem" }, nodes);
 }
 
 function precautionSection(ctx, group) {
@@ -93,6 +94,7 @@ function precautionSection(ctx, group) {
           text: [item.assessment, item.class_id ? `class ${item.class_id}` : ""]
             .filter(Boolean).join(" · "),
         }),
+        el("span", { class: "chip is-held-tone", text: "Held as a precaution" }),
       ]),
     ]))),
     hidden > 0 ? el("p", { class: "group-more", text: `and ${hidden} more` }) : null,
@@ -122,7 +124,7 @@ export function renderHeld(host, ctx) {
   host.append(
     el("p", {
       class: "eyebrow",
-      text: ctx.batch ? ctx.batch.assessment : "Across your classes",
+      text: `Needs you${ctx.batch ? ` · ${ctx.batch.assessment}` : " · across your classes"}`,
     }),
     el("h1", {
       class: "display is-small",

@@ -26,6 +26,16 @@ from autocurricula.schemas.grading import CriterionScore, GradingBatchResult, Gr
 from autocurricula.schemas.review import ReviewItem, ReviewStatus
 from autocurricula.schemas.sis_sync import SISGradeRecord
 
+HIGH_CONFIDENCE = "high"
+MIDDLING_CONFIDENCE = "middling"
+LOW_CONFIDENCE = "low"
+
+
+def confidence_band(value: float) -> str:
+    if value >= 0.85:
+        return HIGH_CONFIDENCE
+    return MIDDLING_CONFIDENCE if value >= 0.6 else LOW_CONFIDENCE
+
 
 def display_name(student_id: str) -> str:
     normalized = student_id.replace("_", "-").replace(".", "-")
@@ -50,6 +60,8 @@ class TeacherCriterionView(StrictBaseModel):
     max_score: float | None = None
     score_text: str
     comment: str
+    confidence_band: str = ""
+    evidence: list[TeacherEvidenceView] = Field(default_factory=list)
 
 
 class TeacherReviewView(StrictBaseModel):
@@ -76,6 +88,7 @@ class TeacherReviewView(StrictBaseModel):
     feedback: str
     student_feedback: TeacherFeedbackView | None = None
     criteria: list[TeacherCriterionView] = Field(default_factory=list)
+    confidence_band: str = ""
     can_edit_marks: bool = False
     has_page: bool
 
@@ -130,9 +143,24 @@ def plain_criteria(state: SessionState | None, item: ReviewItem) -> list[Teacher
                 max_score=ceiling,
                 score_text=points_text(score.score, ceiling),
                 comment=score.comment,
+                confidence_band=confidence_band(score.confidence),
+                evidence=[
+                    TeacherEvidenceView(
+                        page=span.page, quote=span.quote, note=span.rationale
+                    )
+                    for span in score.evidence
+                ],
             )
         )
     return views
+
+
+def read_confidence(criteria: list[TeacherCriterionView]) -> str:
+    bands = [view.confidence_band for view in criteria if view.confidence_band]
+    for band in (LOW_CONFIDENCE, MIDDLING_CONFIDENCE, HIGH_CONFIDENCE):
+        if band in bands:
+            return band
+    return ""
 
 
 def covers_rubric(
@@ -227,6 +255,7 @@ async def build_review_view(
         feedback=record.feedback,
         student_feedback=build_feedback_view(record, graded_result(state, item)),
         criteria=criteria,
+        confidence_band=read_confidence(criteria),
         can_edit_marks=covers_rubric(state, criteria),
         has_page=bool(item.document_paths),
     )

@@ -42,10 +42,24 @@ TEACHER_MODULES = (
     "teacher-upload.js",
     "teacher-value.js",
     "teacher-uploading.js",
+    "teacher-batch.js",
+    "teacher-rail.js",
+    "teacher-roster.js",
+    "teacher-intake.js",
+    "teacher-staging.js",
+    "teacher-marks.js",
+    "teacher-routing.js",
+)
+
+TEACHER_STYLES = (
+    "teacher.css",
+    "teacher-screens.css",
+    "teacher-review.css",
+    "teacher-dialogs.css",
 )
 
 ASSET_MEDIA_TYPES = {
-    "teacher.css": "text/css; charset=utf-8",
+    **{name: "text/css; charset=utf-8" for name in TEACHER_STYLES},
     **{name: "text/javascript; charset=utf-8" for name in TEACHER_MODULES},
 }
 

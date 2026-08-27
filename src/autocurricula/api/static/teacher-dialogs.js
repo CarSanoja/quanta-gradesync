@@ -9,6 +9,7 @@ const dom = {};
 let toastTimer = null;
 let collisionResolver = null;
 let confirmAction = null;
+let toastOpenAction = null;
 let onToken = null;
 
 function bind(ids) {
@@ -17,11 +18,25 @@ function bind(ids) {
   });
 }
 
-export function toast(message) {
-  dom.toast.textContent = message;
+export function hideToast() {
+  window.clearTimeout(toastTimer);
+  dom.toast.hidden = true;
+  toastOpenAction = null;
+}
+
+export function toast(message, options = {}) {
+  dom.toastTag.textContent = options.tag || "Just now";
+  dom.toastText.textContent = message;
+  toastOpenAction = options.onOpen || null;
+  dom.toastActions.hidden = !toastOpenAction;
+  if (toastOpenAction) {
+    dom.toastOpen.textContent = options.openLabel || "See it now";
+  }
   dom.toast.hidden = false;
   window.clearTimeout(toastTimer);
-  toastTimer = window.setTimeout(() => { dom.toast.hidden = true; }, TOAST_MS);
+  if (!toastOpenAction) {
+    toastTimer = window.setTimeout(() => { dom.toast.hidden = true; }, TOAST_MS);
+  }
 }
 
 export function showAlert(message) {
@@ -169,13 +184,22 @@ function wireCollision(slugify) {
 export function setupDialogs(options) {
   onToken = options.onToken;
   bind([
-    "alert", "alert-text", "alert-retry", "toast", "access-veil", "access-form", "access-input",
+    "alert", "alert-text", "alert-retry", "toast", "toast-tag", "toast-text", "toast-actions",
+    "toast-open", "toast-later", "access-veil", "access-form", "access-input",
     "access-error", "access-cancel", "confirm-veil", "confirm-title", "confirm-body",
     "confirm-aside", "confirm-error", "confirm-yes", "confirm-no", "collision-veil",
     "collision-title", "collision-message", "collision-name-input", "collision-error", "collision-cancel",
     "collision-different", "collision-replace", "collision-all", "zoom-veil", "zoom-title", "zoom-body",
     "zoom-close",
   ]);
+  dom.toastLater.addEventListener("click", hideToast);
+  dom.toastOpen.addEventListener("click", () => {
+    const open = toastOpenAction;
+    hideToast();
+    if (open) {
+      open();
+    }
+  });
   dom.confirmNo.addEventListener("click", closeConfirm);
   dom.confirmYes.addEventListener("click", () => { if (confirmAction) { confirmAction(); } });
   dom.zoomClose.addEventListener("click", () => { dom.zoomVeil.hidden = true; });

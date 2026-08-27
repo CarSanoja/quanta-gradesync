@@ -1,185 +1,157 @@
 import { el } from "/console/assets/render.js";
 import { plural } from "/teacher/assets/teacher-format.js";
+import { lotFields } from "/teacher/assets/teacher-intake.js";
+import { pairSection, troubleSections, unnamedSection } from "/teacher/assets/teacher-staging.js";
 import { uploads, uploadState } from "/teacher/assets/teacher-upload.js";
 
-function lotFields(ctx) {
-  const fields = [
-    ["subject", "Subject", "Mathematics"],
-    ["classId", "Class", "10A"],
-    ["assessment", "Assessment name", "Midterm 1"],
-  ];
-  return el("fieldset", { class: "lot-fields" }, [
-    el("legend", { text: "Which assessment is this?" }),
-    ...fields.map(([key, label, placeholder]) => {
-      const input = el("input", {
-        type: "text",
-        id: `lot-${key}`,
-        placeholder,
-        autocomplete: "off",
-        oninput: (event) => ctx.setLot(key, event.target.value),
-      });
-      input.value = uploads.lot[key];
-      return el("label", { class: "field", for: `lot-${key}` }, [el("span", { text: label }), input]);
-    }),
-  ]);
+const STAGES = ["named", "sending", "arrived"];
+const ARRIVED = new Set(["received", "skipped"]);
+
+function stageOf(row) {
+  if (row.state === "failed") return -2;
+  if (ARRIVED.has(row.state)) return 3;
+  if (row.state === "sending") return 1;
+  if (row.state === "ready") return 1;
+  return 0;
 }
 
-function pairSection(ctx) {
-  const names = uploads.pair.groups.flat();
-  const count = names.length;
-  return el("section", { class: "panel is-flagged" }, [
-    el("h2", { text: names.length === 2 ? "Two files look like one exam" : "Some files look like one exam" }),
-    el("p", {
-      text: `${names.join(" and ")} look like pages of the same exam. GradeSync grades one file per `
-        + `student, so ${count} files become ${count} students in the gradebook.`,
-    }),
-    el("div", { class: "pair-thumbs" }, names.map((name) =>
-      el("div", { class: "thumb" }, [el("span", { text: name })]))),
-    el("div", { class: "button-row" }, [
-      el("button", {
-        class: "primary",
-        type: "button",
-        text: "One exam — I'll send them as one PDF",
-        onclick: () => ctx.answerPair("combine"),
-      }),
-      el("button", {
-        class: "secondary",
-        type: "button",
-        text: `${count} different students`,
-        onclick: () => ctx.answerPair("separate"),
-      }),
-    ]),
-  ]);
+function stageLabel(row) {
+  if (row.state === "failed") return row.status || "did not go through";
+  if (row.state === "skipped") return "kept the scan already saved";
+  if (row.state === "received") return "arrived";
+  if (row.state === "sending") return "sending";
+  if (row.state === "needs-name") return "needs a name from you";
+  if (row.state === "held") return "held back";
+  if (row.state === "paused") return "waiting on your answer";
+  return "queued";
 }
 
-function namerRow(ctx, row) {
-  const input = el("input", {
-    type: "text",
-    id: `namer-${row.id}`,
-    placeholder: "Type the student's name",
-    autocomplete: "off",
-    spellcheck: "false",
-    oninput: (event) => ctx.renameRow(row.id, event.target.value),
-  });
-  input.value = row.name;
+function dots(row) {
+  const reached = stageOf(row);
+  return el("span", { class: "file-dots" }, STAGES.map((name, index) => {
+    let tone = "";
+    if (reached === -2 && index >= 1) {
+      tone = " is-failed";
+    } else if (reached > index) {
+      tone = " is-done";
+    } else if (reached === index) {
+      tone = " is-now";
+    }
+    return el("span", { class: `file-dot${tone}`, title: name });
+  }));
+}
+
+function fileRow(row) {
   const named = Boolean(row.studentId);
-  return el("div", { class: "namer" }, [
-    el("div", { class: "namer-thumb" }, row.thumbUrl
-      ? [el("img", { src: row.thumbUrl, alt: `Photo ${row.label}` })]
-      : []),
-    el("div", { class: "namer-body" }, [
-      el("p", { class: "namer-file", text: row.label }),
-      el("label", { for: `namer-${row.id}`, text: "Whose exam is this?" }),
-      input,
-      row.note ? el("p", { class: "mark-note", text: row.note }) : null,
+  const tone = row.state === "failed" ? " is-failed" : named ? "" : " is-unnamed";
+  return el("li", { class: "file-row" }, [
+    el("div", { class: "file-who" }, [
+      el("p", { class: `file-name${tone}`, text: row.student || row.name || "Not named yet" }),
+      el("p", { class: "file-meta", text: `${row.label} · ${stageLabel(row)}` }),
     ]),
-    named
-      ? el("span", { class: "namer-state is-done" }, [
-          el("span", { class: "glyph", "aria-hidden": "true", text: "✓" }),
-          el("span", { text: "Named" }),
-        ])
-      : el("span", { class: "namer-state", text: "Waiting for a name" }),
+    dots(row),
   ]);
 }
 
-function unnamedSection(ctx, waiting) {
-  const heading = waiting.length === 1
-    ? "1 file still needs a name"
-    : `${waiting.length} files still need a name`;
-  return el("section", { class: "panel" }, [
-    el("h2", { text: heading }),
-    el("p", {
-      text: "These came from a camera, so we cannot tell whose they are. Whatever you type here "
-        + "becomes the student's name in the gradebook.",
-    }),
-    ...waiting.map((row) => namerRow(ctx, row)),
-  ]);
+function percent(state) {
+  if (!state.total) {
+    return 0;
+  }
+  const done = state.received + state.skipped;
+  const moving = state.sending * 0.5;
+  return Math.min(100, Math.round(((done + moving) / state.total) * 100));
 }
 
-function troubleSection(ctx, state) {
-  const nodes = [];
-  if (state.held.length) {
-    nodes.push(el("section", { class: "panel" }, [
-      el("h2", { text: `${state.held.length} ${plural(state.held.length, "file is", "files are")} held back` }),
-      el("p", { text: "Scan those pages into one PDF, pages in order, then send that single file." }),
-      el("ul", { class: "group-list" }, state.held.map((row) =>
-        el("li", {}, [el("span", { class: "group-student", text: row.label })]))),
-    ]));
+function stageCounts(state) {
+  const queued = state.total - state.received - state.skipped - state.sending
+    - state.failed.length - state.needsName.length - state.held.length;
+  const counts = [
+    ["waiting on you", state.needsName.length + state.held.length],
+    ["queued", Math.max(queued, 0)],
+    ["sending", state.sending],
+    ["arrived", state.received],
+    ["already saved", state.skipped],
+    ["did not go through", state.failed.length],
+  ];
+  return el("ul", { class: "stage-counts" }, counts
+    .filter(([, value]) => value > 0)
+    .map(([label, value]) =>
+      el("li", {}, [el("b", { text: String(value) }), el("span", { text: ` ${label}` })])));
+}
+
+
+function arrivedLine(state) {
+  if (state.received >= state.total && state.total > 0) {
+    return `All ${state.total} ${plural(state.total, "file", "files")} arrived.`;
+  }
+  if (state.sent >= state.total && state.skipped > 0) {
+    return `${state.received} of ${state.total} arrived; ${state.skipped} kept the scan already saved.`;
+  }
+  return `${state.received} of ${state.total} ${plural(state.total, "file has", "files have")} arrived.`;
+}
+
+function noteLine(state) {
+  if (state.awaitingLot) {
+    return "Fill in the three boxes above and sending starts on its own.";
+  }
+  if (state.running) {
+    return "Sending is in progress. Keep this page open until every file has arrived.";
   }
   if (state.failed.length) {
-    const retryable = state.failed.some((row) => !row.local);
-    nodes.push(el("section", { class: "panel" }, [
-      el("h2", { text: `${state.failed.length} ${plural(state.failed.length, "file did", "files did")} not go through` }),
-      el("ul", { class: "group-list" }, state.failed.map((row) =>
-        el("li", {}, [
-          el("span", { class: "group-student", text: row.student || row.name || row.label }),
-          el("span", { class: "group-reason", text: row.status }),
-        ]))),
-      retryable
-        ? el("div", { class: "button-row" }, [
-            el("button", { class: "secondary", type: "button", text: "Try those again", onclick: () => ctx.retryFailed() }),
-          ])
-        : null,
-    ]));
+    return "Some files were not sent. Try those again before you leave this page.";
   }
-  return nodes;
+  if (state.sent === state.total && state.total > 0) {
+    return state.skipped
+      ? "Every file is accounted for. You can safely leave this page."
+      : "Every file has arrived. You can safely leave this page.";
+  }
+  return "Not sent yet. Complete what the page asks for below.";
+}
+
+function bar(state) {
+  const pct = (share) => `width:${state.total ? Math.round(share * 100) : 0}%`;
+  return el("div", {
+    class: "progress-track",
+    "aria-label": `${state.received} received, ${state.sending} sending, ${state.failed.length} failed`,
+  }, [
+    el("span", { class: "progress-fill is-received", style: pct(state.received / state.total) }),
+    el("span", { class: "progress-fill is-kept", style: pct(state.skipped / state.total) }),
+    el("span", { class: "progress-fill is-sending", style: pct(state.sending / state.total) }),
+    el("span", { class: "progress-fill is-failed", style: pct(state.failed.length / state.total) }),
+  ]);
 }
 
 export function renderUploading(host, ctx) {
   const state = uploadState();
-  const arrived = state.received >= state.total && state.total > 0
-    ? `All ${state.total} ${plural(state.total, "file", "files")} arrived.`
-    : state.sent >= state.total && state.skipped > 0
-      ? `${state.received} of ${state.total} arrived; ${state.skipped} kept the scan already saved.`
-    : `${state.received} of ${state.total} ${plural(state.total, "file has", "files have")} arrived.`;
-  let note = "Not sent yet. Complete what the page asks for below.";
-  if (state.awaitingLot) {
-    note = "Fill in the three boxes above and sending starts on its own.";
-  } else if (state.running) {
-    note = "Sending is in progress. Keep this page open until every file has arrived.";
-  } else if (state.failed.length) {
-    note = "Some files were not sent. Try those again before you leave this page.";
-  } else if (state.sent === state.total && state.total > 0) {
-    note = state.skipped
-      ? "Every file is accounted for. You can safely leave this page."
-      : "Every file has arrived. You can safely leave this page.";
-  }
   host.className = "screen";
   host.append(
-    el("h1", { class: "display is-small", text: "Your scans are arriving" }),
-    lotFields(ctx),
-    el("p", { class: "lede", style: "margin-bottom:1.25rem", text: arrived }),
-    el("div", {
-      class: "progress-track",
-      "aria-label": `${state.received} received, ${state.sending} sending, ${state.failed.length} failed`,
-    }, [
-      el("span", {
-        class: "progress-fill is-received",
-        style: `width:${state.total ? Math.round((state.received / state.total) * 100) : 0}%`,
-      }),
-      el("span", {
-        class: "progress-fill is-sending",
-        style: `width:${state.total ? Math.round((state.sending / state.total) * 100) : 0}%`,
-      }),
-      el("span", {
-        class: "progress-fill is-failed",
-        style: `width:${state.total ? Math.round((state.failed.length / state.total) * 100) : 0}%`,
-      }),
+    el("p", { class: "eyebrow", text: "Sending this batch" }),
+    el("div", { class: "pipe-figure" }, [
+      el("span", { class: "pipe-pct", text: `${percent(state)}%` }),
+      el("span", { class: "pipe-summary", text: arrivedLine(state) }),
     ]),
-    el("p", {
-      class: "note",
-      style: "margin-bottom:3rem",
-      text: note,
-    })
+    bar(state),
+    stageCounts(state),
+    el("p", { class: "note", style: "margin-bottom:2.5rem", text: noteLine(state) }),
+    lotFields(ctx)
   );
   if (uploads.pair) {
     host.append(pairSection(ctx));
   }
-  const waiting = state.needsName;
-  if (waiting.length) {
-    host.append(unnamedSection(ctx, waiting));
+  if (state.needsName.length) {
+    host.append(unnamedSection(ctx, state.needsName));
   }
-  troubleSection(ctx, state).forEach((node) => host.append(node));
+  troubleSections(ctx, state).forEach((node) => host.append(node));
+  if (state.total) {
+    host.append(
+      el("h2", { class: "section-title", text: "File by file" }),
+      el("p", {
+        class: "section-note",
+        text: "Each line is one scan on its way. Nothing here is graded yet.",
+      }),
+      el("ul", { class: "file-rows" }, uploads.rows.map(fileRow))
+    );
+  }
   host.append(el("div", { class: "button-row", style: "margin-top:2.25rem" }, [
     el("button", {
       class: "primary",

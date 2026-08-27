@@ -58,7 +58,7 @@ def test_home_never_renders_a_null_band_or_claims_an_unfinished_batch_is_done() 
 
     assert "...(band ? [band] : [])" in screens
     assert "const complete = batch && batch.settled" in screens
-    assert "are still being graded; nothing needs your decision yet" in screens
+    assert "still being graded; nothing needs your decision yet" in screens
 
 
 def test_waiting_work_keeps_polling_and_updates_the_window_title() -> None:
@@ -81,11 +81,12 @@ def test_every_teacher_screen_has_an_address_and_back_navigation() -> None:
     teacher = source("teacher.js")
     screens = source("teacher-screens.js")
 
-    assert 'url.searchParams.set("batch", state.lotCode)' in teacher
-    assert 'url.searchParams.set("review", review.student_id)' in teacher
-    assert 'url.searchParams.set("grades", state.queries.grades || "1")' in teacher
-    assert 'url.searchParams.set("needs", "1")' in teacher
-    assert 'url.searchParams.set("send", "1")' in teacher
+    routing = source("teacher-routing.js")
+    assert 'put(url, "batch", state.lotCode)' in routing
+    assert 'url.searchParams.set("review", review.student_id)' in routing
+    assert 'url.searchParams.set("grades", state.queries.grades || "1")' in routing
+    assert 'url.searchParams.set("needs", "1")' in routing
+    assert 'url.searchParams.set("send", "1")' in routing
     assert 'window.addEventListener("popstate"' in teacher
     assert "ctx.summary.batches.map" in screens
     assert "ctx.openBatch(batch.lot_code)" in screens

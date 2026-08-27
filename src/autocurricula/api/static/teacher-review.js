@@ -1,11 +1,13 @@
 import { endpoints, getObjectUrl } from "/console/assets/api.js";
 import { clear, el } from "/console/assets/render.js";
-import { firstName, fmt, pointsOf } from "/teacher/assets/teacher-format.js";
+import { firstName, fmt, prettySubject } from "/teacher/assets/teacher-format.js";
+import { bumped, confidenceBand, markValue, marksBlock } from "/teacher/assets/teacher-marks.js";
 
-export const STEP = 0.5;
 const IMAGE_CACHE_LIMIT = 12;
 const imageCache = new Map();
 const imageLoads = new Map();
+
+export { bumped, markValue };
 
 async function reviewImage(reviewId) {
   if (imageCache.has(reviewId)) {
@@ -35,58 +37,6 @@ export function releaseReviewImages() {
   imageLoads.clear();
 }
 
-export function markValue(ctx, criterion) {
-  if (!ctx.editing || !ctx.marks) {
-    return criterion.score;
-  }
-  const held = ctx.marks[criterion.criterion_id];
-  return held === undefined ? criterion.score : held;
-}
-
-export function bumped(current, delta, ceiling) {
-  const raw = Math.round((current + delta) * 100) / 100;
-  const top = ceiling === null || ceiling === undefined ? raw : Math.min(raw, ceiling);
-  return Math.max(0, top);
-}
-
-function markRow(ctx, criterion) {
-  const value = markValue(ctx, criterion);
-  const max = criterion.max_score;
-  const controls = [];
-  if (ctx.editing) {
-    controls.push(el("button", {
-      class: "stepper",
-      type: "button",
-      id: `step-down-${criterion.criterion_id}`,
-      "aria-label": `One step fewer on ${criterion.title}`,
-      disabled: value <= 0,
-      text: "−",
-      onclick: () => ctx.onBump(criterion, -STEP),
-    }));
-  }
-  controls.push(el("span", { class: "mark-score", text: pointsOf(value, max) }));
-  if (ctx.editing) {
-    controls.push(el("button", {
-      class: "stepper",
-      type: "button",
-      id: `step-up-${criterion.criterion_id}`,
-      "aria-label": `One step more on ${criterion.title}`,
-      disabled: max !== null && max !== undefined && value >= max,
-      text: "+",
-      onclick: () => ctx.onBump(criterion, STEP),
-    }));
-  }
-  return el("li", {}, [
-    el("div", { class: "mark-row" }, [
-      el("span", { class: "mark-title", text: criterion.title }),
-      el("span", { class: "mark-controls" }, controls),
-    ]),
-    criterion.comment && !ctx.editing
-      ? el("p", { class: "mark-note", text: criterion.comment })
-      : null,
-  ]);
-}
-
 export function totalLine(ctx) {
   const review = ctx.review;
   const scored = review.criteria.reduce((sum, criterion) => sum + markValue(ctx, criterion), 0);
@@ -96,6 +46,55 @@ export function totalLine(ctx) {
     return `Total: ${fmt(total)} points`;
   }
   return `Total: ${fmt(total)} of ${fmt(ceiling)} points · ${Math.round((total / ceiling) * 100)}%`;
+}
+
+function figures(ctx) {
+  const review = ctx.review;
+  const scored = review.criteria.reduce((sum, criterion) => sum + markValue(ctx, criterion), 0);
+  const total = review.criteria.length ? scored : review.score;
+  const ceiling = review.max_score;
+  const pct = ceiling ? Math.round((total / ceiling) * 100) : Math.round(review.percentage);
+  const sure = confidenceBand(review.confidence_band);
+  return el("div", { class: "review-figures" }, [
+    el("div", {}, [
+      el("p", { class: "figure-n", text: fmt(total) }),
+      el("p", { class: "figure-label", text: ceiling ? `points of ${fmt(ceiling)}` : "points" }),
+    ]),
+    el("div", {}, [
+      el("p", { class: "figure-n is-accent", text: `${pct}%` }),
+      el("p", { class: "figure-label", text: "of the rubric" }),
+    ]),
+    el("div", { class: "confidence" }, [
+      el("p", { class: "figure-label", text: `the grader was ${sure.word}` }),
+      el("div", { class: "confidence-track" }, [
+        el("span", { class: `confidence-fill${sure.tone}`, style: `width:${sure.share}%` }),
+      ]),
+    ]),
+  ]);
+}
+
+function reasonCard(review) {
+  const rest = review.reasons.filter((reason) => reason !== review.primary_reason);
+  return el("div", { class: "reason-card" }, [
+    el("p", { class: "reason-tag", text: "Why this one stopped" }),
+    el("p", { class: "reason-main", text: review.primary_reason }),
+    rest.length
+      ? el("ul", { class: "reason-extra" }, rest.map((reason) => el("li", { text: reason })))
+      : null,
+  ]);
+}
+
+function quoteBlock(review) {
+  const span = review.evidence[0];
+  if (!span) {
+    return [];
+  }
+  const where = span.note ? `page ${span.page} · ${span.note}` : `page ${span.page}`;
+  return [
+    el("p", { class: "quote-intro", text: "The grader read this from the page" }),
+    el("blockquote", { class: "quote" }, [el("span", { text: span.quote })]),
+    el("p", { class: "quote-where", text: where }),
+  ];
 }
 
 function points(list) {
@@ -131,30 +130,6 @@ function studentFeedback(review) {
   return nodes;
 }
 
-function reasonCard(review) {
-  const rest = review.reasons.filter((reason) => reason !== review.primary_reason);
-  return el("div", { class: "reason-card" }, [
-    el("p", { class: "reason-tag", text: "Why this one stopped" }),
-    el("p", { class: "reason-main", text: review.primary_reason }),
-    rest.length
-      ? el("ul", { class: "reason-extra" }, rest.map((reason) => el("li", { text: reason })))
-      : null,
-  ]);
-}
-
-function quoteBlock(review) {
-  const span = review.evidence[0];
-  if (!span) {
-    return [];
-  }
-  const where = span.note ? `page ${span.page} · ${span.note}` : `page ${span.page}`;
-  return [
-    el("p", { class: "quote-intro", text: "The grader read this from the page:" }),
-    el("blockquote", { class: "quote" }, [el("span", { text: span.quote })]),
-    el("p", { class: "quote-where", text: where }),
-  ];
-}
-
 function decisions(ctx) {
   const review = ctx.review;
   if (ctx.readonly) {
@@ -179,6 +154,14 @@ function decisions(ctx) {
       onclick: () => ctx.onToggleEdit(),
     }));
   }
+  if (ctx.restHeld > 0) {
+    nodes.push(el("button", {
+      class: "apply-rest",
+      type: "button",
+      text: `Put the other ${ctx.restHeld} held ${ctx.restHeld === 1 ? "exam" : "exams"} in too`,
+      onclick: () => ctx.onApplyRest(),
+    }));
+  }
   const mine = el("button", { class: "grade-myself", type: "button" }, [
     "I'll grade this one myself", el("kbd", { text: "S" }),
   ]);
@@ -189,16 +172,22 @@ function decisions(ctx) {
 
 function sidePanel(ctx) {
   const review = ctx.review;
-  const marks = review.criteria.length
-    ? el("ul", { class: "marks" }, review.criteria.map((criterion) => markRow(ctx, criterion)))
-    : el("p", { class: "marks-empty", text: "The mark-by-mark breakdown is not stored for this exam, so it cannot be changed here." });
   const note = review.student_feedback && review.student_feedback.teacher_note;
   const first = firstName(review.student_name);
+  const meta = [prettySubject(review.subject), review.class_id ? `class ${review.class_id}` : "",
+    review.assessment].filter(Boolean).join(" · ");
   return el("div", { class: "review-side" }, [
+    el("h1", { class: "review-student", text: review.student_name }),
+    el("p", { class: "review-meta", text: meta }),
+    figures(ctx),
     reasonCard(review),
     ...quoteBlock(review),
-    el("h3", { class: "marks-title", text: "The marks we propose" }),
-    marks,
+    el("h2", { class: "marks-title", text: "The marks we propose" }),
+    el("p", {
+      class: "marks-lede",
+      text: "The rubric's own wording, the points, and the line the grader read for each one.",
+    }),
+    marksBlock(ctx),
     el("p", { class: "marks-total", text: totalLine(ctx) }),
     el("details", { class: "disclosure", id: "disclosure-student", open: ctx.open.student }, [
       el("summary", { text: `What ${first} will see` }),
@@ -226,10 +215,7 @@ export async function renderReview(host, ctx) {
   clear(host);
   host.className = "screen is-review";
   const frame = el("div", { class: "scan-frame" }, [
-    el("span", {
-      class: "scan-placeholder is-loading",
-      text: "Loading the scanned page…",
-    }),
+    el("span", { class: "scan-placeholder is-loading", text: "Loading the scanned page…" }),
   ]);
   const zoom = el("button", {
     class: "secondary",
@@ -241,35 +227,35 @@ export async function renderReview(host, ctx) {
   });
   host.append(
     el("div", { class: "review-head" }, [
-      el("div", { class: "brand" }, [
+      el("div", { class: "review-crumbs" }, [
+        el("button", { class: "quiet", type: "button", text: "← The batch", onclick: () => ctx.onLeave() }),
         el("span", { class: "review-position", text: `Exam ${ctx.position} of ${ctx.total} waiting` }),
-        el("span", { class: "review-student", text: review.student_name }),
       ]),
       el("div", { class: "review-navigation" }, [
         el("button", {
           class: "quiet",
           type: "button",
-          text: "Previous",
+          text: "← Previous",
           disabled: ctx.position <= 1,
           onclick: () => ctx.onPrevious(),
         }),
         el("button", {
           class: "quiet",
           type: "button",
-          text: "Next",
+          text: "Next →",
           disabled: ctx.position >= ctx.total,
           onclick: () => ctx.onNext(),
-        }),
-        el("button", {
-          class: "linkish",
-          type: "button",
-          text: "Stop for now — the rest keep waiting",
-          onclick: () => ctx.onLeave(),
         }),
       ]),
     ]),
     el("div", { class: "review-grid" }, [
-      el("div", { class: "review-scan" }, [frame, el("div", { class: "scan-tools" }, [zoom])]),
+      el("div", { class: "review-scan" }, [
+        frame,
+        el("div", { class: "scan-tools" }, [
+          zoom,
+          el("span", { class: "review-position", text: `scan · ${review.student_name}` }),
+        ]),
+      ]),
       sidePanel(ctx),
     ])
   );

@@ -12,11 +12,13 @@ export const state = {
   following: false,
   lotCode: initialRoute.get("batch") || "",
   requestedReview: initialRoute.get("review") || "",
+  lastReview: "",
   queries: {
     judgement: "",
     batch_hold: "",
     grades: initialRoute.get("grades") === "1" ? "" : initialRoute.get("grades") || "",
     open_grade: "",
+    band: initialRoute.get("show") || "",
   },
   review: { group: "judgement", index: 0, editing: false, marks: null, imageUrl: null, painted: "" },
   open: { student: false, teacher: false },

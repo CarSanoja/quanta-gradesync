@@ -7,6 +7,8 @@ import {
   askCollision, openGate, openZoom, setupDialogs, showAlert, toast, veilKeydown,
 } from "/teacher/assets/teacher-dialogs.js";
 import { slugify } from "/teacher/assets/teacher-filenames.js";
+import { paintRail, paintResume, setupRail } from "/teacher/assets/teacher-rail.js";
+import { readAddress, syncAddress } from "/teacher/assets/teacher-routing.js";
 import { examCount, plural } from "/teacher/assets/teacher-format.js";
 import {
   bumped, decisionButtons, releaseReviewImages, renderReview,
@@ -26,46 +28,11 @@ const MAX_POLLS = 60;
 const builders = screenBuilders();
 const screenHost = document.getElementById("screen");
 const contextHost = document.getElementById("context-line");
-const needsButton = document.getElementById("nav-needs");
 
 let pollTimer = null;
 let fileInput = null;
 let gradeSearchTimer = null;
 let lastWaitingCount = 0;
-
-function syncAddress(push) {
-  const url = new URL(window.location.href);
-  if (state.lotCode) {
-    url.searchParams.set("batch", state.lotCode);
-  } else {
-    url.searchParams.delete("batch");
-  }
-  const review = state.screen === "review" ? currentReview() : null;
-  if (review) {
-    url.searchParams.set("review", review.student_id);
-  } else {
-    url.searchParams.delete("review");
-  }
-  if (state.screen === "grades") {
-    url.searchParams.set("grades", state.queries.grades || "1");
-  } else {
-    url.searchParams.delete("grades");
-  }
-  if (state.screen === "held") {
-    url.searchParams.set("needs", "1");
-  } else {
-    url.searchParams.delete("needs");
-  }
-  if (state.screen === "home") {
-    url.searchParams.set("send", "1");
-  } else {
-    url.searchParams.delete("send");
-  }
-  if (url.href === window.location.href) {
-    return;
-  }
-  window.history[push ? "pushState" : "replaceState"]({}, "", url);
-}
 
 function openBatch(lotCode) {
   state.lotCode = lotCode;
@@ -208,7 +175,13 @@ function screenContext(screen) {
     renameRow,
     answerPair,
     retryFailed,
-    setQuery: (key, value) => { state.queries[key] = value; render(); },
+    setQuery: (key, value) => {
+      state.queries[key] = value;
+      if (key === "band") {
+        syncAddress(true);
+      }
+      render();
+    },
     setGradeQuery: (value) => {
       state.queries.grades = value;
       syncAddress(false);
@@ -228,6 +201,27 @@ function screenContext(screen) {
     openGrade,
     askRelease,
   };
+}
+
+function lastViewed() {
+  if (!state.lastReview || !state.summary) {
+    return null;
+  }
+  const open = [...state.summary.judgement.items, ...state.summary.batch_hold.items]
+    .find((item) => item.review_id === state.lastReview);
+  return open || null;
+}
+
+function announceWork(waiting) {
+  toast(`${examCount(waiting)} ${plural(waiting, "is", "are")} waiting for you.`, {
+    tag: "Needs you",
+    openLabel: "Open them",
+    onOpen: () => {
+      state.screen = "held";
+      syncAddress(true);
+      render();
+    },
+  });
 }
 
 function renderErrorScreen() {
@@ -293,6 +287,7 @@ function paintReview() {
   }
   rememberDisclosures();
   state.review.painted = stamp;
+  state.lastReview = review.review_id;
   releaseImage();
   renderReview(screenHost, {
     review,
@@ -313,7 +308,11 @@ function paintReview() {
     onLeave: leaveReview,
     onPrevious: () => moveReview(-1),
     onNext: () => moveReview(1),
+    onApplyRest: askRelease,
     onZoom: showZoom,
+    restHeld: review.group === "batch_hold" && review.status === "pending"
+      ? Math.max(0, state.summary.batch_hold.count - 1)
+      : 0,
   }).then((url) => {
     if (state.review.painted === stamp) {
       state.review.imageUrl = url;
@@ -341,16 +340,20 @@ function render() {
     return;
   }
   const waiting = Number(state.summary.waiting_count) || 0;
-  needsButton.textContent = `Needs me (${waiting})`;
-  needsButton.classList.toggle("has-work", waiting > 0);
+  paintRail(screen, waiting);
+  paintResume(screen === "review" ? null : lastViewed());
   document.title = waiting
     ? `(${waiting}) GradeSync — ${examCount(waiting)} ${plural(waiting, "needs", "need")} you`
     : "GradeSync — Nothing needs you";
-  if (waiting > lastWaitingCount && document.hidden
-      && "Notification" in window && Notification.permission === "granted") {
-    new Notification("GradeSync needs you", {
-      body: `${examCount(waiting)} ${plural(waiting, "is", "are")} waiting for your review.`,
-    });
+  if (waiting > lastWaitingCount) {
+    if (document.hidden && "Notification" in window && Notification.permission === "granted") {
+      new Notification("GradeSync needs you", {
+        body: `${examCount(waiting)} ${plural(waiting, "is", "are")} waiting for your review.`,
+      });
+    }
+    if (lastWaitingCount > 0 || screen !== "held") {
+      announceWork(waiting);
+    }
   }
   lastWaitingCount = waiting;
   builders[screen](screenHost, screenContext(screen));
@@ -466,35 +469,32 @@ document.addEventListener("keydown", (event) => {
     shortcut(event);
   }
 });
-document.getElementById("nav-home").addEventListener("click", () => {
-  state.screen = "home";
+function goScreen(name) {
+  state.screen = name;
   syncAddress(true);
   render();
-});
-needsButton.addEventListener("click", async () => {
-  if ("Notification" in window && Notification.permission === "default") {
-    await Notification.requestPermission();
-  }
-  state.screen = "held";
-  syncAddress(true);
-  render();
-});
-document.getElementById("nav-grades").addEventListener("click", () => {
-  state.screen = "grades";
-  syncAddress(true);
-  render();
+}
+
+document.getElementById("nav-home").addEventListener("click", () => goScreen("home"));
+document.getElementById("nav-grades").addEventListener("click", () => goScreen("grades"));
+setupRail({
+  onHome: () => goScreen("home"),
+  onResume: () => {
+    const open = lastViewed();
+    if (open) {
+      startReview(open.group, open.review_id);
+    }
+  },
+  onNeeds: async () => {
+    if ("Notification" in window && Notification.permission === "default") {
+      await Notification.requestPermission();
+    }
+    goScreen("held");
+  },
 });
 window.addEventListener("popstate", () => {
   window.clearTimeout(gradeSearchTimer);
-  const route = new URLSearchParams(window.location.search);
-  state.lotCode = route.get("batch") || "";
-  state.following = Boolean(state.lotCode);
-  state.requestedReview = route.get("review") || "";
-  state.queries.grades = route.get("grades") === "1" ? "" : route.get("grades") || "";
-  state.screen = route.has("grades")
-    ? "grades"
-    : route.has("needs") ? "held" : route.has("send") ? "home" : "";
-  state.polls = 0;
+  readAddress();
   refreshAll();
 });
 window.addEventListener("beforeunload", releaseReviewImages);
