@@ -102,10 +102,14 @@ export function renameRow(rowId, value) {
 
 export function setLotField(key, value) {
   uploads.lot[key] = value;
-  if (uploads.awaitingLot && lotCodeNow()) {
+  const waiting = uploads.awaitingLot && lotCodeNow();
+  if (waiting) {
     uploads.awaitingLot = false;
   }
   changed();
+  if (waiting) {
+    runQueue(false);
+  }
 }
 
 export function answerPair(action) {
