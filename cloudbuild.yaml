@@ -16,7 +16,7 @@ substitutions:
   _TELEMETRY_CLOUD_METRICS: "true"
   _TELEMETRY_CAPTURE_CONTENT: "true"
   _MODEL_CONCURRENCY: "16"
-  _MIN_INSTANCES: "0"
+  _MIN_INSTANCES: "1"
   _MAX_INSTANCES: "2"
 
 serviceAccount: projects/quanta-gradesync/serviceAccounts/gradesync-builder@quanta-gradesync.iam.gserviceaccount.com
