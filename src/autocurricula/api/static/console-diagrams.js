@@ -1,118 +1,107 @@
 import { clear, el } from "/console/assets/render.js";
 
-// The wording is the catalogue's own, from docs/media/README.md, so the console
-// and the repository describe each diagram with the same sentence. The order is
-// the argument: the whole engine, then what it refuses, then whether it is real.
-const DIAGRAMS = [
-  {
-    name: "architecture",
-    title: "The whole engine",
-    level: "overview",
-    shows: "Ingest chain, the seven stages, memory tiers, the harness, and the surfaces.",
-    who: "Anyone — this is the front door",
-  },
-  {
-    name: "governance",
-    title: "The ten gates",
-    level: "controls",
-    shows: "Every gate a grade must survive before reaching a student record, in the "
-      + "order they apply, with what each one stopped.",
-    who: "Anyone asking “can I trust this?”",
-  },
-  {
-    name: "containers",
-    title: "Deployable units",
-    level: "containers",
-    shows: "What each unit owns, every Firestore collection named, and the identity "
-      + "carried on each hop.",
-    who: "An engineer deciding whether this is real",
-  },
-  {
-    name: "fleet",
-    title: "The twelve components",
-    level: "agents",
-    shows: "Model, stage, capability scope and the principal each one acts as.",
-    who: "Anyone auditing the agent-fleet claim",
-  },
-  {
-    name: "pipeline",
-    title: "One job, stage by stage",
-    level: "stages",
-    shows: "Inputs, model, cost, checkpoint, and where each stage refuses.",
-    who: "Anyone reviewing the engineering",
-  },
-  {
-    name: "self-improvement",
-    title: "How it improves itself",
-    level: "cold loop",
-    shows: "Prompts measured against human ground truth, and the anti-gaming gate "
-      + "refusing an unproven change.",
-    who: "Anyone assessing the learning claim",
-  },
-  {
-    name: "exam-lifecycle",
-    title: "One exam, end to end",
-    level: "flow",
-    shows: "From the front-office scanner to a terminal state, on a real clock, with "
-      + "the human entry point marked.",
-    who: "Anyone who wants the story end to end",
-  },
-  {
-    name: "resilience",
-    title: "What happens when it breaks",
-    level: "flow",
-    shows: "The failure modes that were actually executed, and how each recovers.",
-    who: "Anyone who has run production systems",
-  },
-  {
-    name: "context",
-    title: "The school around it",
-    level: "context",
-    shows: "Who touches the engine, and what it exchanges with the SIS, the ministry "
-      + "standard and Google Cloud.",
-    who: "Leadership, a judge, a school",
-  },
-  {
-    name: "teacher-journey",
-    title: "What the teacher sees",
-    level: "people",
-    shows: "Her seven screens — and everything she never sees.",
-    who: "Product, design, and school buyers",
-  },
-];
+// Each diagram is reached from the screen it explains, not from a gallery.
+// The trigger sits beside the section heading, so it lands in the same place
+// on every view — which is what makes it safe to hit on camera — while the
+// diagram behind it changes with the surface you are looking at.
+//
+// `context` and `teacher-journey` are deliberately absent: neither describes an
+// operator surface. They stay in docs/media for a reader; putting them here to
+// round the set up to ten would be the gallery mistake again.
+const BY_VIEW = {
+  jobs: [
+    {
+      name: "pipeline",
+      label: "Pipeline",
+      title: "One job, stage by stage",
+      shows: "Inputs, model, cost, checkpoint, and where each stage refuses.",
+    },
+    {
+      name: "resilience",
+      label: "Resilience",
+      title: "What happens when it breaks",
+      shows: "The failure modes that were actually executed, and how each recovers.",
+    },
+  ],
+  review: [
+    {
+      name: "governance",
+      label: "Governance",
+      title: "The gates a grade must survive",
+      shows: "Every gate before a student record, in the order they apply, with what "
+        + "each one stopped.",
+    },
+  ],
+  optimizer: [
+    {
+      name: "self-improvement",
+      label: "Self-improvement",
+      title: "How it improves itself",
+      shows: "Prompts measured against human ground truth, and the anti-gaming gate "
+        + "refusing an unproven change.",
+    },
+  ],
+  fleet: [
+    {
+      name: "fleet",
+      label: "Fleet",
+      title: "The twelve components",
+      shows: "Model, stage, capability scope and the principal each one acts as.",
+    },
+  ],
+  ingest: [
+    {
+      name: "exam-lifecycle",
+      label: "Lifecycle",
+      title: "One exam, end to end",
+      shows: "From the front-office scanner to a terminal state, on a real clock, with "
+        + "the human entry point marked.",
+    },
+  ],
+  sis: [
+    {
+      name: "containers",
+      label: "Containers",
+      title: "Where a grade is written, and by whom",
+      shows: "Deployable units, every Firestore collection named, and the identity "
+        + "carried on each hop.",
+    },
+  ],
+  trace: [
+    {
+      name: "architecture",
+      label: "Architecture",
+      title: "The whole engine",
+      shows: "Ingest chain, the seven stages, memory tiers, the harness, and the "
+        + "surfaces.",
+    },
+  ],
+};
 
 export function diagramUrl(name) {
   return `/console/diagrams/${name}.svg`;
 }
 
-function card(entry, onOpen) {
-  return el("button", {
-    class: "diagram-card",
-    type: "button",
-    onclick: () => onOpen(entry),
-  }, [
-    el("span", { class: "diagram-thumb" }, [
-      el("img", { src: diagramUrl(entry.name), alt: "", loading: "lazy" }),
-    ]),
-    el("span", { class: "diagram-body" }, [
-      el("span", { class: "diagram-level", text: entry.level }),
-      el("span", { class: "diagram-title", text: entry.title }),
-      el("span", { class: "diagram-shows", text: entry.shows }),
-      el("span", { class: "diagram-who", text: entry.who }),
-    ]),
-  ]);
+export function diagramsFor(view) {
+  return BY_VIEW[view] || [];
 }
 
-export function renderDiagrams(target, onOpen) {
+export function renderTriggers(target, view, onOpen) {
   clear(target);
-  target.append(
-    el("p", {
-      class: "hint diagram-note",
-      text: "Hand-authored SVG, every number traceable to a dated report in "
-        + "docs/reports. Click one to read it full screen.",
-    }),
-    el("div", { class: "diagram-grid" }, DIAGRAMS.map((entry) => card(entry, onOpen)))
-  );
+  diagramsFor(view).forEach((entry) => {
+    const trigger = el("button", {
+      class: "ghost diagram-trigger",
+      type: "button",
+      title: `${entry.title} — ${entry.shows}`,
+      "aria-label": `Open the diagram: ${entry.title}`,
+      text: entry.label,
+    });
+    // The trigger is handed over explicitly rather than read from
+    // document.activeElement: not every browser focuses a button on click, and
+    // closing must return the keyboard where it came from.
+    trigger.addEventListener("click", () => onOpen(entry, trigger));
+    target.append(trigger);
+  });
 }
 
-export { DIAGRAMS };
+export { BY_VIEW };

@@ -10,7 +10,7 @@ import {
   setToken,
 } from "./api.js";
 import { createChrome, resolveDom } from "./console-dom.js";
-import { diagramUrl } from "/console/assets/console-diagrams.js";
+import { diagramUrl, renderTriggers } from "/console/assets/console-diagrams.js";
 import { progressFromEvents } from "/console/assets/console-job-progress.js";
 import { paintSection } from "/console/assets/console-sections.js";
 import { renderJobDetail, renderJobsList, renderOptimizer } from "./views.js";
@@ -49,6 +49,7 @@ function setView(view) {
   // The optimizer only changes when a batch finishes its optimize stage, so it
   // does not need a poller — but it does need to be read when you open it,
   // rather than staying at whatever the last full refresh happened to see.
+  renderTriggers(document.getElementById("section-diagrams"), view, openDiagram);
   if (view === "optimizer") {
     loadOptimizer();
   }
@@ -240,8 +241,11 @@ window.goToJobsBatch = (jobId) => {
   selectJob(jobId);
 };
 
-function openDiagram(entry) {
+let diagramOpener = null;
+
+function openDiagram(entry, trigger) {
   const gate = document.getElementById("diagram-gate");
+  diagramOpener = trigger || document.activeElement;
   document.getElementById("diagram-open-title").textContent = entry.title;
   document.getElementById("diagram-open-shows").textContent = entry.shows;
   document.getElementById("diagram-open-raw").href = diagramUrl(entry.name);
@@ -257,6 +261,10 @@ function openDiagram(entry) {
 
 function closeDiagram() {
   document.getElementById("diagram-gate").hidden = true;
+  if (diagramOpener && typeof diagramOpener.focus === "function") {
+    diagramOpener.focus();
+  }
+  diagramOpener = null;
 }
 
 document.getElementById("diagram-close").addEventListener("click", closeDiagram);
@@ -289,6 +297,10 @@ if (dom.queueChip) {
 dom.refresh.addEventListener("click", refreshAll);
 
 async function start() {
+  // The initial view is only marked in the HTML, so nothing had ever run
+  // setView for it: on the first load the jobs list did not poll and the
+  // section carried no diagram until you clicked a rail item.
+  setView(state.view);
   await loadMode();
   if (!getToken()) {
     chrome.openGate("");
