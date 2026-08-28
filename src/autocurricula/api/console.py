@@ -74,8 +74,6 @@ DIAGRAMS = (
     "self-improvement",
     "exam-lifecycle",
     "resilience",
-    "context",
-    "teacher-journey",
 )
 
 

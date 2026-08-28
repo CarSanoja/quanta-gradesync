@@ -154,3 +154,20 @@ async def test_the_console_is_never_served_from_a_stale_cache(app) -> None:
         for name in (*STYLES, "console.js", "console-sections.js"):
             asset = await client.get(f"/console/assets/{name}")
             assert asset.headers["cache-control"] == "no-cache, must-revalidate", name
+
+
+def test_every_view_can_be_scrolled_to_the_end_on_a_small_window() -> None:
+    """A fixed-height shell reads well on a monitor and traps content elsewhere.
+
+    Each panel scrolls inside itself, so with the shell at 100vh and overflow
+    hidden, a short or narrow window crushes the panels and whatever falls below
+    the fold cannot be reached at all. Past the breakpoint the split stacks and
+    the view becomes the scroll container.
+    """
+    views = source("console-views.css")
+
+    assert "@media (max-width: 1080px), (max-height: 620px) {" in views
+    assert ".view.is-active { overflow-y: auto; }" in views
+    assert ".split { display: block; overflow: visible; }" in views
+    # Mission control has its own grid and needs the floor stated separately.
+    assert "#view-trace.is-active { overflow-y: auto; }" in views

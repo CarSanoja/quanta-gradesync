@@ -12,16 +12,19 @@ MEDIA = Path("docs/media")
 # Each diagram is reached from the screen it explains. Two surfaces earn a
 # second one; none earns a gallery.
 PLACEMENT = {
-    "jobs": ["pipeline", "resilience"],
+    # The Google Cloud picture belongs where you watch a batch move through it.
+    "jobs": ["architecture", "resilience"],
     "review": ["governance"],
     "optimizer": ["self-improvement"],
     "fleet": ["fleet"],
     "ingest": ["exam-lifecycle"],
     "sis": ["containers"],
-    "trace": ["architecture"],
+    # Mission control shows the agents running; this is that run, drawn.
+    "trace": ["pipeline"],
 }
 
-# Neither describes an operator surface, so neither belongs in the console.
+# Neither describes an operator surface, so neither is linked — and neither is
+# served, because a route nothing reaches is surface without a reader.
 NOT_IN_THE_CONSOLE = ("context", "teacher-journey")
 
 
@@ -65,6 +68,8 @@ async def test_every_placed_diagram_is_served_and_nothing_else_is(app) -> None:
         # a diagram that exists in docs/media but was never whitelisted
         assert (await client.get("/console/diagrams/slide-gcp.svg")).status_code == 404
         assert (await client.get("/console/diagrams/%2e%2e%2fconsole.py")).status_code == 404
+        for name in NOT_IN_THE_CONSOLE:
+            assert (await client.get(f"/console/diagrams/{name}.svg")).status_code == 404
 
 
 def test_each_diagram_hangs_off_the_screen_it_explains() -> None:
@@ -127,3 +132,18 @@ def test_the_diagram_plate_is_not_pure_white() -> None:
     """The system forbids pure white; the diagrams still need a light ground."""
     assert "--plate: #f3f5fe;" in source("console.css")
     assert "background: var(--plate);" in source("console-views.css")
+
+
+def test_a_narrow_window_does_not_hide_the_triggers() -> None:
+    """The buttons vanished under 1080px and it read as a deploy that had failed.
+
+    The topbar rule hid the section subtitle on a narrow window by matching every
+    span in the heading — and the triggers live in one. Scoped to the subtitle's
+    id, a smaller window (or a browser zoomed in, which is the same thing to CSS)
+    keeps the diagrams reachable.
+    """
+    styles = source("console.css")
+
+    assert "  #section-sub { display: none; }" in styles
+    assert ".section-heading span { display: none; }" not in styles
+    assert ".section-heading span {" not in styles

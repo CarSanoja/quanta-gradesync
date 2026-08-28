@@ -11,10 +11,11 @@ import { clear, el } from "/console/assets/render.js";
 const BY_VIEW = {
   jobs: [
     {
-      name: "pipeline",
-      label: "Pipeline",
-      title: "One job, stage by stage",
-      shows: "Inputs, model, cost, checkpoint, and where each stage refuses.",
+      name: "architecture",
+      label: "Google Cloud",
+      title: "The engine on Google Cloud",
+      shows: "The ingest chain, Cloud Run, Vertex AI, Firestore and the school SIS — "
+        + "every service this batch touched.",
     },
     {
       name: "resilience",
@@ -69,11 +70,11 @@ const BY_VIEW = {
   ],
   trace: [
     {
-      name: "architecture",
-      label: "Architecture",
-      title: "The whole engine",
-      shows: "Ingest chain, the seven stages, memory tiers, the harness, and the "
-        + "surfaces.",
+      name: "pipeline",
+      label: "Agent pipeline",
+      title: "One job, seven stages",
+      shows: "Which agent runs at each stage, what it costs, and where each stage "
+        + "refuses — the run you are watching, drawn.",
     },
   ],
 };

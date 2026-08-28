@@ -130,7 +130,7 @@ a:hover { color: var(--accent-light); text-decoration: underline; }
 
 .section-heading { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 8.4px; }
 .section-heading h1 { font-size: 17px; font-weight: 500; white-space: nowrap; }
-.section-heading span { font-size: 13px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#section-sub { font-size: 13px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .topbar-meta { display: flex; align-items: center; gap: 5.6px; flex: none; }
 
@@ -252,7 +252,7 @@ button:disabled { opacity: .45; cursor: not-allowed; }
   .rail-scroll { display: flex; overflow-x: auto; }
   .rail-item { width: auto; white-space: nowrap; margin: 8.4px 0 8.4px 8.4px; }
   .rail-note { display: none; }
-  .section-heading span { display: none; }
+  #section-sub { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

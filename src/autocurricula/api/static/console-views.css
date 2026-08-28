@@ -473,3 +473,32 @@ button.span-row.is-selected { background: var(--active); box-shadow: inset 2px 0
   padding: 16.8px;
 }
 .diagram-canvas img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+
+/* The console is a fixed-height shell: each panel scrolls inside itself and the
+   page never does. That holds on a large monitor and fails everywhere else — on
+   a short or narrow window the panels are crushed and the content underneath is
+   simply unreachable, because an ancestor with overflow:hidden has nothing to
+   scroll. Past this breakpoint the split stops being two columns and the view
+   itself becomes the scroll container, so every screen can always be read to the
+   end. */
+@media (max-width: 1080px), (max-height: 620px) {
+  .view.is-active { overflow-y: auto; }
+  .split { display: block; overflow: visible; }
+  .split > .panel:first-child {
+    width: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .split > .panel:first-child > .panel-body,
+  .split > .panel:last-child > .panel-body { overflow-y: visible; }
+  /* The detail panel's own heading is hidden in the two-column layout because
+     the list beside it already says what you are looking at. Stacked, it is the
+     only thing separating the two. */
+  .split > .panel:last-child > .panel-head { display: flex; }
+}
+
+/* Mission control keeps its own grid, but the same floor applies. */
+@media (max-height: 620px) {
+  #view-trace.is-active { overflow-y: auto; }
+  .live-tab.is-active { overflow: visible; }
+}
