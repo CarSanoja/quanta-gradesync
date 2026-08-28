@@ -39,6 +39,7 @@ export const state = {
   startWhenUploaded: false,
   failed: false,
   polls: 0,
+  pollSignature: "",
 };
 
 state.following = Boolean(state.lotCode);
@@ -143,6 +144,19 @@ export function contextLine(screen) {
   const batch = screenBatch(screen);
   const lot = batch ? parseLot(batch.lot_code) : null;
   return lot ? `${lot.subject} · class ${lot.classId}` : "";
+}
+
+export function progressSignature() {
+  const summary = state.summary;
+  if (!summary) {
+    return "";
+  }
+  const batch = activeBatch();
+  const counts = batch
+    ? [batch.received, batch.in_gradebook, batch.waiting_for_you, batch.still_grading,
+      batch.could_not_grade, batch.settled]
+    : [];
+  return [...counts, summary.waiting_count, (summary.history || []).length].join(":");
 }
 
 export function releaseImage() {

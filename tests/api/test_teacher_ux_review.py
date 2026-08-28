@@ -77,7 +77,9 @@ def test_waiting_work_keeps_polling_and_updates_the_window_title() -> None:
     teacher = source("teacher.js")
 
     assert "state.summary.waiting_count > 0" in teacher
-    assert "Updates are paused after six minutes" in teacher
+    assert "Nothing has changed here for three minutes" in teacher
+    assert "const IDLE_POLLS_BEFORE_PAUSE = 30;" in teacher
+    assert "if (signature !== state.pollSignature) {" in teacher
     assert "document.title = waiting" in teacher
 
 

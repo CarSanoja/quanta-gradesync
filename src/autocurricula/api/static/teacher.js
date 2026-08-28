@@ -15,8 +15,8 @@ import {
 } from "/teacher/assets/teacher-review.js";
 import { screenBuilders } from "/teacher/assets/teacher-screens.js";
 import {
-  activeBatch, contextLine, currentReview, currentScreen, releaseImage, reviewQueue, screenBatch,
-  state,
+  activeBatch, contextLine, currentReview, currentScreen, progressSignature, releaseImage,
+  reviewQueue, screenBatch, state,
 } from "/teacher/assets/teacher-state.js";
 import {
   answerPair, renameRow, retryFailed, runQueue, setLotField, setupUploads, stageFiles,
@@ -24,7 +24,11 @@ import {
 } from "/teacher/assets/teacher-upload.js";
 
 const POLL_MS = 6000;
-const MAX_POLLS = 60;
+// Polls without any change, not polls in total. A batch can take ten minutes —
+// one measured on 2026-08-28 took 640 seconds — and counting total polls made
+// the page give up at six, telling her updates had paused while grading was
+// still running. As long as a count moves, keep watching.
+const IDLE_POLLS_BEFORE_PAUSE = 30;
 const builders = screenBuilders();
 const screenHost = document.getElementById("screen");
 const contextHost = document.getElementById("context-line");
@@ -369,8 +373,14 @@ function schedulePoll() {
   if (!busy) {
     return;
   }
-  if (state.polls >= MAX_POLLS) {
-    showAlert("Updates are paused after six minutes. Press Try again to resume checking.");
+  const signature = progressSignature();
+  if (signature !== state.pollSignature) {
+    state.pollSignature = signature;
+    state.polls = 0;
+  }
+  if (state.polls >= IDLE_POLLS_BEFORE_PAUSE) {
+    showAlert("Nothing has changed here for three minutes, so we stopped checking. "
+      + "Press Try again to resume.");
     return;
   }
   pollTimer = window.setTimeout(() => {
