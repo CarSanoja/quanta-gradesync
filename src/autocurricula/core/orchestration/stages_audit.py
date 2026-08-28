@@ -1,6 +1,7 @@
 from autocurricula.agents.curriculum_auditor import CurriculumAuditor
 from autocurricula.core.fleet import CURRICULUM_AUDITOR_ID, authorize_llm
 from autocurricula.core.memory.manager import MemoryManager
+from autocurricula.core.orchestration.agent_span import agent_span
 from autocurricula.core.orchestration.concurrency import (
     DEFAULT_MODEL_CONCURRENCY,
     gather_limited,
@@ -31,11 +32,28 @@ def build_audit_step(
             model_id=getattr(auditor, "model_id", ""),
             recorder=context.recorder,
         )
+        model_id = getattr(auditor, "model_id", "")
+        student_by_submission = {
+            submission.submission_id: submission.student_id
+            for submission in context.batch.submissions
+        }
+
+        async def audited(result):
+            with agent_span(
+                context.recorder,
+                f"Audit_{result.submission_id}",
+                CURRICULUM_AUDITOR_ID,
+                stage="AUDIT",
+                attributes={
+                    "submission_id": result.submission_id,
+                    "student_id": student_by_submission.get(result.submission_id, ""),
+                    "gen_ai.model": model_id,
+                },
+            ):
+                return await auditor.audit(result, standard, retrieved)
+
         audits = await gather_limited(
-            (
-                auditor.audit(result, standard, retrieved)
-                for result in context.grade_result.results
-            ),
+            (audited(result) for result in context.grade_result.results),
             model_concurrency,
         )
         context.complete(STAGE_AUDIT, AuditOutputs(audits=list(audits)))
