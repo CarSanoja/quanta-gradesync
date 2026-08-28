@@ -16,6 +16,7 @@ from sample_batch.rosters import (
     ROSTER_DEMO,
     ROSTER_NAMES,
     ROSTER_REFERENCE,
+    SECTION_ROSTERS,
     ground_truth_for,
     lot_for,
     profiles_for,
@@ -24,6 +25,9 @@ from sample_batch.rosters import (
 DEFAULT_TARGETS = {
     ROSTER_REFERENCE: Path(".local_data/sample_batch"),
     ROSTER_DEMO: Path("docs/video/demo-batch"),
+    # The three sections land side by side under one root, in the order the
+    # teacher sends them.
+    **{name: Path("docs/video/sections") / name for name in SECTION_ROSTERS},
 }
 DEFAULT_SEED = 20260819
 DEFAULT_QUALITY = 84
@@ -49,7 +53,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=ROSTER_REFERENCE,
         help=(
             "which class to fabricate: 'reference' is the 16-page acceptance fixture, "
-            f"'demo' is the 44-page video class (default: {ROSTER_REFERENCE})"
+            "'demo' is the 36-page single-batch class, and the three 'section-*' "
+            "rosters are the 36 papers each of one teacher's three sections "
+            f"(default: {ROSTER_REFERENCE})"
         ),
     )
     parser.add_argument(
@@ -137,7 +143,7 @@ def generate(roster: str, target: Path, seed: int, quality: int) -> dict[str, ob
         result["ground_truth"] = write_json(
             root / GROUND_TRUTH_NAME, build_ground_truth(entries, lot)
         )
-    if roster == ROSTER_DEMO:
+    if roster == ROSTER_DEMO or roster in SECTION_ROSTERS:
         scores = legibility_table(pages)
         result["scores"] = scores
         notes = root / DEMO_NOTES_NAME
