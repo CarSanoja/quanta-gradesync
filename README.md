@@ -1,7 +1,9 @@
 # AutoCurricula & GradeSync Engine
 
-Teachers in K-12 schools spend **~12 hours a week** hand-grading exams, students
-wait **~14 days** for feedback, and every grade is retyped into the SIS by hand.
+Teachers in K-12 schools spend **4.6 hours a week** hand-grading exams — the
+OECD's own measurement, [TALIS 2024](https://www.oecd.org/en/publications/results-from-talis-2024_90df6235-en/full-report/the-demands-of-teaching_0e941e2f.html),
+of a 41-hour working week — students wait **~14 days** for feedback, and every
+grade is retyped into the SIS by hand.
 Across Latin America's public systems that adds up to millions of unpaid evening
 hours and feedback that arrives too late to matter. GradeSync deletes that work:
 scans go into a bucket; **audited, evidence-cited grades appear in the school
@@ -31,6 +33,7 @@ thinking enabled) and Gemini 3.5 Flash-Lite (high-speed structured extraction):
 | 8 | Prompt proposer | Flash-Lite | Mutates grading prompts for the tournament |
 | 9 | Calibration evaluator | Flash | Re-grades human-scored samples to score each candidate prompt |
 | 10–11 | Meta-optimizers (grading, audit) | — | Tournament selection with adversarial anti-gaming validation and a composite objective gate (QWK ≥ 0.85 ∧ MAE ≤ 0.4 ∧ \|bias\| < 0.1) |
+| 12 | Evidence transcriber | Flash-Lite | Second independent reading of every scanned page, so the quotes the grader cited are checked against a reading that never saw the grade |
 
 This table is not a hand-maintained claim: `GET /fleet/registry` derives the
 live catalog from the running configuration — model ids, stage bindings,
@@ -201,10 +204,10 @@ pytest
 Expected, on any machine:
 
 ```
-653 passed, 10 skipped
+751 passed, 10 skipped
 ```
 
-The 8 skips are the live contract tests under `tests/live/`, which call real
+The 10 skips are the live contract tests under `tests/live/`, which call real
 Gemini models and skip themselves unless Application Default Credentials and a
 GCP project are present. Nothing else is skipped and nothing else is mocked:
 Cloud Storage, Pub/Sub, Firestore and the SIS each have a real on-disk
@@ -213,13 +216,13 @@ offline suite exercises the production code paths rather than test doubles.
 
 | What you want to verify | Command | Tests | Credentials |
 |---|---|---|---|
-| The engine's logic, gates and failure handling | `pytest` | 653 | none |
+| The engine's logic, gates and failure handling | `pytest` | 751 | none |
 | Throughput and concurrency behaviour | `pytest -m benchmark` | 2 | none |
 | Calibration maths and the promotion gate, against fixed ground truth | `pytest -m calibration` | 59 | none |
 | Contracts against the real models | `pytest -m live` | 8 | Gemini + GCP |
 | A batch graded end to end, on your machine | see [Local demo run](#local-demo-run) | | Gemini |
 
-The benchmark and calibration markers select subsets of the same 653; only the
+The benchmark and calibration markers select subsets of the same 751; only the
 live tests sit outside it.
 
 Run `pytest` before creating a `.env`: the settings loader reads `.env` from the
