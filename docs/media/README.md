@@ -136,7 +136,7 @@ Each diagram ships as a pair: `<name>.svg` (source of truth, edit this) and
 | [`context`](context.svg) | 1 — context | The school world around the engine: who touches it, what it exchanges with the SIS, the ministry standard and Google Cloud | Non-technical: leadership, a judge, a school |
 | [`containers`](containers.svg) | 2 — containers | Deployable units and the data each owns, every Firestore collection named, and the identity carried on each hop | An engineer deciding whether this is real |
 | [`pipeline`](pipeline.svg) | 3 — stages | One job stage by stage: inputs, model, cost, checkpoint, and where each stage refuses | Anyone reviewing the engineering |
-| [`fleet`](fleet.svg) | 3 — agents | The eleven components with model, stage, capability scope and the principal each acts as | Anyone auditing the "agent fleet" claim |
+| [`fleet`](fleet.svg) | 3 — agents | The twelve components with model, stage, capability scope and the principal each acts as | Anyone auditing the "agent fleet" claim |
 | [`governance`](governance.svg) | 3 — controls | The ten gates a grade must survive before reaching a student record, in the order they apply, with what each one stopped | Anyone asking "can I trust this?" |
 | [`self-improvement`](self-improvement.svg) | 3 — cold loop | How prompts improve against human ground truth, and how the anti-gaming gate refuses an unproven change | Anyone assessing the learning claim |
 | [`exam-lifecycle`](exam-lifecycle.svg) | flow | One exam from the front-office scanner to a terminal state, on a real clock, with the human entry point marked | Anyone who wants the story end to end |
