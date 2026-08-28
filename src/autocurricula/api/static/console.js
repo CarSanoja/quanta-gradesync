@@ -10,6 +10,7 @@ import {
   setToken,
 } from "./api.js";
 import { createChrome, resolveDom } from "./console-dom.js";
+import { paintSection } from "/console/assets/console-sections.js";
 import { renderJobDetail, renderJobsList, renderOptimizer } from "./views.js";
 import { createReviewController } from "./console-review.js";
 import { renderFleet } from "./fleet.js";
@@ -34,6 +35,7 @@ const state = {
 
 function setView(view) {
   state.view = view;
+  paintSection(view);
   document.querySelectorAll(".rail-item").forEach((item) => {
     item.classList.toggle("is-active", item.dataset.view === view);
   });

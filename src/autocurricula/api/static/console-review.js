@@ -1,5 +1,6 @@
 import { ApiError } from "./api.js";
 import { renderQueueCleared, renderReviewDetail, renderReviewList } from "./views.js";
+import { paintReviewBadge } from "/console/assets/console-sections.js";
 
 const EMPTY_CONTEXT = { item: null, criteria: [], imageUrl: null };
 
@@ -103,6 +104,7 @@ export function createReviewController(deps) {
     }
     state.items = payload.items;
     dom.reviewCount.textContent = `${payload.count} item${payload.count === 1 ? "" : "s"}`;
+    paintReviewBadge(payload.count);
     dom.queueChip.textContent = `queue: ${payload.count} pending`;
     dom.queueChip.dataset.tone = payload.count ? "warn" : "ok";
     await loadHeld();

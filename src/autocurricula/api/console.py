@@ -10,6 +10,7 @@ CONSOLE_PAGE = "console.html"
 
 ASSET_MEDIA_TYPES = {
     "console.css": "text/css; charset=utf-8",
+    "console-views.css": "text/css; charset=utf-8",
     "console.js": "text/javascript; charset=utf-8",
     "api.js": "text/javascript; charset=utf-8",
     "views.js": "text/javascript; charset=utf-8",
@@ -18,6 +19,7 @@ ASSET_MEDIA_TYPES = {
     "views-optimizer.js": "text/javascript; charset=utf-8",
     "views-criteria.js": "text/javascript; charset=utf-8",
     "console-dom.js": "text/javascript; charset=utf-8",
+    "console-sections.js": "text/javascript; charset=utf-8",
     "console-jobs-poll.js": "text/javascript; charset=utf-8",
     "console-review.js": "text/javascript; charset=utf-8",
     "render.js": "text/javascript; charset=utf-8",

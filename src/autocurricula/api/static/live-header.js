@@ -1,3 +1,4 @@
+import { paintLiveBadge } from "/console/assets/console-sections.js";
 import { clear, el, pill } from "./render.js";
 import { classifyEvent, isFailure } from "./live-kinds.js";
 
@@ -99,7 +100,9 @@ export function renderHeader(dom, state, totals) {
   dom.liveEventsCount.textContent = String(state.events.length);
   writeStat("live-students", totals.students, null);
   writeStat("live-flagged", totals.flagged, totals.flagged ? "danger" : null);
-  dom.livePoll.classList.toggle("is-live", !state.settled && state.feedTimer !== null);
+  const running = !state.settled && state.feedTimer !== null;
+  dom.livePoll.classList.toggle("is-live", running);
+  paintLiveBadge(running);
   dom.liveStatusText.textContent = statusLabel(state);
   dom.liveExport.disabled = !state.events.length;
   dom.liveTraceLink.hidden = !state.cloudTraceUrl;

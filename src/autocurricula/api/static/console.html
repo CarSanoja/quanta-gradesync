@@ -5,16 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>GradeSync Operations Console</title>
 <link rel="stylesheet" href="/console/assets/console.css">
+<link rel="stylesheet" href="/console/assets/console-views.css">
 <link rel="stylesheet" href="/console/assets/live.css">
 </head>
 <body>
 <header class="topbar">
   <div class="brand">
-    <span class="brand-mark">GS</span>
+    <span class="brand-mark" aria-hidden="true"></span>
     <span class="brand-text">
-      <strong>AutoCurricula &amp; GradeSync</strong>
+      <strong>GradeSync</strong>
       <small>Operations console</small>
     </span>
+  </div>
+  <div class="section-heading">
+    <h1 id="section-title">Jobs timeline</h1>
+    <span id="section-sub">every batch, stage by stage</span>
   </div>
   <div class="topbar-meta">
     <span class="chip" id="mode-chip" data-tone="neutral">backend: checking</span>
@@ -26,37 +31,48 @@
 
 <div class="shell">
   <nav class="rail" id="rail">
-    <button type="button" class="rail-item is-active" data-view="jobs">
-      <span class="rail-label">Jobs timeline</span>
-      <span class="rail-hint">pipeline checkpoints</span>
-    </button>
-    <button type="button" class="rail-item" data-view="review">
-      <span class="rail-label">Review queue</span>
-      <span class="rail-hint">one-click approval</span>
-    </button>
-    <button type="button" class="rail-item" data-view="optimizer">
-      <span class="rail-label">Optimizer</span>
-      <span class="rail-hint">prompt evolution</span>
-    </button>
-    <button type="button" class="rail-item" data-view="fleet">
-      <span class="rail-label">Fleet</span>
-      <span class="rail-hint">agents, identity, scope</span>
-    </button>
-    <button type="button" class="rail-item" data-view="ingest">
-      <span class="rail-label">Ingest</span>
-      <span class="rail-hint">upload exam scans</span>
-    </button>
-    <button type="button" class="rail-item" data-view="sis">
-      <span class="rail-label">SIS ledger</span>
-      <span class="rail-hint">grades in the school system</span>
-    </button>
-    <button type="button" class="rail-item" data-view="trace">
-      <span class="rail-label">Mission control</span>
-      <span class="rail-hint">fleet live: LLM, armor, identity</span>
-    </button>
+    <div class="rail-scroll">
+      <button type="button" class="rail-item is-active" data-view="jobs">
+        <span class="rail-index" aria-hidden="true">01</span>
+        <span class="rail-label">Jobs timeline</span>
+        <span class="rail-hint">pipeline checkpoints</span>
+      </button>
+      <button type="button" class="rail-item" data-view="review">
+        <span class="rail-index" aria-hidden="true">02</span>
+        <span class="rail-label">Review queue</span>
+        <span class="rail-hint">one-click approval</span>
+        <span class="rail-badge" id="rail-badge-review" hidden></span>
+      </button>
+      <button type="button" class="rail-item" data-view="optimizer">
+        <span class="rail-index" aria-hidden="true">03</span>
+        <span class="rail-label">Optimizer</span>
+        <span class="rail-hint">prompt evolution</span>
+      </button>
+      <button type="button" class="rail-item" data-view="fleet">
+        <span class="rail-index" aria-hidden="true">04</span>
+        <span class="rail-label">Fleet</span>
+        <span class="rail-hint">agents, identity, scope</span>
+      </button>
+      <button type="button" class="rail-item" data-view="ingest">
+        <span class="rail-index" aria-hidden="true">05</span>
+        <span class="rail-label">Ingest</span>
+        <span class="rail-hint">upload exam scans</span>
+      </button>
+      <button type="button" class="rail-item" data-view="sis">
+        <span class="rail-index" aria-hidden="true">06</span>
+        <span class="rail-label">SIS ledger</span>
+        <span class="rail-hint">grades in the school system</span>
+      </button>
+      <button type="button" class="rail-item" data-view="trace">
+        <span class="rail-index" aria-hidden="true">07</span>
+        <span class="rail-label">Mission control</span>
+        <span class="rail-hint">fleet live: LLM, armor, identity</span>
+        <span class="rail-badge" id="rail-badge-live" hidden>live</span>
+      </button>
+    </div>
     <p class="rail-note">
-      Grades below the confidence threshold, or scored without cited evidence, are
-      never written to the SIS. They wait here.
+      <span>Grades below the confidence threshold, or scored without cited evidence, are
+      <strong>never</strong> written to the SIS. They wait here.</span>
     </p>
   </nav>
 
