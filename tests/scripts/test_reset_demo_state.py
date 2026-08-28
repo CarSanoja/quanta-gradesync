@@ -1,4 +1,5 @@
 import importlib.util
+import os
 from pathlib import Path
 
 SCRIPT = Path("scripts/reset_demo_state.py")
@@ -107,3 +108,47 @@ def test_the_writer_is_closed_so_the_last_batch_is_flushed() -> None:
 
 def test_the_script_refuses_to_delete_without_an_explicit_yes() -> None:
     assert 'parser.error("refusing to delete without --yes")' in SCRIPT.read_text(encoding="utf-8")
+
+
+reset_demo_state = load_script()
+
+
+def test_it_borrows_the_active_gcloud_profile_by_default() -> None:
+    """ADC and the active CLI profile are different things on this machine.
+
+    With two profiles configured, the CLI can point at quanta-gradesync while the
+    application-default credentials still hold quanta-local, and Firestore answers
+    PERMISSION_DENIED without saying which of the two is wrong. The profile the
+    operator just selected is the one they meant.
+    """
+    monkey = os.environ.get("GOOGLE_ACCESS_TOKEN")
+    os.environ["GOOGLE_ACCESS_TOKEN"] = "token-from-the-cli"
+    try:
+        credentials = reset_demo_state.cli_credentials()
+        assert credentials is not None
+        assert credentials.token == "token-from-the-cli"
+    finally:
+        if monkey is None:
+            os.environ.pop("GOOGLE_ACCESS_TOKEN", None)
+        else:
+            os.environ["GOOGLE_ACCESS_TOKEN"] = monkey
+
+
+def test_adc_stays_reachable_for_a_service_account_context() -> None:
+    """In CI or on a runner there is no gcloud profile to borrow."""
+    captured = {}
+
+    def fake_client(project, credentials):
+        captured["project"] = project
+        captured["credentials"] = credentials
+        return object()
+
+    original = reset_demo_state.firestore.Client
+    reset_demo_state.firestore.Client = fake_client
+    try:
+        reset_demo_state.open_client("quanta-gradesync", use_cli_auth=False)
+    finally:
+        reset_demo_state.firestore.Client = original
+
+    assert captured["project"] == "quanta-gradesync"
+    assert captured["credentials"] is None

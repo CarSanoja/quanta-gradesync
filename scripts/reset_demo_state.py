@@ -1,7 +1,17 @@
 import argparse
+import os
+import subprocess
 from typing import Any
 
 from google.cloud import firestore
+from google.oauth2.credentials import Credentials
+
+# This machine carries two gcloud profiles, and the application-default
+# credentials are a separate thing from the active CLI profile: the CLI can be
+# pointed at quanta-gradesync while ADC still holds quanta-local, and Firestore
+# answers PERMISSION_DENIED with no hint about which of the two is wrong. The
+# CLI profile is the one the operator just chose, so borrow its token.
+ACCESS_TOKEN_ENV = "GOOGLE_ACCESS_TOKEN"
 
 DEMO_COLLECTIONS = (
     "checkpoints",
@@ -41,16 +51,42 @@ def wipe_collection(db: firestore.Client, name: str) -> int:
     return deleted
 
 
+def cli_credentials() -> Credentials | None:
+    token = os.environ.get(ACCESS_TOKEN_ENV)
+    if not token:
+        try:
+            token = subprocess.run(
+                ("gcloud", "auth", "print-access-token"),
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=True,
+            ).stdout.strip()
+        except (OSError, subprocess.SubprocessError):
+            return None
+    return Credentials(token=token) if token else None
+
+
+def open_client(project: str, use_cli_auth: bool) -> firestore.Client:
+    credentials = cli_credentials() if use_cli_auth else None
+    return firestore.Client(project=project, credentials=credentials)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Wipe all demo state from Firestore so judges open a clean console"
     )
     parser.add_argument("--project", default="quanta-gradesync")
     parser.add_argument("--yes", action="store_true", help="required to actually delete")
+    parser.add_argument(
+        "--adc",
+        action="store_true",
+        help="use application-default credentials instead of the active gcloud profile",
+    )
     args = parser.parse_args()
     if not args.yes:
         parser.error("refusing to delete without --yes")
-    db = firestore.Client(project=args.project)
+    db = open_client(args.project, use_cli_auth=not args.adc)
     total = 0
     for name in DEMO_COLLECTIONS:
         count = wipe_collection(db, name)
