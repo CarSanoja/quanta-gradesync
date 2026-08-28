@@ -119,3 +119,22 @@ def test_the_running_stage_reads_as_movement_not_as_a_label() -> None:
 
     assert 'repeating-linear-gradient(115deg, var(--accent-mid) 0 8px, #4a4278 8px 16px)' in live
     assert "animation: noct-sweep .7s linear infinite;" in live
+
+
+def test_nothing_in_the_console_is_smaller_than_eleven_pixels() -> None:
+    """Nocturne's density is spacing, not type — its own sheet sets a 15px body.
+
+    The first pass shrank the text as well and the console became hard to read
+    at a normal viewing distance. This holds the floor.
+    """
+    import re
+
+    for name in ("console.css", "console-views.css", "live.css"):
+        for size in re.findall(r"font-size: (\d+(?:\.\d+)?)px", source(name)):
+            if float(size) == 0:  # the icon-only brand mark
+                continue
+            assert float(size) >= 11, f"{name} has {size}px text"
+
+
+def test_the_body_matches_the_design_system_it_came_from() -> None:
+    assert "font-size: 15px;" in source("console.css")

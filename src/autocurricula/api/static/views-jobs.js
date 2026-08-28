@@ -1,3 +1,4 @@
+import { progressFor, progressLabel } from "/console/assets/console-job-progress.js";
 import {
   clear,
   el,
@@ -78,12 +79,22 @@ function jobTiles(detail) {
   ]);
 }
 
-function studentRow(student, onOpenReview, onToggle) {
+function statusCell(student, progress) {
+  // Only a row the checkpoint still calls pending can be told apart by the
+  // feed. Anything already decided keeps the decided word.
+  const live = student.sis_status === "pending" ? progressFor(progress, student) : null;
+  if (!live) {
+    return pill(student.sis_status, student.sis_status);
+  }
+  return pill(progressLabel(live), "running");
+}
+
+function studentRow(student, onOpenReview, onToggle, progress) {
   const open = expanded.has(student.student_id);
   return el("tr", {}, [
     el("td", {}, el("span", { class: "mono", text: student.student_id })),
     el("td", { class: "numeric", text: formatPercent(student.percentage) }),
-    el("td", {}, pill(student.sis_status, student.sis_status)),
+    el("td", {}, statusCell(student, progress)),
     el(
       "td",
       {},
@@ -114,18 +125,18 @@ function criteriaRow(student) {
   return el("tr", { class: "row-expanded" }, el("td", { colspan: "4" }, body));
 }
 
-function paintStudents(host, detail, onOpenReview) {
+function paintStudents(host, detail, onOpenReview, progress) {
   const toggle = (studentId) => {
     if (expanded.has(studentId)) {
       expanded.delete(studentId);
     } else {
       expanded.add(studentId);
     }
-    paintStudents(host, detail, onOpenReview);
+    paintStudents(host, detail, onOpenReview, progress);
   };
   const rows = [];
   detail.students.forEach((student) => {
-    rows.push(studentRow(student, onOpenReview, toggle));
+    rows.push(studentRow(student, onOpenReview, toggle, progress));
     if (expanded.has(student.student_id)) {
       rows.push(criteriaRow(student));
     }
@@ -138,7 +149,7 @@ function paintStudents(host, detail, onOpenReview) {
   );
 }
 
-export function renderJobDetail(target, detail, onOpenReview) {
+export function renderJobDetail(target, detail, onOpenReview, progress) {
   clear(target);
   if (!detail) {
     target.append(emptyState("Select a batch", "Stage checkpoints appear here."));
@@ -192,5 +203,5 @@ export function renderJobDetail(target, detail, onOpenReview) {
   }
   const host = el("div", { class: "student-table" });
   target.append(host);
-  paintStudents(host, detail, onOpenReview);
+  paintStudents(host, detail, onOpenReview, progress);
 }

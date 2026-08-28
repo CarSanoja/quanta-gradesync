@@ -20,6 +20,7 @@ ASSET_MEDIA_TYPES = {
     "views-criteria.js": "text/javascript; charset=utf-8",
     "console-dom.js": "text/javascript; charset=utf-8",
     "console-sections.js": "text/javascript; charset=utf-8",
+    "console-job-progress.js": "text/javascript; charset=utf-8",
     "console-jobs-poll.js": "text/javascript; charset=utf-8",
     "console-review.js": "text/javascript; charset=utf-8",
     "render.js": "text/javascript; charset=utf-8",

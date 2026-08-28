@@ -51,7 +51,7 @@ body {
   background: var(--bg);
   color: var(--ink);
   font-family: var(--sans);
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   height: 100vh;
@@ -114,10 +114,10 @@ a:hover { color: var(--accent-light); text-decoration: underline; }
 }
 
 .brand-text { display: flex; align-items: baseline; gap: 8.4px; min-width: 0; }
-.brand-text strong { font-size: 13.5px; font-weight: 600; letter-spacing: -0.01em; }
+.brand-text strong { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
 .brand-text small {
   font-family: var(--mono);
-  font-size: 9.5px;
+  font-size: 11px;
   letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--dim);
@@ -125,8 +125,8 @@ a:hover { color: var(--accent-light); text-decoration: underline; }
 }
 
 .section-heading { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 8.4px; }
-.section-heading h1 { font-size: 15px; font-weight: 500; white-space: nowrap; }
-.section-heading span { font-size: 11.5px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.section-heading h1 { font-size: 17px; font-weight: 500; white-space: nowrap; }
+.section-heading span { font-size: 13px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .topbar-meta { display: flex; align-items: center; gap: 5.6px; flex: none; }
 
@@ -137,7 +137,7 @@ a:hover { color: var(--accent-light); text-decoration: underline; }
   padding: 4.2px 9.8px;
   border-radius: var(--radius);
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: 12px;
   background: var(--surface);
   color: var(--ink-soft);
   border: 1px solid var(--line-firm);
@@ -155,7 +155,7 @@ button.primary, button.ghost {
   gap: 5.6px;
   border-radius: var(--radius);
   padding: 5.6px 11.2px;
-  font-size: 11.5px;
+  font-size: 13px;
   font-weight: 500;
   background: transparent;
   border: 1px solid var(--line-firm);
@@ -199,13 +199,13 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .rail-item:hover { background: color-mix(in srgb, var(--accent) 7%, transparent); }
 .rail-item.is-active { background: var(--accent-tint); box-shadow: inset 2px 0 0 var(--accent); }
 
-.rail-index { font-family: var(--mono); font-size: 9.5px; color: var(--dim); width: 11px; flex: none; }
-.rail-label { flex: 1; font-size: 12.5px; font-weight: 500; }
+.rail-index { font-family: var(--mono); font-size: 11px; color: var(--dim); width: 11px; flex: none; }
+.rail-label { flex: 1; font-size: 14px; font-weight: 500; }
 .rail-hint { display: none; }
 
 .rail-badge {
   font-family: var(--mono);
-  font-size: 9.5px;
+  font-size: 11px;
   padding: 1.4px 5.6px;
   border-radius: var(--radius-sm);
   background: var(--accent-line);
@@ -222,7 +222,7 @@ button:disabled { opacity: .45; cursor: not-allowed; }
   display: flex;
   gap: 8.4px;
   align-items: flex-start;
-  font-size: 10.5px;
+  font-size: 12px;
   line-height: 1.5;
   color: var(--muted);
 }

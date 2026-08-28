@@ -10,6 +10,7 @@ import {
   setToken,
 } from "./api.js";
 import { createChrome, resolveDom } from "./console-dom.js";
+import { progressFromEvents } from "/console/assets/console-job-progress.js";
 import { paintSection } from "/console/assets/console-sections.js";
 import { renderJobDetail, renderJobsList, renderOptimizer } from "./views.js";
 import { createReviewController } from "./console-review.js";
@@ -76,11 +77,27 @@ async function jobDetailFor(jobId) {
   return detail;
 }
 
+async function liveProgressFor(jobId) {
+  // Only while the batch runs. Once it settles the checkpoint is authoritative
+  // and there is nothing the feed could add.
+  if (!stillRunning(jobId)) {
+    return null;
+  }
+  const payload = await guard(() => getJson(endpoints.live(jobId, 0)));
+  if (!payload) {
+    return null;
+  }
+  return progressFromEvents(payload.events || payload.items || []);
+}
+
 async function selectJob(jobId) {
   state.activeJobId = jobId;
-  const detail = await jobDetailFor(jobId);
+  const [detail, progress] = await Promise.all([
+    jobDetailFor(jobId),
+    liveProgressFor(jobId),
+  ]);
   renderJobsList(dom.jobsList, state.jobs, state.activeJobId, selectJob);
-  renderJobDetail(dom.jobDetail, detail, openReviewFromJob);
+  renderJobDetail(dom.jobDetail, detail, openReviewFromJob, progress);
 }
 
 async function loadJobs() {
