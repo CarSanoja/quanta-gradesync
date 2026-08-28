@@ -1,4 +1,5 @@
 import argparse
+from typing import Any
 
 from google.cloud import firestore
 
@@ -15,16 +16,23 @@ DEMO_COLLECTIONS = (
 )
 
 
-def wipe_collection(db: firestore.Client, name: str) -> int:
+def wipe_document(reference: Any) -> int:
     deleted = 0
-    for doc in db.collection(name).stream():
-        for sub in doc.reference.collections():
-            for child in sub.stream():
-                child.reference.delete()
-                deleted += 1
-        doc.reference.delete()
-        deleted += 1
-    return deleted
+    for sub in reference.collections():
+        deleted += wipe_documents_in(sub)
+    reference.delete()
+    return deleted + 1
+
+
+def wipe_documents_in(collection: Any) -> int:
+    # list_documents, not stream: a parent that exists only to hold a
+    # subcollection is not returned by a query, and audit/{job}/live is exactly
+    # that. Streaming left thousands of live events behind on every reset.
+    return sum(wipe_document(reference) for reference in collection.list_documents())
+
+
+def wipe_collection(db: firestore.Client, name: str) -> int:
+    return wipe_documents_in(db.collection(name))
 
 
 def main() -> None:
