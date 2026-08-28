@@ -89,7 +89,14 @@ export function diagramsFor(view) {
 
 export function renderTriggers(target, view, onOpen) {
   clear(target);
-  diagramsFor(view).forEach((entry) => {
+  const entries = diagramsFor(view);
+  if (entries.length) {
+    // Rendered here rather than sitting in the HTML because the slot is cleared
+    // on every view change, and a view without a diagram must not be left
+    // announcing one.
+    target.append(el("span", { class: "diagram-label", text: "Diagram:" }));
+  }
+  entries.forEach((entry) => {
     const trigger = el("button", {
       class: "ghost diagram-trigger",
       type: "button",

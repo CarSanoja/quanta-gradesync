@@ -147,3 +147,33 @@ def test_a_narrow_window_does_not_hide_the_triggers() -> None:
     assert "  #section-sub { display: none; }" in styles
     assert ".section-heading span { display: none; }" not in styles
     assert ".section-heading span {" not in styles
+
+
+def test_the_trigger_looks_pressable_before_anyone_hovers_it() -> None:
+    """Outlined like every other secondary control, it read as chrome.
+
+    A hover state is no affordance on a projector, where nothing hovers. The
+    resting tint and the word carry it — without flooding the accent, which the
+    design system forbids.
+    """
+    views = source("console-views.css")
+    diagrams = source("console-diagrams.js")
+
+    assert "background: color-mix(in srgb, var(--accent) 14%, transparent);" in views
+    assert "border-color: var(--accent);\n  color: var(--accent-light);" in views
+    assert "button.diagram-trigger:focus-visible {" in views
+    # button.ghost is (0,1,1): a bare .diagram-trigger loses every declaration to
+    # it, which is why the trigger rendered as an ordinary secondary control.
+    for rule in (" {", "::before", ":hover:not(:disabled)", ":focus-visible"):
+        assert f"button.diagram-trigger{rule}" in views, rule
+        assert f"\n.diagram-trigger{rule}" not in views, rule
+    assert "color: #fff;" not in views
+    assert 'class: "diagram-label", text: "Diagram:"' in diagrams
+
+
+def test_a_view_without_a_diagram_does_not_announce_one() -> None:
+    """The slot is cleared on every view change, so the word cannot be static."""
+    diagrams = source("console-diagrams.js")
+
+    assert "if (entries.length) {" in diagrams
+    assert '<span class="diagram-label">' not in source("console.html")
