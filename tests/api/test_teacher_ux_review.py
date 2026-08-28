@@ -56,9 +56,21 @@ def test_access_code_is_remembered_and_cancel_cannot_leave_a_blank_page() -> Non
 def test_home_never_renders_a_null_band_or_claims_an_unfinished_batch_is_done() -> None:
     screens = source("teacher-screens.js")
 
-    assert "...(band ? [band] : [])" in screens
+    assert "...(band && !waiting ? [band] : [])" in screens
     assert "const complete = batch && batch.settled" in screens
     assert "still being graded; nothing needs your decision yet" in screens
+
+
+def test_the_landing_page_never_says_nothing_needs_you_while_work_waits() -> None:
+    """A bare /teacher lands on the send screen, so that screen has to be honest."""
+    screens = source("teacher-screens.js")
+    state = source("teacher-state.js")
+
+    assert 'return route.has("batch") || route.has("review") ? "" : "home";' in state
+    assert "screen: screenFor(initialRoute)," in state
+    assert 'plural(waiting, "needs", "need")} you.`' in screens
+    assert '"Nothing needs you."' in screens
+    assert "...(waiting ? [waitingBanner(ctx)] : [])" in screens
 
 
 def test_waiting_work_keeps_polling_and_updates_the_window_title() -> None:

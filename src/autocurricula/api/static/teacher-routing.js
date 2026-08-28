@@ -1,4 +1,4 @@
-import { currentReview, state } from "/teacher/assets/teacher-state.js";
+import { currentReview, screenFor, state } from "/teacher/assets/teacher-state.js";
 
 function put(url, key, value) {
   if (value) {
@@ -50,8 +50,6 @@ export function readAddress() {
   state.requestedReview = route.get("review") || "";
   state.queries.grades = route.get("grades") === "1" ? "" : route.get("grades") || "";
   state.queries.band = route.get("show") || "";
-  state.screen = route.has("grades")
-    ? "grades"
-    : route.has("needs") ? "held" : route.has("send") ? "home" : "";
+  state.screen = screenFor(route);
   state.polls = 0;
 }

@@ -2,13 +2,26 @@ import { parseLot, prettyName } from "/teacher/assets/teacher-format.js";
 
 const initialRoute = new URLSearchParams(window.location.search);
 
+export function screenFor(route) {
+  if (route.has("grades")) {
+    return "grades";
+  }
+  if (route.has("needs")) {
+    return "held";
+  }
+  if (route.has("send")) {
+    return "home";
+  }
+  // A deep link into a batch or an exam keeps resolving on its own; a bare
+  // /teacher is someone arriving to send scans, so land them there.
+  return route.has("batch") || route.has("review") ? "" : "home";
+}
+
 export const state = {
   summary: null,
   records: [],
   batchRecords: [],
-  screen: initialRoute.has("grades")
-    ? "grades"
-    : initialRoute.has("needs") ? "held" : initialRoute.has("send") ? "home" : "",
+  screen: screenFor(initialRoute),
   following: false,
   lotCode: initialRoute.get("batch") || "",
   requestedReview: initialRoute.get("review") || "",

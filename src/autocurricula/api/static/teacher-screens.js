@@ -56,8 +56,29 @@ function recentBatches(ctx, title) {
   ]);
 }
 
+function waitingBanner(ctx) {
+  const waiting = Number(ctx.summary.waiting_count) || 0;
+  if (!waiting) {
+    return null;
+  }
+  const judged = ctx.summary.judgement.count;
+  return el("div", { class: "attention" }, [
+    el("p", {
+      text: `${examCount(waiting)} ${plural(waiting, "is", "are")} waiting on you. `
+        + "Everything else is already in the gradebook.",
+    }),
+    el("button", {
+      class: "primary",
+      type: "button",
+      text: "Review these one at a time",
+      onclick: () => ctx.goReview(judged ? "judgement" : "batch_hold"),
+    }),
+  ]);
+}
+
 export function renderHome(host, ctx) {
   const batch = ctx.batch;
+  const waiting = Number(ctx.summary.waiting_count) || 0;
   const complete = batch && batch.settled && batch.in_gradebook >= batch.received;
   const lede = !batch
     ? "Nothing is waiting for your decision. Send the scans of an exam and grading starts on "
@@ -74,9 +95,21 @@ export function renderHome(host, ctx) {
   host.className = "screen";
   host.append(
     el("p", { class: "eyebrow", text: batch ? batch.assessment : "Your class" }),
-    el("h1", { class: "display", text: "Nothing needs you." }),
-    el("p", { class: "lede", text: lede }),
-    ...(band ? [band] : []),
+    el("h1", {
+      class: "display",
+      text: waiting
+        ? `${examCount(waiting)} ${plural(waiting, "needs", "need")} you.`
+        : "Nothing needs you.",
+    }),
+    el("p", {
+      class: "lede",
+      text: waiting
+        ? "The rest of that batch is already in the gradebook. These are the ones the "
+          + "system would not decide on its own."
+        : lede,
+    }),
+    ...(waiting ? [waitingBanner(ctx)] : []),
+    ...(band && !waiting ? [band] : []),
     lotFields(ctx),
     dropzone(ctx, "Drop the whole pile here", setupSummary(),
       "Choose files from your computer")
