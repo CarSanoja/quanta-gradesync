@@ -1,0 +1,225 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1680 1160" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#5f6368"/>
+    </marker>
+    <marker id="arrr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#d93025"/>
+    </marker>
+  </defs>
+  <rect width="1680" height="1160" fill="#ffffff"/>
+
+  <text x="40" y="52" font-size="27" font-weight="bold" fill="#202124">The agent fleet — twelve declared components, three planes</text>
+  <text x="40" y="76" font-size="14" fill="#5f6368">Every field below is derived by GET /fleet/registry from the running configuration — model id, stage binding, capability scope, principal, prompt variant — so documentation drift is detectable rather than assumed.</text>
+  <text x="40" y="97" font-size="12.5" fill="#5f6368">Registry summary in GCP mode: 12 agents, 12 wired · by model — gemini-3.5-flash 2, gemini-3.5-flash-lite 6, deterministic 4 · 15 principals, 1 dedicated service account.</text>
+  <rect x="1100" y="87" width="15" height="12" rx="3" fill="#ffffff" stroke="#1a73e8" stroke-width="1.5"/>
+  <text x="1122" y="97" font-size="11" fill="#5f6368">model-backed</text>
+  <rect x="1222" y="87" width="15" height="12" rx="3" fill="#ffffff" stroke="#80868b" stroke-width="1.5"/>
+  <text x="1244" y="97" font-size="11" fill="#5f6368">deterministic</text>
+  <rect x="1340" y="87" width="15" height="12" rx="3" fill="#ffffff" stroke="#d93025" stroke-width="1.5"/>
+  <text x="1362" y="97" font-size="11" fill="#5f6368">governance — stops something</text>
+
+  <!-- ============ HOT PATH ============ -->
+  <rect x="40" y="118" width="1600" height="326" rx="12" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2"/>
+  <text x="58" y="142" font-size="14" font-weight="bold" fill="#174ea6">HOT PATH — runs inside the Pub/Sub push request, once per exam; the batch is acknowledged only when all of it succeeded</text>
+
+  <g>
+    <rect x="56" y="152" width="380" height="118" rx="10" fill="#ffffff" stroke="#1a73e8" stroke-width="1.5"/>
+    <text x="68" y="177" font-size="14" font-weight="bold" fill="#174ea6">1 · Grading agent</text>
+    <rect x="376" y="162" width="48" height="20" rx="4" fill="#1a73e8"/>
+    <text x="400" y="176" font-size="11" fill="#ffffff" text-anchor="middle">grade</text>
+    <text x="68" y="198" font-size="12.5" fill="#0d652d">gemini-3.5-flash</text>
+    <text x="68" y="217" font-size="11.5" fill="#3c4043">llm.invoke</text>
+    <text x="424" y="217" font-size="11" fill="#80868b" text-anchor="end">prompt grading-v1</text>
+    <text x="68" y="235" font-size="11" fill="#5f6368">agent://grading-agent</text>
+    <text x="68" y="254" font-size="11" fill="#5f6368" font-style="italic">multimodal rubric grading, evidence cited verbatim</text>
+  </g>
+
+  <g>
+    <rect x="452" y="152" width="380" height="118" rx="10" fill="#ffffff" stroke="#d93025" stroke-width="1.5"/>
+    <text x="464" y="177" font-size="14" font-weight="bold" fill="#a50e0e">4 · Armor screener</text>
+    <rect x="772" y="162" width="48" height="20" rx="4" fill="#d93025"/>
+    <text x="796" y="176" font-size="11" fill="#ffffff" text-anchor="middle">grade</text>
+    <text x="464" y="198" font-size="12.5" fill="#0d652d">gemini-3.5-flash-lite</text>
+    <text x="464" y="217" font-size="11.5" fill="#3c4043">llm.invoke</text>
+    <text x="820" y="217" font-size="11" fill="#80868b" text-anchor="end">no prompt variant</text>
+    <text x="464" y="235" font-size="11" fill="#5f6368">agent://armor-screener</text>
+    <text x="464" y="254" font-size="11" fill="#a50e0e" font-style="italic">detects grader-directed writing, forces quarantine</text>
+  </g>
+
+  <g>
+    <rect x="848" y="152" width="380" height="118" rx="10" fill="#ffffff" stroke="#1a73e8" stroke-width="1.5"/>
+    <text x="860" y="177" font-size="14" font-weight="bold" fill="#174ea6">2 · Curriculum auditor</text>
+    <rect x="1170" y="162" width="46" height="20" rx="4" fill="#1a73e8"/>
+    <text x="1193" y="176" font-size="11" fill="#ffffff" text-anchor="middle">audit</text>
+    <text x="860" y="198" font-size="12.5" fill="#0d652d">gemini-3.5-flash-lite</text>
+    <text x="860" y="217" font-size="11.5" fill="#3c4043">llm.invoke · firestore.read</text>
+    <text x="1216" y="217" font-size="11" fill="#80868b" text-anchor="end">prompt auditor-v1</text>
+    <text x="860" y="235" font-size="11" fill="#5f6368">agent://curriculum-auditor</text>
+    <text x="860" y="254" font-size="11" fill="#5f6368" font-style="italic">cross-references grades against the ministry standard</text>
+  </g>
+
+  <g>
+    <rect x="1244" y="152" width="380" height="118" rx="10" fill="#ffffff" stroke="#80868b" stroke-width="1.5"/>
+    <text x="1256" y="177" font-size="14" font-weight="bold" fill="#3c4043">3 · Risk detector</text>
+    <rect x="1572" y="162" width="40" height="20" rx="4" fill="#5f6368"/>
+    <text x="1592" y="176" font-size="11" fill="#ffffff" text-anchor="middle">risk</text>
+    <text x="1256" y="198" font-size="12.5" fill="#5f6368">deterministic — no model call</text>
+    <text x="1256" y="217" font-size="11.5" fill="#3c4043">firestore.read</text>
+    <text x="1612" y="217" font-size="11" fill="#80868b" text-anchor="end">no prompt variant</text>
+    <text x="1256" y="235" font-size="11" fill="#5f6368">agent://risk-detector</text>
+    <text x="1256" y="254" font-size="11" fill="#5f6368" font-style="italic">z-scores and longitudinal slopes over L3 history</text>
+  </g>
+
+  <g>
+    <rect x="56" y="282" width="380" height="118" rx="10" fill="#ffffff" stroke="#1a73e8" stroke-width="1.5"/>
+    <text x="68" y="307" font-size="14" font-weight="bold" fill="#174ea6">12 · Evidence transcriber</text>
+    <rect x="376" y="292" width="48" height="20" rx="4" fill="#1a73e8"/>
+    <text x="400" y="306" font-size="11" fill="#ffffff" text-anchor="middle">grade</text>
+    <text x="68" y="328" font-size="12.5" fill="#0d652d">gemini-3.5-flash-lite</text>
+    <text x="68" y="347" font-size="11.5" fill="#3c4043">llm.invoke</text>
+    <text x="424" y="347" font-size="11" fill="#80868b" text-anchor="end">no prompt variant</text>
+    <text x="68" y="365" font-size="11" fill="#5f6368">agent://evidence-transcriber</text>
+    <text x="68" y="384" font-size="11" fill="#5f6368" font-style="italic">independent page reading; cited quotes are verified against it</text>
+  </g>
+  <text x="452" y="312" font-size="11.5" fill="#3c4043">Closes the production gap where real scans carry no reference text: before grading, a second model reads each page verbatim;</text>
+  <text x="452" y="331" font-size="11.5" fill="#3c4043">the faithfulness verifier then matches every cited quote against that transcript (longest-common-substring coverage, threshold 0.75).</text>
+  <text x="452" y="350" font-size="11.5" fill="#3c4043">Sidecar ground truth keeps strict precedence; a failed transcription degrades to unchecked and never blocks grading.</text>
+  <text x="452" y="372" font-size="11" fill="#5f6368" font-style="italic">verified live 2026-08-26 against the sample page: printed header and handwritten factoring verify, a fabricated quote does not.</text>
+  <g transform="translate(0,130)">
+  <text x="58" y="294" font-size="11" fill="#5f6368" font-style="italic">measured 2026-08-19 — 8-exam batch: 16 LLM calls, 40.2 s of stage spans, 43.9 s wall clock, $0.31275 total → $0.0391 and 5.0 s per exam.</text>
+
+  <!-- ============ RECOVERY ============ -->
+  <rect x="40" y="332" width="1600" height="196" rx="12" fill="#f8f9fa" stroke="#80868b" stroke-width="2" stroke-dasharray="6 4"/>
+  <text x="58" y="356" font-size="14" font-weight="bold" fill="#3c4043">RECOVERY — nothing here runs on a healthy exam; each component exists to keep one bad exam from taking the batch with it</text>
+
+  <g>
+    <rect x="56" y="366" width="512" height="118" rx="10" fill="#ffffff" stroke="#1a73e8" stroke-width="1.5"/>
+    <text x="68" y="391" font-size="14" font-weight="bold" fill="#174ea6">5 · Second-opinion evaluator</text>
+    <rect x="504" y="376" width="52" height="20" rx="4" fill="#1a73e8"/>
+    <text x="530" y="390" font-size="11" fill="#ffffff" text-anchor="middle">verify</text>
+    <text x="68" y="412" font-size="12.5" fill="#0d652d">gemini-3.5-flash-lite</text>
+    <text x="68" y="431" font-size="11.5" fill="#3c4043">llm.invoke</text>
+    <text x="556" y="431" font-size="11" fill="#80868b" text-anchor="end">prompt grading-v1</text>
+    <text x="68" y="449" font-size="11" fill="#5f6368">agent://second-opinion-evaluator</text>
+    <text x="68" y="468" font-size="11" fill="#5f6368" font-style="italic">bounded rework of quarantined exams — the teacher still decides</text>
+  </g>
+
+  <g>
+    <rect x="584" y="366" width="512" height="118" rx="10" fill="#ffffff" stroke="#1a73e8" stroke-width="1.5"/>
+    <text x="596" y="391" font-size="14" font-weight="bold" fill="#174ea6">6 · Fallback evaluator</text>
+    <rect x="1036" y="376" width="48" height="20" rx="4" fill="#1a73e8"/>
+    <text x="1060" y="390" font-size="11" fill="#ffffff" text-anchor="middle">grade</text>
+    <text x="596" y="412" font-size="12.5" fill="#0d652d">gemini-3.5-flash-lite</text>
+    <text x="596" y="431" font-size="11.5" fill="#3c4043">llm.invoke</text>
+    <text x="1084" y="431" font-size="11" fill="#80868b" text-anchor="end">prompt grading-v1</text>
+    <text x="596" y="449" font-size="11" fill="#5f6368">agent://fallback-evaluator</text>
+    <text x="596" y="468" font-size="11" fill="#5f6368" font-style="italic">failover on timeout or past the 90 s budget; confidence × 0.9</text>
+  </g>
+
+  <g>
+    <rect x="1112" y="366" width="512" height="118" rx="10" fill="#ffffff" stroke="#80868b" stroke-width="1.5"/>
+    <text x="1124" y="391" font-size="14" font-weight="bold" fill="#3c4043">7 · Schema repair component</text>
+    <rect x="1564" y="376" width="48" height="20" rx="4" fill="#5f6368"/>
+    <text x="1588" y="390" font-size="11" fill="#ffffff" text-anchor="middle">grade</text>
+    <text x="1124" y="412" font-size="12.5" fill="#5f6368">deterministic — holds no model</text>
+    <text x="1124" y="431" font-size="11.5" fill="#a50e0e">no capability of its own</text>
+    <text x="1612" y="431" font-size="11" fill="#80868b" text-anchor="end">no prompt variant</text>
+    <text x="1124" y="449" font-size="11" fill="#5f6368">agent://schema-repair-agent</text>
+    <text x="1124" y="468" font-size="11" fill="#5f6368" font-style="italic">re-invokes the caller's own evaluator, ≤2 attempts, then dead-letter</text>
+  </g>
+
+  <text x="58" y="508" font-size="11" fill="#5f6368" font-style="italic">measured 2026-08-20 — SIS outage probe: 2 rejected records dead-lettered on delivery 2, re-sent alone on delivery 3; the 4 already-accepted records were never re-sent. 6 ok / 0 failed.</text>
+
+  <!-- ============ COLD PLANE ============ -->
+  <rect x="40" y="546" width="1600" height="196" rx="12" fill="#f8f9fa" stroke="#5f6368" stroke-width="2"/>
+  <text x="58" y="570" font-size="14" font-weight="bold" fill="#3c4043">COLD PLANE — self-improvement; proposes and judges prompt changes against human ground truth, and promotes nothing it cannot prove</text>
+
+  <g>
+    <rect x="56" y="580" width="380" height="118" rx="10" fill="#ffffff" stroke="#1a73e8" stroke-width="1.5"/>
+    <text x="68" y="605" font-size="14" font-weight="bold" fill="#174ea6">8 · Prompt proposer</text>
+    <rect x="360" y="590" width="64" height="20" rx="4" fill="#1a73e8"/>
+    <text x="392" y="604" font-size="11" fill="#ffffff" text-anchor="middle">optimize</text>
+    <text x="68" y="626" font-size="12.5" fill="#0d652d">gemini-3.5-flash-lite</text>
+    <text x="68" y="645" font-size="11.5" fill="#3c4043">llm.invoke</text>
+    <text x="424" y="645" font-size="11" fill="#80868b" text-anchor="end">prompt optimizer-v1</text>
+    <text x="68" y="663" font-size="11" fill="#5f6368">agent://prompt-proposer</text>
+    <text x="68" y="682" font-size="11" fill="#5f6368" font-style="italic">mutates the grading and audit prompts for the tournament</text>
+  </g>
+
+  <g>
+    <rect x="452" y="580" width="380" height="118" rx="10" fill="#ffffff" stroke="#1a73e8" stroke-width="1.5"/>
+    <text x="464" y="605" font-size="14" font-weight="bold" fill="#174ea6">9 · Calibration evaluator</text>
+    <rect x="756" y="590" width="64" height="20" rx="4" fill="#1a73e8"/>
+    <text x="788" y="604" font-size="11" fill="#ffffff" text-anchor="middle">optimize</text>
+    <text x="464" y="626" font-size="12.5" fill="#0d652d">gemini-3.5-flash</text>
+    <text x="464" y="645" font-size="11.5" fill="#3c4043">llm.invoke</text>
+    <text x="820" y="645" font-size="11" fill="#80868b" text-anchor="end">no prompt variant</text>
+    <text x="464" y="663" font-size="11" fill="#5f6368">agent://calibration-evaluator</text>
+    <text x="464" y="682" font-size="11" fill="#5f6368" font-style="italic">re-grades human-scored samples to score each candidate</text>
+  </g>
+
+  <g>
+    <rect x="848" y="580" width="380" height="118" rx="10" fill="#ffffff" stroke="#80868b" stroke-width="1.5"/>
+    <text x="860" y="605" font-size="14" font-weight="bold" fill="#3c4043">10 · Meta-optimizer (grading)</text>
+    <rect x="1152" y="590" width="64" height="20" rx="4" fill="#5f6368"/>
+    <text x="1184" y="604" font-size="11" fill="#ffffff" text-anchor="middle">optimize</text>
+    <text x="860" y="626" font-size="12.5" fill="#5f6368">deterministic — no model call</text>
+    <text x="860" y="645" font-size="11.5" fill="#3c4043">firestore.read · firestore.write</text>
+    <text x="1216" y="645" font-size="11" fill="#80868b" text-anchor="end">prompt grading-v1</text>
+    <text x="860" y="663" font-size="11" fill="#5f6368">agent://meta-optimizer-grading</text>
+    <text x="860" y="682" font-size="11" fill="#5f6368" font-style="italic">tournament + anti-gaming + objective gate on grading-v1</text>
+  </g>
+
+  <g>
+    <rect x="1244" y="580" width="380" height="118" rx="10" fill="#ffffff" stroke="#80868b" stroke-width="1.5"/>
+    <text x="1256" y="605" font-size="14" font-weight="bold" fill="#3c4043">11 · Meta-optimizer (audit)</text>
+    <rect x="1548" y="590" width="64" height="20" rx="4" fill="#5f6368"/>
+    <text x="1580" y="604" font-size="11" fill="#ffffff" text-anchor="middle">optimize</text>
+    <text x="1256" y="626" font-size="12.5" fill="#5f6368">deterministic — no model call</text>
+    <text x="1256" y="645" font-size="11.5" fill="#3c4043">firestore.read · firestore.write</text>
+    <text x="1612" y="645" font-size="11" fill="#80868b" text-anchor="end">prompt auditor-v1</text>
+    <text x="1256" y="663" font-size="11" fill="#5f6368">agent://meta-optimizer-audit</text>
+    <text x="1256" y="682" font-size="11" fill="#5f6368" font-style="italic">same on auditor-v1; scope-adjusted gate, no QWK bar</text>
+  </g>
+
+  <text x="58" y="722" font-size="11" fill="#5f6368" font-style="italic">measured 2026-08-20 — one convergence run: 19 calls, 124.9 s, $0.6296. Three candidates proposed, three rejected, active variant unchanged at grading-v1 v1.</text>
+
+  <!-- ============ IDENTITY BAND ============ -->
+  <rect x="40" y="762" width="1600" height="204" rx="12" fill="#ffffff" stroke="#dadce0" stroke-width="1.5"/>
+  <text x="58" y="788" font-size="15" font-weight="bold" fill="#202124">Identity — 15 principals: one per agent, plus three infrastructure principals that own the work no single agent owns</text>
+
+  <text x="58" y="812" font-size="12" fill="#3c4043">All 12 agent principals run as the ambient Cloud Run runtime identity autocurricula-runner@ — and not one of them holds sis.write.</text>
+  <text x="58" y="832" font-size="12" fill="#3c4043">The schema repair component holds no capability at all: it re-invokes the caller's evaluator, so its retry is authorised under the caller's principal.</text>
+  <text x="58" y="852" font-size="12" fill="#3c4043">core/harness/capabilities.py checks every external action against the declared set before the network call, so a violation costs zero tokens</text>
+  <text x="58" y="872" font-size="12" fill="#3c4043">and writes a CapabilityAuditRecord. An undeclared tool or an unknown agent id is denied: adding an action breaks loudly, never silently inherits.</text>
+  <text x="58" y="898" font-size="11.5" fill="#a50e0e" font-weight="bold">Armor denial fails closed: if the screener cannot be authorised the grade stage fails rather than treat an unscreened page as clean.</text>
+  <text x="58" y="920" font-size="11.5" fill="#3c4043">Attribution is carried, not asserted: grading and armor spans stamp agent.id and agent.principal, and every allow/deny lands in the job's audit summary.</text>
+  <text x="58" y="944" font-size="11" fill="#5f6368" font-style="italic">The gate is in-process, not cloud IAM. It stops a misbehaving agent; only IAM stops modified code — and only for the one principal that has its own service account.</text>
+
+  <rect x="950" y="800" width="340" height="34" rx="8" fill="#f8f9fa" stroke="#dadce0"/>
+  <text x="964" y="822" font-size="11.5" fill="#3c4043">exam-fetcher — gcs.read</text>
+  <rect x="950" y="842" width="340" height="34" rx="8" fill="#f8f9fa" stroke="#dadce0"/>
+  <text x="964" y="864" font-size="11.5" fill="#3c4043">pipeline-orchestrator — firestore.read · firestore.write</text>
+  <rect x="950" y="884" width="340" height="46" rx="8" fill="#fce8e6" stroke="#d93025" stroke-width="1.5"/>
+  <text x="964" y="903" font-size="11.5" font-weight="bold" fill="#a50e0e">sis-writer — sis.write · firestore.write</text>
+  <text x="964" y="920" font-size="11" fill="#a50e0e">dedicated SA gradesync-sis-writer@, impersonated</text>
+
+  <line x1="1332" y1="796" x2="1332" y2="950" stroke="#d93025" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text transform="translate(1326,948) rotate(-90)" font-size="10.5" fill="#a50e0e" font-style="italic">process boundary</text>
+  <line x1="1290" y1="907" x2="1348" y2="907" stroke="#d93025" stroke-width="2" marker-end="url(#arrr)"/>
+
+  <text x="1352" y="806" font-size="11.5" font-weight="bold" fill="#3c4043">The only crossing</text>
+  <text x="1352" y="824" font-size="11" fill="#5f6368">No agent principal holds sis.write; the</text>
+  <text x="1352" y="840" font-size="11" fill="#5f6368">other fourteen reach only Google-managed</text>
+  <text x="1352" y="856" font-size="11" fill="#5f6368">services under the ambient runtime SA.</text>
+
+  <rect x="1352" y="870" width="272" height="76" rx="10" fill="#e8f0fe" stroke="#1a73e8"/>
+  <text x="1488" y="894" font-size="12.5" font-weight="bold" fill="#174ea6" text-anchor="middle">School SIS</text>
+  <text x="1488" y="912" font-size="11" fill="#174ea6" text-anchor="middle">+ Firestore sis_records ledger</text>
+  <text x="1488" y="930" font-size="11" fill="#174ea6" text-anchor="middle">the school's system of record</text>
+
+  <text x="40" y="994" font-size="11.5" fill="#5f6368">Nothing here is hand-maintained: the registry computes a definition SHA per agent and a registry SHA over the fleet. Offline suite: 653 passed, 10 skipped of 663 collected.</text>
+  <text x="40" y="1012" font-size="11.5" fill="#5f6368">Impersonation is configuration-gated and falls back to the ambient identity on an IAM failure, logging the fallback — a token outage must not stop grades reaching the school.</text>
+  </g>
+</svg>

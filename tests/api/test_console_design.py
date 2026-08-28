@@ -138,3 +138,19 @@ def test_nothing_in_the_console_is_smaller_than_eleven_pixels() -> None:
 
 def test_the_body_matches_the_design_system_it_came_from() -> None:
     assert "font-size: 15px;" in source("console.css")
+
+
+async def test_the_console_is_never_served_from_a_stale_cache(app) -> None:
+    """The teacher page got these headers in 94edf8c; the console never did.
+
+    Without them a browser caches the bundle heuristically, so a deploy can land
+    and the operator keeps running the previous build — which is indistinguishable
+    from the fix not working.
+    """
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        page = await client.get("/console")
+        assert page.headers["cache-control"] == "no-store"
+        for name in (*STYLES, "console.js", "console-sections.js"):
+            asset = await client.get(f"/console/assets/{name}")
+            assert asset.headers["cache-control"] == "no-cache, must-revalidate", name

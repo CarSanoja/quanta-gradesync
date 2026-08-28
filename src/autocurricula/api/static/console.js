@@ -10,6 +10,7 @@ import {
   setToken,
 } from "./api.js";
 import { createChrome, resolveDom } from "./console-dom.js";
+import { diagramUrl } from "/console/assets/console-diagrams.js";
 import { progressFromEvents } from "/console/assets/console-job-progress.js";
 import { paintSection } from "/console/assets/console-sections.js";
 import { renderJobDetail, renderJobsList, renderOptimizer } from "./views.js";
@@ -238,6 +239,37 @@ window.goToJobsBatch = (jobId) => {
   setView("jobs");
   selectJob(jobId);
 };
+
+function openDiagram(entry) {
+  const gate = document.getElementById("diagram-gate");
+  document.getElementById("diagram-open-title").textContent = entry.title;
+  document.getElementById("diagram-open-shows").textContent = entry.shows;
+  document.getElementById("diagram-open-raw").href = diagramUrl(entry.name);
+  const canvas = document.getElementById("diagram-canvas");
+  canvas.innerHTML = "";
+  const image = document.createElement("img");
+  image.src = diagramUrl(entry.name);
+  image.alt = `${entry.title} — ${entry.shows}`;
+  canvas.append(image);
+  gate.hidden = false;
+  document.getElementById("diagram-close").focus();
+}
+
+function closeDiagram() {
+  document.getElementById("diagram-gate").hidden = true;
+}
+
+document.getElementById("diagram-close").addEventListener("click", closeDiagram);
+document.getElementById("diagram-gate").addEventListener("click", (event) => {
+  if (event.target.id === "diagram-gate") {
+    closeDiagram();
+  }
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !document.getElementById("diagram-gate").hidden) {
+    closeDiagram();
+  }
+});
 
 function openReviewFromJob(reviewId) {
   return reviewController.openFromJob(reviewId);

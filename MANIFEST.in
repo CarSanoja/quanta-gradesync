@@ -1,1 +1,1 @@
-recursive-include src/autocurricula/api/static *.html *.css *.js
+recursive-include src/autocurricula/api/static *.html *.css *.js *.svg

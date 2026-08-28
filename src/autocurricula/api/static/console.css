@@ -28,6 +28,10 @@
 
   /* One low-chroma alert, a deliberate addition to the mono scheme: an
      operations console has to separate a failure from a quiet state. */
+  /* The diagrams are hand-authored on a light ground; this is Nocturne's own
+     lightest neutral step, since the system forbids pure white. */
+  --plate: #f3f5fe;
+
   --alert: #dd8a83;
   --alert-tint: #33232a;
   --alert-line: #57383c;

@@ -1,0 +1,149 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1680 980" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#5f6368"/>
+    </marker>
+    <marker id="arrb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#1a73e8"/>
+    </marker>
+  </defs>
+  <rect width="1680" height="980" fill="#ffffff"/>
+  <text x="40" y="52" font-size="27" font-weight="bold" fill="#202124">AutoCurricula &amp; GradeSync Engine — Architecture</text>
+  <text x="40" y="76" font-size="14" fill="#5f6368">Event-driven multimodal grading fleet on Google Cloud. Nothing to launch, nothing to chat with: work starts when scans land in the bucket.</text>
+
+  <rect x="40" y="150" width="170" height="84" rx="10" fill="#e8f0fe" stroke="#1a73e8"/>
+  <text x="125" y="184" font-size="14" font-weight="bold" fill="#174ea6" text-anchor="middle">School staff</text>
+  <text x="125" y="204" font-size="12" fill="#174ea6" text-anchor="middle">scans &amp; uploads exams</text>
+
+  <rect x="270" y="140" width="190" height="104" rx="10" fill="#fef7e0" stroke="#f9ab00"/>
+  <text x="365" y="168" font-size="14" font-weight="bold" fill="#7f5c00" text-anchor="middle">Cloud Storage</text>
+  <text x="365" y="188" font-size="12" fill="#7f5c00" text-anchor="middle">exam-scans bucket</text>
+  <text x="365" y="206" font-size="11" fill="#7f5c00" text-anchor="middle">versioned — processed scans</text>
+  <text x="365" y="221" font-size="11" fill="#7f5c00" text-anchor="middle">are never lost</text>
+
+  <rect x="520" y="140" width="180" height="104" rx="10" fill="#fef7e0" stroke="#f9ab00"/>
+  <text x="610" y="168" font-size="14" font-weight="bold" fill="#7f5c00" text-anchor="middle">Pub/Sub</text>
+  <text x="610" y="188" font-size="12" fill="#7f5c00" text-anchor="middle">OBJECT_FINALIZE events</text>
+  <text x="610" y="206" font-size="11" fill="#7f5c00" text-anchor="middle">push subscription</text>
+  <text x="610" y="221" font-size="11" fill="#7f5c00" text-anchor="middle">OIDC + shared token</text>
+
+  <line x1="210" y1="192" x2="266" y2="192" stroke="#5f6368" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="460" y1="192" x2="516" y2="192" stroke="#5f6368" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="700" y1="192" x2="756" y2="192" stroke="#5f6368" stroke-width="2" marker-end="url(#arr)"/>
+
+  <rect x="760" y="110" width="620" height="560" rx="12" fill="#f8f9fa" stroke="#1a73e8" stroke-width="2"/>
+  <text x="1070" y="140" font-size="16" font-weight="bold" fill="#174ea6" text-anchor="middle">Cloud Run — autocurricula-gradesync (FastAPI, scale 0–2)</text>
+
+  <rect x="780" y="156" width="580" height="66" rx="8" fill="#e8f0fe" stroke="#aecbfa"/>
+  <text x="1070" y="178" font-size="12.5" font-weight="bold" fill="#174ea6" text-anchor="middle">Push webhook — translates raw GCS events into jobs · claim dedup · upload settle</text>
+  <text x="1070" y="196" font-size="12" fill="#174ea6" text-anchor="middle">runs the pipeline inside the request, acks ONLY on success</text>
+  <text x="1070" y="212" font-size="12" fill="#174ea6" text-anchor="middle">failure → 5xx → Pub/Sub redelivers → resume from checkpoint</text>
+
+  <g font-size="13" font-weight="bold" text-anchor="middle">
+    <rect x="780"  y="240" width="76" height="40" rx="7" fill="#1a73e8"/><text x="818"  y="265" fill="#fff">Fetch</text>
+    <rect x="864"  y="240" width="76" height="40" rx="7" fill="#1a73e8"/><text x="902"  y="265" fill="#fff">Grade</text>
+    <rect x="948"  y="240" width="76" height="40" rx="7" fill="#1a73e8"/><text x="986"  y="265" fill="#fff">Audit</text>
+    <rect x="1032" y="240" width="76" height="40" rx="7" fill="#1a73e8"/><text x="1070" y="265" fill="#fff">Risk</text>
+    <rect x="1116" y="240" width="76" height="40" rx="7" fill="#1a73e8"/><text x="1154" y="265" fill="#fff">Sync</text>
+    <rect x="1200" y="240" width="76" height="40" rx="7" fill="#1a73e8"/><text x="1238" y="265" fill="#fff">Verify</text>
+    <rect x="1284" y="240" width="76" height="40" rx="7" fill="#1a73e8"/><text x="1322" y="265" fill="#fff">Optimize</text>
+  </g>
+
+  <g stroke="#dadce0" stroke-width="1" stroke-dasharray="3 3">
+    <line x1="902" y1="284" x2="902" y2="352"/>
+    <line x1="1070" y1="284" x2="1070" y2="352"/>
+    <line x1="1238" y1="284" x2="1238" y2="352"/>
+  </g>
+  <g font-size="11" fill="#3c4043" text-anchor="middle">
+    <text x="818" y="300">stages GCS objects,</text>
+    <text x="818" y="314">infers the batch manifest</text>
+    <text x="986" y="300">Flash-Lite vs ministry</text>
+    <text x="986" y="314">curriculum standard</text>
+    <text x="1154" y="300">confidence gate &#8805; 0.85,</text>
+    <text x="1154" y="314">batch breaker &gt; 15%,</text>
+    <text x="1154" y="328">permission gate</text>
+    <text x="1322" y="300">prompt tournaments,</text>
+    <text x="1322" y="314">anti-gaming + QWK gate</text>
+    <text x="902" y="366">Gemini 3.5 Flash multimodal + rubric</text>
+    <text x="902" y="380" fill="#d93025" font-weight="bold">Model Armor screen &#183; legibility metric</text>
+    <text x="1070" y="366">deterministic z-scores,</text>
+    <text x="1070" y="380">dropout early warning</text>
+    <text x="1238" y="366">goal checks + bounded</text>
+    <text x="1238" y="380">second-opinion rework</text>
+  </g>
+
+  <rect x="780" y="400" width="580" height="112" rx="8" fill="#ffffff" stroke="#dadce0"/>
+  <text x="1070" y="422" font-size="12.5" font-weight="bold" fill="#3c4043" text-anchor="middle">Resilience — per-stage Firestore checkpoints (resume without recompute)</text>
+  <text x="1070" y="441" font-size="12" fill="#3c4043" text-anchor="middle">blast-radius isolation per exam · schema-repair budget · model fallback (Flash→Flash-Lite)</text>
+  <text x="1070" y="459" font-size="12" fill="#3c4043" text-anchor="middle">dead-letter queue + orphan-only SIS retry · transactional idempotency (no duplicate grades)</text>
+  <text x="1070" y="481" font-size="12.5" font-weight="bold" fill="#3c4043" text-anchor="middle">Memory — L1 job session state · L2 Firestore vector search · L3 episodic profiles</text>
+  <text x="1070" y="499" font-size="12" fill="#3c4043" text-anchor="middle">student history, class competency maps, evolved prompt registry</text>
+
+  <rect x="780" y="524" width="580" height="136" rx="8" fill="#fce8e6" stroke="#d93025"/>
+  <text x="1070" y="545" font-size="13" font-weight="bold" fill="#a50e0e" text-anchor="middle">Agent Harness — governance the model cannot bypass</text>
+  <text x="1070" y="564" font-size="12" fill="#a50e0e" text-anchor="middle">action classifier DENY &gt; QUARANTINE &gt; ALLOW (out-of-manifest writes blocked in memory)</text>
+  <text x="1070" y="581" font-size="12" fill="#a50e0e" text-anchor="middle">per-exam call budgets · faithfulness verifier on cited evidence · anti-gaming validator</text>
+  <text x="1070" y="598" font-size="12" fill="#a50e0e" text-anchor="middle">provenance ledger: SHA-256 of prompt version + every cited fragment on every grade</text>
+  <text x="1070" y="615" font-size="12" fill="#a50e0e" text-anchor="middle">typed telemetry spans (trace_id) → append-only forensic audit log · per-stage metrics</text>
+  <text x="1070" y="632" font-size="12" fill="#a50e0e" text-anchor="middle">objective promotion gate: QWK ≥ 0.85 ∧ MAE ≤ 0.4 ∧ |bias| &lt; 0.1</text>
+  <text x="1070" y="649" font-size="12" fill="#a50e0e" text-anchor="middle">every LLM exchange is a strict Pydantic structured output — zero loose strings</text>
+
+  <rect x="1420" y="110" width="230" height="130" rx="10" fill="#e6f4ea" stroke="#188038"/>
+  <text x="1535" y="136" font-size="14" font-weight="bold" fill="#0d652d" text-anchor="middle">Vertex AI</text>
+  <text x="1535" y="156" font-size="11.5" fill="#0d652d" text-anchor="middle">gemini-3.5-flash · grading</text>
+  <text x="1535" y="173" font-size="11.5" fill="#0d652d" text-anchor="middle">gemini-3.5-flash-lite · audit,</text>
+  <text x="1535" y="189" font-size="11.5" fill="#0d652d" text-anchor="middle">armor, rework, optimizer</text>
+  <text x="1535" y="206" font-size="11.5" fill="#0d652d" text-anchor="middle">text-embedding-005 · L2</text>
+  <text x="1535" y="226" font-size="11" fill="#0d652d" text-anchor="middle" font-style="italic">location: global (3.x models)</text>
+
+  <rect x="1420" y="270" width="230" height="210" rx="10" fill="#e6f4ea" stroke="#188038"/>
+  <text x="1535" y="296" font-size="14" font-weight="bold" fill="#0d652d" text-anchor="middle">Firestore</text>
+  <g font-size="11.5" fill="#0d652d" text-anchor="middle">
+    <text x="1535" y="316">checkpoints + session state</text>
+    <text x="1535" y="333">student profiles (L3)</text>
+    <text x="1535" y="350">competencies + vector index (L2)</text>
+    <text x="1535" y="367">review queue (quarantine)</text>
+    <text x="1535" y="384">evolved prompt registry</text>
+    <text x="1535" y="401">dead-letter queue</text>
+    <text x="1535" y="418">forensic audit events</text>
+    <text x="1535" y="435">sis_records ledger</text>
+  </g>
+  <text x="1535" y="464" font-size="11" fill="#0d652d" text-anchor="middle" font-style="italic">us-central1</text>
+
+  <rect x="1420" y="510" width="230" height="104" rx="10" fill="#e8f0fe" stroke="#1a73e8"/>
+  <text x="1535" y="536" font-size="14" font-weight="bold" fill="#174ea6" text-anchor="middle">School SIS</text>
+  <text x="1535" y="556" font-size="11.5" fill="#174ea6" text-anchor="middle">grades with competency codes</text>
+  <text x="1535" y="573" font-size="11.5" fill="#174ea6" text-anchor="middle">Firestore ledger built in, or</text>
+  <text x="1535" y="590" font-size="11.5" fill="#174ea6" text-anchor="middle">HTTPS connector to the real SIS</text>
+
+  <line x1="1380" y1="260" x2="1416" y2="215" stroke="#188038" stroke-width="2" marker-end="url(#arr)" marker-start="url(#arr)"/>
+  <line x1="1380" y1="400" x2="1416" y2="380" stroke="#188038" stroke-width="2" marker-end="url(#arr)" marker-start="url(#arr)"/>
+  <line x1="1380" y1="560" x2="1416" y2="560" stroke="#1a73e8" stroke-width="2" marker-end="url(#arrb)"/>
+  <text x="1398" y="550" font-size="10.5" fill="#5f6368" text-anchor="middle">sync</text>
+
+  <rect x="760" y="740" width="620" height="150" rx="12" fill="#f3e8fd" stroke="#8430ce"/>
+  <text x="1070" y="766" font-size="15" font-weight="bold" fill="#5b2c8d" text-anchor="middle">Operations console — served by the same API</text>
+  <g font-size="12" fill="#5b2c8d" text-anchor="middle">
+    <text x="1070" y="790">jobs timeline · live trace (spans, tokens, audit tail) · SIS ledger</text>
+    <text x="1070" y="810">review queue: scanned page + cited evidence highlighted · quarantine reasons</text>
+    <text x="1070" y="830">one-click approve / dismiss → SIS write · drag-and-drop ingest with</text>
+    <text x="1070" y="850">domain-aware name-collision dialog · load-sample-batch demo trigger</text>
+    <text x="1070" y="874" font-style="italic" font-size="11.5">bearer-token auth · images streamed from GCS, path-safe</text>
+  </g>
+
+  <rect x="480" y="770" width="200" height="90" rx="10" fill="#e8f0fe" stroke="#1a73e8"/>
+  <text x="580" y="800" font-size="14" font-weight="bold" fill="#174ea6" text-anchor="middle">Teacher / coordinator</text>
+  <text x="580" y="820" font-size="12" fill="#174ea6" text-anchor="middle">10-minute exception</text>
+  <text x="580" y="836" font-size="12" fill="#174ea6" text-anchor="middle">review, one click each</text>
+
+  <line x1="680" y1="815" x2="756" y2="815" stroke="#8430ce" stroke-width="2" marker-end="url(#arr)" marker-start="url(#arr)"/>
+  <line x1="1070" y1="670" x2="1070" y2="736" stroke="#8430ce" stroke-width="2" marker-end="url(#arr)" marker-start="url(#arr)"/>
+
+  <line x1="125" y1="234" x2="125" y2="815" stroke="#c4c7c5" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <line x1="125" y1="815" x2="476" y2="815" stroke="#c4c7c5" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arr)"/>
+  <text x="300" y="806" font-size="11" fill="#80868b" text-anchor="middle">same people, minutes later</text>
+
+  <text x="40" y="920" font-size="12" font-weight="bold" fill="#3c4043">Identity &amp; cost controls</text>
+  <text x="40" y="940" font-size="11.5" fill="#5f6368">runtime SA autocurricula-runner@ (least privilege: aiplatform.user, datastore.user, bucket objectAdmin, secret accessor) · build SA gradesync-builder@ (deploy only)</text>
+  <text x="40" y="958" font-size="11.5" fill="#5f6368">push auth: Pub/Sub OIDC audience-pinned + Secret Manager token · billing budget alerts at 25/50/75/100% · scale-to-zero when idle</text>
+</svg>

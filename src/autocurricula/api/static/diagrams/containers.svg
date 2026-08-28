@@ -1,0 +1,244 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1680 1160" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#5f6368"/>
+    </marker>
+    <marker id="arrb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#1a73e8"/>
+    </marker>
+    <marker id="arrg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#188038"/>
+    </marker>
+  </defs>
+  <rect width="1680" height="1160" fill="#ffffff"/>
+
+  <text x="40" y="52" font-size="27" font-weight="bold" fill="#202124">AutoCurricula &amp; GradeSync Engine — Containers</text>
+  <text x="40" y="76" font-size="14" fill="#5f6368">Level 2: the deployable units, the data each one owns, and the identity carried on every hop. One Cloud Run revision, one bucket, one topic, one database.</text>
+
+  <!-- ===== LEFT: INGEST CHAIN ===== -->
+  <rect x="40" y="112" width="260" height="104" rx="10" fill="#f3e8fd" stroke="#8430ce"/>
+  <text x="170" y="138" font-size="14" font-weight="bold" fill="#5b2c8d" text-anchor="middle">Exam upload</text>
+  <g font-size="11" fill="#5b2c8d" text-anchor="middle">
+    <text x="170" y="160">front-office drop, gcloud storage cp,</text>
+    <text x="170" y="177">or POST /ingest/exam from a surface</text>
+    <text x="170" y="199" font-style="italic">8–16 objects arrive per batch</text>
+  </g>
+  <line x1="170" y1="218" x2="170" y2="244" stroke="#5f6368" stroke-width="2" marker-end="url(#arr)"/>
+
+  <rect x="40" y="248" width="260" height="162" rx="10" fill="#fef7e0" stroke="#f9ab00"/>
+  <text x="170" y="274" font-size="14" font-weight="bold" fill="#7f5c00" text-anchor="middle">Cloud Storage</text>
+  <g font-size="11" fill="#7f5c00" text-anchor="middle">
+    <text x="170" y="296">gs://quanta-gradesync-exams</text>
+    <text x="170" y="313">object versioning ON — a replaced</text>
+    <text x="170" y="330">scan archives the prior generation</text>
+    <text x="170" y="352">batches/2026_Matematicas_10A_Parcial1/</text>
+    <text x="170" y="369">{year}_{subject}_{class}_{assessment}</text>
+    <text x="170" y="386">one object per student, stem = the id</text>
+    <text x="170" y="403" font-style="italic">catalog-defaults.json sits at the root</text>
+  </g>
+  <line x1="170" y1="412" x2="170" y2="438" stroke="#5f6368" stroke-width="2" marker-end="url(#arr)"/>
+
+  <rect x="40" y="442" width="260" height="114" rx="10" fill="#fef7e0" stroke="#f9ab00"/>
+  <text x="170" y="468" font-size="14" font-weight="bold" fill="#7f5c00" text-anchor="middle">Pub/Sub topic</text>
+  <g font-size="11" fill="#7f5c00" text-anchor="middle">
+    <text x="170" y="490">exam-batch-ingest</text>
+    <text x="170" y="507">one message per finalized object,</text>
+    <text x="170" y="524">so one batch fans in as many</text>
+    <text x="170" y="541">message retention 1 h</text>
+  </g>
+  <line x1="170" y1="558" x2="170" y2="584" stroke="#5f6368" stroke-width="2" marker-end="url(#arr)"/>
+
+  <rect x="40" y="588" width="260" height="188" rx="10" fill="#fef7e0" stroke="#f9ab00"/>
+  <text x="170" y="614" font-size="14" font-weight="bold" fill="#7f5c00" text-anchor="middle">Push subscription</text>
+  <g font-size="11" fill="#7f5c00" text-anchor="middle">
+    <text x="170" y="636">exam-batch-ingest-push</text>
+    <text x="170" y="653">endpoint /webhooks/pubsub?token=…</text>
+    <text x="170" y="675">OIDC as autocurricula-runner@,</text>
+    <text x="170" y="692">audience pinned to the service URL</text>
+    <text x="170" y="709">token travels as a query parameter —</text>
+    <text x="170" y="726">OIDC already owns Authorization</text>
+    <text x="170" y="748">ack deadline 600 s</text>
+    <text x="170" y="765" font-style="italic">no 2xx → Pub/Sub redelivers</text>
+  </g>
+
+  <!-- ===== CLOUD RUN ===== -->
+  <rect x="380" y="112" width="680" height="768" rx="12" fill="#f8f9fa" stroke="#1a73e8" stroke-width="2.5"/>
+  <text x="720" y="142" font-size="16" font-weight="bold" fill="#174ea6" text-anchor="middle">Cloud Run — autocurricula-gradesync</text>
+  <text x="720" y="164" font-size="11.5" fill="#174ea6" text-anchor="middle">FastAPI + uvicorn (uvloop, httptools) — one container, two audiences, Pydantic v2 on every boundary</text>
+  <text x="720" y="183" font-size="11.5" fill="#5f6368" text-anchor="middle">us-central1 · min 0 / max 2 instances · 1 GiB · request timeout 900 s · scales to zero when idle</text>
+
+  <line x1="304" y1="682" x2="376" y2="682" stroke="#5f6368" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="340" y="674" font-size="10.5" fill="#5f6368" text-anchor="middle">OIDC + token</text>
+
+  <line x1="376" y1="330" x2="304" y2="330" stroke="#1a73e8" stroke-width="2" marker-end="url(#arrb)"/>
+  <text x="340" y="322" font-size="10.5" fill="#5f6368" text-anchor="middle">objectAdmin</text>
+  <text x="340" y="348" font-size="10.5" fill="#5f6368" text-anchor="middle">fetch + ingest</text>
+
+  <rect x="400" y="198" width="640" height="90" rx="8" fill="#e8f0fe" stroke="#aecbfa"/>
+  <text x="720" y="220" font-size="12.5" font-weight="bold" fill="#174ea6" text-anchor="middle">POST /webhooks/pubsub — the only door work arrives through</text>
+  <g font-size="11" fill="#174ea6" text-anchor="middle">
+    <text x="720" y="240">verifies the shared token · translates the raw object path into a job · claims it so the 8–16</text>
+    <text x="720" y="257">notifications one batch produces start exactly one job · waits for the upload to settle</text>
+    <text x="720" y="274">runs the whole pipeline inside the request and acknowledges only on success</text>
+  </g>
+
+  <g font-size="11.5" font-weight="bold" text-anchor="middle">
+    <rect x="402"  y="306" width="84" height="38" rx="7" fill="#1a73e8"/><text x="444"  y="330" fill="#fff">Fetch</text>
+    <rect x="494"  y="306" width="84" height="38" rx="7" fill="#1a73e8"/><text x="536"  y="330" fill="#fff">Grade</text>
+    <rect x="586"  y="306" width="84" height="38" rx="7" fill="#1a73e8"/><text x="628"  y="330" fill="#fff">Audit</text>
+    <rect x="678"  y="306" width="84" height="38" rx="7" fill="#1a73e8"/><text x="720"  y="330" fill="#fff">Risk</text>
+    <rect x="770"  y="306" width="84" height="38" rx="7" fill="#1a73e8"/><text x="812"  y="330" fill="#fff">Sync</text>
+    <rect x="862"  y="306" width="84" height="38" rx="7" fill="#1a73e8"/><text x="904"  y="330" fill="#fff">Verify</text>
+    <rect x="954"  y="306" width="84" height="38" rx="7" fill="#1a73e8"/><text x="996"  y="330" fill="#fff">Optimize</text>
+  </g>
+  <text x="720" y="364" font-size="11" fill="#5f6368" text-anchor="middle" font-style="italic">seven checkpointed stages, in execution order — opened up in pipeline.svg</text>
+
+  <rect x="400" y="380" width="640" height="118" rx="8" fill="#f3e8fd" stroke="#8430ce"/>
+  <text x="720" y="401" font-size="12.5" font-weight="bold" fill="#5b2c8d" text-anchor="middle">Two human surfaces, one API, one bearer token</text>
+  <line x1="720" y1="410" x2="720" y2="490" stroke="#d7bbf0" stroke-width="1"/>
+  <text x="560" y="426" font-size="12" font-weight="bold" fill="#5b2c8d" text-anchor="middle">GET /teacher</text>
+  <g font-size="11" fill="#5b2c8d" text-anchor="middle">
+    <text x="560" y="445">plain language, no pipeline jargon: the</text>
+    <text x="560" y="462">exams that need a decision, the page and</text>
+    <text x="560" y="479">the quoted line, upload, synced grades</text>
+  </g>
+  <text x="880" y="426" font-size="12" font-weight="bold" fill="#5b2c8d" text-anchor="middle">GET /console</text>
+  <g font-size="11" fill="#5b2c8d" text-anchor="middle">
+    <text x="880" y="445">operations console for IT: jobs timeline,</text>
+    <text x="880" y="462">live span trace, fleet registry, SIS ledger,</text>
+    <text x="880" y="479">review queue with the evidence overlaid</text>
+  </g>
+
+  <rect x="400" y="514" width="640" height="70" rx="8" fill="#e8f0fe" stroke="#aecbfa"/>
+  <text x="720" y="535" font-size="12" font-weight="bold" fill="#174ea6" text-anchor="middle">The same revision also serves</text>
+  <g font-size="11" fill="#174ea6" text-anchor="middle">
+    <text x="720" y="554">/ingest/exam · /ingest/sample-batch · /review/pending · /review/{id}/approve · /review/{id}/dismiss</text>
+    <text x="720" y="571">/sis/records · /labels · /jobs/{id}/trace · /fleet/registry · /readyz (Google Frontend reserves /healthz)</text>
+  </g>
+
+  <rect x="400" y="600" width="640" height="134" rx="8" fill="#fce8e6" stroke="#d93025"/>
+  <text x="720" y="622" font-size="12.5" font-weight="bold" fill="#a50e0e" text-anchor="middle">Identity — one revision, fourteen declared principals</text>
+  <g font-size="11" fill="#a50e0e" text-anchor="middle">
+    <text x="720" y="642">runtime service account autocurricula-runner@quanta-gradesync.iam.gserviceaccount.com</text>
+    <text x="720" y="659">aiplatform.user · datastore.user · storage.objectAdmin · secretmanager.secretAccessor · run.invoker</text>
+    <text x="720" y="681">an in-process capability gate (DENY &gt; QUARANTINE &gt; ALLOW) checks every external action against</text>
+    <text x="720" y="698">the calling agent's declared capability set before the network call — no agent principal holds sis.write</text>
+    <text x="720" y="720">sis-writer impersonates gradesync-sis-writer@ when GRADESYNC_AGENT_IMPERSONATION_ENABLED=true</text>
+  </g>
+
+  <rect x="400" y="750" width="640" height="112" rx="8" fill="#ffffff" stroke="#dadce0"/>
+  <text x="720" y="772" font-size="12.5" font-weight="bold" fill="#3c4043" text-anchor="middle">What this container owns — and what it deliberately does not</text>
+  <g font-size="11" fill="#3c4043" text-anchor="middle">
+    <text x="720" y="792">in process: L1 session state per job, the claimed-job set, /tmp/autocurricula/staging for fetched</text>
+    <text x="720" y="809">pages — all of it dies with the instance, by design</text>
+    <text x="720" y="831">durable state lives only in Firestore, so a killed instance loses nothing: the checkpoint is re-read</text>
+    <text x="720" y="848">and finished stages replay instead of re-running (41.0 s first delivery, 2.3 s and 8.0 s resumed)</text>
+  </g>
+
+  <!-- ===== RIGHT: MANAGED SERVICES ===== -->
+  <rect x="1150" y="112" width="490" height="188" rx="10" fill="#e6f4ea" stroke="#188038"/>
+  <text x="1395" y="138" font-size="14" font-weight="bold" fill="#0d652d" text-anchor="middle">Vertex AI</text>
+  <g font-size="11.5" fill="#0d652d" text-anchor="middle">
+    <text x="1395" y="160">gemini-3.5-flash — multimodal grading with thinking enabled,</text>
+    <text x="1395" y="177">and the calibration evaluator inside the optimizer</text>
+    <text x="1395" y="199">gemini-3.5-flash-lite — curriculum audit, armor screen, second-</text>
+    <text x="1395" y="216">opinion rework, latency fallback, prompt proposer</text>
+    <text x="1395" y="238">text-embedding-005 — 768-dimension L2 embeddings</text>
+    <text x="1395" y="264" font-style="italic">Gemini 3.x are served from location global; the embedding client</text>
+    <text x="1395" y="281" font-style="italic">is regional (us-central1). Two locations, one project.</text>
+  </g>
+  <line x1="1064" y1="206" x2="1146" y2="206" stroke="#188038" stroke-width="2" marker-end="url(#arrg)" marker-start="url(#arrg)"/>
+  <text x="1105" y="198" font-size="10.5" fill="#5f6368" text-anchor="middle">aiplatform.user</text>
+
+  <rect x="1150" y="320" width="490" height="322" rx="10" fill="#e6f4ea" stroke="#188038"/>
+  <text x="1395" y="346" font-size="14" font-weight="bold" fill="#0d652d" text-anchor="middle">Firestore (us-central1) — every collection by name</text>
+  <g font-size="11.5" fill="#0d652d">
+    <text x="1170" y="370">checkpoints — one JobRecord per job_id: stage, per-stage status, error</text>
+    <text x="1170" y="389">checkpoints/&lt;job_id&gt;::session — L1 session state, every stage output</text>
+    <text x="1170" y="408">profiles — L3 episodic student history across terms</text>
+    <text x="1170" y="427">competencies — class snapshots + rubric embeddings, 768-d Vector,</text>
+    <text x="1186" y="444">flat index; find_nearest degrades to empty context on API error</text>
+    <text x="1170" y="463">reviews — quarantine queue: reasons, evidence spans, gs:// page path</text>
+    <text x="1170" y="482">labels — every human approve / dismiss, kept as a training signal</text>
+    <text x="1170" y="501">sis_records — the grade ledger /sis/records and the console read</text>
+    <text x="1170" y="520">assessment_facts — per-student assessment facts feeding L3 recall</text>
+    <text x="1170" y="539">audit — audit/&lt;job_id&gt;/events/&lt;ts&gt;: spans, metrics, capability denials</text>
+    <text x="1170" y="558">dead_letter — isolated exams and orphan SIS records, max 3 attempts</text>
+    <text x="1170" y="577">prompts — evolved prompt registry: variant id and content hash</text>
+    <text x="1170" y="596">jobs — registry collection, empty on the current path</text>
+  </g>
+  <text x="1395" y="624" font-size="11" fill="#0d652d" text-anchor="middle" font-style="italic">each has a real offline implementation — the suite runs with no credentials</text>
+  <line x1="1064" y1="470" x2="1146" y2="470" stroke="#188038" stroke-width="2" marker-end="url(#arrg)" marker-start="url(#arrg)"/>
+  <text x="1105" y="462" font-size="10.5" fill="#5f6368" text-anchor="middle">datastore.user</text>
+
+  <rect x="1150" y="662" width="490" height="108" rx="10" fill="#e6f4ea" stroke="#188038"/>
+  <text x="1395" y="688" font-size="14" font-weight="bold" fill="#0d652d" text-anchor="middle">Secret Manager</text>
+  <g font-size="11.5" fill="#0d652d" text-anchor="middle">
+    <text x="1395" y="710">gradesync-push-token:latest, mounted into the revision as</text>
+    <text x="1395" y="727">GRADESYNC_PUBSUB_PUSH_TOKEN — never in cloudbuild.yaml,</text>
+    <text x="1395" y="744">never on a command line, never in the image</text>
+  </g>
+  <line x1="1146" y1="716" x2="1064" y2="716" stroke="#188038" stroke-width="2" marker-end="url(#arrg)"/>
+  <text x="1105" y="708" font-size="10.5" fill="#5f6368" text-anchor="middle">secretAccessor</text>
+
+  <rect x="1150" y="790" width="490" height="126" rx="10" fill="#e8f0fe" stroke="#1a73e8"/>
+  <text x="1395" y="816" font-size="14" font-weight="bold" fill="#174ea6" text-anchor="middle">School SIS</text>
+  <g font-size="11.5" fill="#174ea6" text-anchor="middle">
+    <text x="1395" y="838">two interchangeable sinks behind one Protocol: the built-in</text>
+    <text x="1395" y="855">Firestore sis_records ledger, or HttpSISConnector against the</text>
+    <text x="1395" y="872">school's own API (GRADESYNC_SIS_BASE_URL)</text>
+    <text x="1395" y="894">a per-record rejection parks in dead_letter and only the orphans</text>
+    <text x="1395" y="911">are retried — an accepted grade is never written twice</text>
+  </g>
+  <line x1="1064" y1="844" x2="1146" y2="844" stroke="#1a73e8" stroke-width="2" marker-end="url(#arrb)"/>
+  <text x="1105" y="836" font-size="10.5" fill="#5f6368" text-anchor="middle">sis-writer</text>
+
+  <!-- ===== BUILD CHAIN ===== -->
+  <rect x="40" y="950" width="260" height="168" rx="10" fill="#e6f4ea" stroke="#188038"/>
+  <text x="170" y="976" font-size="14" font-weight="bold" fill="#0d652d" text-anchor="middle">Cloud Build</text>
+  <g font-size="11" fill="#0d652d" text-anchor="middle">
+    <text x="170" y="998">cloudbuild.yaml, pinned to a</text>
+    <text x="170" y="1015">dedicated build identity:</text>
+    <text x="170" y="1032">gradesync-builder@</text>
+    <text x="170" y="1054">logging.logWriter · artifactregistry.</text>
+    <text x="170" y="1071">writer · run.admin · actAs on the</text>
+    <text x="170" y="1088">runtime SA · objectViewer on source</text>
+  </g>
+  <line x1="304" y1="1027" x2="336" y2="1027" stroke="#188038" stroke-width="2" marker-end="url(#arrg)"/>
+
+  <rect x="340" y="950" width="260" height="168" rx="10" fill="#e6f4ea" stroke="#188038"/>
+  <text x="470" y="976" font-size="14" font-weight="bold" fill="#0d652d" text-anchor="middle">Artifact Registry</text>
+  <g font-size="11" fill="#0d652d" text-anchor="middle">
+    <text x="470" y="998">us-central1-docker.pkg.dev/</text>
+    <text x="470" y="1015">quanta-gradesync/autocurricula/</text>
+    <text x="470" y="1032">autocurricula-gradesync:&lt;SHORT_SHA&gt;</text>
+    <text x="470" y="1054">every deployed revision is a tagged</text>
+    <text x="470" y="1071">image built from a commit — the</text>
+    <text x="470" y="1088">running code is always identifiable</text>
+  </g>
+  <line x1="470" y1="946" x2="470" y2="884" stroke="#188038" stroke-width="2" marker-end="url(#arrg)"/>
+  <text x="482" y="920" font-size="10.5" fill="#5f6368">deploy revision (Cloud Run admin API)</text>
+
+  <rect x="640" y="950" width="420" height="168" rx="10" fill="#ffffff" stroke="#dadce0"/>
+  <text x="850" y="976" font-size="13" font-weight="bold" fill="#3c4043" text-anchor="middle">Identity on every hop, in order</text>
+  <g font-size="11" fill="#3c4043">
+    <text x="660" y="998">upload → bucket · runtime SA, storage.objectAdmin</text>
+    <text x="660" y="1015">bucket → topic · GCS notification, OBJECT_FINALIZE only</text>
+    <text x="660" y="1032">topic → service · OIDC autocurricula-runner@, audience-pinned</text>
+    <text x="660" y="1049">service → Vertex AI · aiplatform.user</text>
+    <text x="660" y="1066">service → Firestore · datastore.user</text>
+    <text x="660" y="1083">service → SIS · sis-writer principal, impersonation optional</text>
+    <text x="660" y="1100">build → deploy · gradesync-builder@, run.admin + actAs runner</text>
+  </g>
+
+  <rect x="1150" y="950" width="490" height="168" rx="10" fill="#ffffff" stroke="#dadce0"/>
+  <text x="1395" y="976" font-size="13" font-weight="bold" fill="#3c4043" text-anchor="middle">Measured on exactly this topology</text>
+  <g font-size="11.5" fill="#3c4043">
+    <text x="1170" y="1000">8-exam batch, push event to completed job: 43.9 s, $0.31275, 16 LLM calls</text>
+    <text x="1170" y="1019">per exam: 5.0 s of pipeline time and $0.0391</text>
+    <text x="1170" y="1038">duplicate delivery: 200 duplicate, zero SIS writes, zero recompute</text>
+    <text x="1170" y="1057">resume after a killed instance: 2.3 s and 8.0 s vs 41.0 s cold</text>
+    <text x="1170" y="1076">24 of 24 red-team injection attempts caught, 0 false positives</text>
+    <text x="1170" y="1095">653 offline tests pass with no GCP credentials and no network</text>
+  </g>
+</svg>

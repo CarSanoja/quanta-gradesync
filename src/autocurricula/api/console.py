@@ -21,6 +21,7 @@ ASSET_MEDIA_TYPES = {
     "console-dom.js": "text/javascript; charset=utf-8",
     "console-sections.js": "text/javascript; charset=utf-8",
     "console-job-progress.js": "text/javascript; charset=utf-8",
+    "console-diagrams.js": "text/javascript; charset=utf-8",
     "console-jobs-poll.js": "text/javascript; charset=utf-8",
     "console-review.js": "text/javascript; charset=utf-8",
     "render.js": "text/javascript; charset=utf-8",
@@ -57,7 +58,46 @@ async def console_page() -> FileResponse:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="console page is not bundled"
         )
-    return FileResponse(page, media_type="text/html; charset=utf-8")
+    return FileResponse(
+        page,
+        media_type="text/html; charset=utf-8",
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+DIAGRAMS = (
+    "architecture",
+    "governance",
+    "containers",
+    "fleet",
+    "pipeline",
+    "self-improvement",
+    "exam-lifecycle",
+    "resilience",
+    "context",
+    "teacher-journey",
+)
+
+
+@console_router.get("/console/diagrams/{name}", response_class=FileResponse)
+async def console_diagram(name: str) -> FileResponse:
+    stem = name[:-4] if name.endswith(".svg") else name
+    if stem not in DIAGRAMS:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"unknown diagram {name!r}",
+        )
+    path = asset_path("diagrams") / f"{stem}.svg"
+    if not path.is_file():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"diagram {stem!r} is not bundled",
+        )
+    return FileResponse(
+        path,
+        media_type="image/svg+xml",
+        headers={"Cache-Control": "no-cache, must-revalidate"},
+    )
 
 
 @console_router.get("/console/assets/{asset_name}", response_class=FileResponse)
@@ -74,4 +114,8 @@ async def console_asset(asset_name: str) -> FileResponse:
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"console asset {asset_name!r} is not bundled",
         )
-    return FileResponse(path, media_type=media_type)
+    return FileResponse(
+        path,
+        media_type=media_type,
+        headers={"Cache-Control": "no-cache, must-revalidate"},
+    )

@@ -1,0 +1,255 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1680 1130" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#5f6368"/>
+    </marker>
+    <marker id="arrb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#1a73e8"/>
+    </marker>
+    <marker id="arrr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#d93025"/>
+    </marker>
+    <marker id="arrg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#188038"/>
+    </marker>
+  </defs>
+  <rect width="1680" height="1130" fill="#ffffff"/>
+
+  <text x="40" y="52" font-size="27" font-weight="bold" fill="#202124">When it breaks — five failures, and what each one actually cost</text>
+  <text x="40" y="78" font-size="14" fill="#5f6368">A job is a chain of checkpointed stages running inside one push request. Every mode below was executed against real infrastructure and written down — none of it is a design claim.</text>
+
+  <text x="40" y="118" font-size="12.5" font-weight="bold" fill="#80868b" letter-spacing="1.4">THE DELIVERY CONTRACT — ACKNOWLEDGE ON SUCCESS, NOT ON RECEIPT</text>
+  <rect x="40" y="150" width="250" height="100" rx="10" fill="#fef7e0" stroke="#f9ab00"/>
+  <text x="165" y="178" font-size="14" font-weight="bold" fill="#7f5c00" text-anchor="middle">Pub/Sub</text>
+  <text x="165" y="200" font-size="11.5" fill="#7f5c00" text-anchor="middle">push subscription, OIDC</text>
+  <text x="165" y="218" font-size="11.5" fill="#7f5c00" text-anchor="middle">ack deadline 600 s</text>
+  <text x="165" y="236" font-size="11.5" fill="#7f5c00" text-anchor="middle">redelivers what is not acked</text>
+  <line x1="294" y1="200" x2="356" y2="200" stroke="#5f6368" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="325" y="192" font-size="10.5" fill="#5f6368" text-anchor="middle">push</text>
+  <rect x="360" y="140" width="560" height="120" rx="10" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2"/>
+  <text x="640" y="168" font-size="15" font-weight="bold" fill="#174ea6" text-anchor="middle">The pipeline runs inside the push request</text>
+  <text x="640" y="191" font-size="12" fill="#174ea6" text-anchor="middle">no background task, no fire-and-forget: the HTTP response is the receipt</text>
+  <text x="640" y="209" font-size="12" fill="#174ea6" text-anchor="middle">for the work, not for the message</text>
+  <text x="640" y="230" font-size="12" fill="#174ea6" text-anchor="middle">request timeout 900 s — the 43.9 s reference batch fits with room to spare</text>
+  <text x="640" y="250" font-size="12" font-weight="bold" fill="#d93025" text-anchor="middle">a stage that raises returns 5xx and leaves the delivery unacknowledged</text>
+  <line x1="924" y1="172" x2="986" y2="172" stroke="#1a73e8" stroke-width="2" marker-end="url(#arrb)"/>
+  <line x1="924" y1="240" x2="986" y2="252" stroke="#d93025" stroke-width="2" marker-end="url(#arrr)"/>
+  <rect x="990" y="146" width="300" height="58" rx="10" fill="#e8f0fe" stroke="#1a73e8"/>
+  <text x="1140" y="170" font-size="13" font-weight="bold" fill="#174ea6" text-anchor="middle">200 — acknowledged</text>
+  <text x="1140" y="190" font-size="11.5" fill="#174ea6" text-anchor="middle">the message is done, the job is completed</text>
+  <rect x="990" y="226" width="300" height="78" rx="10" fill="#fce8e6" stroke="#d93025"/>
+  <text x="1140" y="250" font-size="13" font-weight="bold" fill="#a50e0e" text-anchor="middle">5xx, or no reply at all</text>
+  <text x="1140" y="270" font-size="11.5" fill="#a50e0e" text-anchor="middle">never acknowledged — Pub/Sub redelivers,</text>
+  <text x="1140" y="288" font-size="11.5" fill="#a50e0e" text-anchor="middle">and the job resumes from its checkpoint</text>
+  <path d="M1140 308 L1140 324 L165 324 L165 256" fill="none" stroke="#d93025" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrr)"/>
+  <text x="650" y="318" font-size="11" fill="#d93025" text-anchor="middle">redelivered — the only retry the system needs</text>
+  <rect x="1330" y="140" width="310" height="176" rx="10" fill="#f8f9fa" stroke="#dadce0"/>
+  <text x="1485" y="164" font-size="12.5" font-weight="bold" fill="#3c4043" text-anchor="middle">Why the shape is this way</text>
+  <text x="1344" y="186" font-size="11" fill="#3c4043">The first deployment acknowledged at once</text>
+  <text x="1344" y="201" font-size="11" fill="#3c4043">and ran the pipeline in a background task.</text>
+  <text x="1344" y="216" font-size="11" fill="#3c4043">Cloud Run throttles CPU after the response,</text>
+  <text x="1344" y="231" font-size="11" fill="#3c4043">so the engine acked work it could not then</text>
+  <text x="1344" y="246" font-size="11" fill="#3c4043">perform — and because it had acked, Pub/Sub</text>
+  <text x="1344" y="261" font-size="11" fill="#3c4043">never retried. A live job stalled at</text>
+  <text x="1344" y="276" font-size="11" fill="#3c4043">&#8220;fetched&#8221; and stayed there.</text>
+  <text x="1344" y="297" font-size="11" fill="#3c4043">Moving the pipeline inside the request</text>
+  <text x="1344" y="312" font-size="11" fill="#3c4043">restored retry semantics for free.</text>
+
+  <text x="40" y="366" font-size="12.5" font-weight="bold" fill="#80868b" letter-spacing="1.4">THE JOB AS A STATE MACHINE — EVERY TRANSITION IS A FIRESTORE CHECKPOINT</text>
+  <rect x="40" y="386" width="150" height="36" rx="7" fill="#e8f0fe" stroke="#1a73e8"/>
+  <text x="115" y="409" font-size="12" font-weight="bold" fill="#174ea6" text-anchor="middle">received</text>
+  <line x1="193" y1="404" x2="216" y2="404" stroke="#5f6368" stroke-width="1.6" marker-end="url(#arr)"/>
+  <rect x="221" y="386" width="150" height="36" rx="7" fill="#e8f0fe" stroke="#1a73e8"/>
+  <text x="296" y="409" font-size="12" font-weight="bold" fill="#174ea6" text-anchor="middle">fetched</text>
+  <line x1="374" y1="404" x2="397" y2="404" stroke="#5f6368" stroke-width="1.6" marker-end="url(#arr)"/>
+  <rect x="402" y="386" width="150" height="36" rx="7" fill="#e8f0fe" stroke="#1a73e8"/>
+  <text x="477" y="409" font-size="12" font-weight="bold" fill="#174ea6" text-anchor="middle">graded</text>
+  <line x1="555" y1="404" x2="578" y2="404" stroke="#5f6368" stroke-width="1.6" marker-end="url(#arr)"/>
+  <rect x="583" y="386" width="150" height="36" rx="7" fill="#e8f0fe" stroke="#1a73e8"/>
+  <text x="658" y="409" font-size="12" font-weight="bold" fill="#174ea6" text-anchor="middle">audited</text>
+  <line x1="736" y1="404" x2="759" y2="404" stroke="#5f6368" stroke-width="1.6" marker-end="url(#arr)"/>
+  <rect x="764" y="386" width="150" height="36" rx="7" fill="#e8f0fe" stroke="#1a73e8"/>
+  <text x="839" y="409" font-size="12" font-weight="bold" fill="#174ea6" text-anchor="middle">risk_assessed</text>
+  <line x1="917" y1="404" x2="940" y2="404" stroke="#5f6368" stroke-width="1.6" marker-end="url(#arr)"/>
+  <rect x="945" y="386" width="150" height="36" rx="7" fill="#e8f0fe" stroke="#1a73e8"/>
+  <text x="1020" y="409" font-size="12" font-weight="bold" fill="#174ea6" text-anchor="middle">synced</text>
+  <line x1="1098" y1="404" x2="1121" y2="404" stroke="#5f6368" stroke-width="1.6" marker-end="url(#arr)"/>
+  <rect x="1126" y="386" width="150" height="36" rx="7" fill="#e8f0fe" stroke="#1a73e8"/>
+  <text x="1201" y="409" font-size="12" font-weight="bold" fill="#174ea6" text-anchor="middle">verified</text>
+  <line x1="1279" y1="404" x2="1302" y2="404" stroke="#5f6368" stroke-width="1.6" marker-end="url(#arr)"/>
+  <rect x="1307" y="386" width="150" height="36" rx="7" fill="#e8f0fe" stroke="#1a73e8"/>
+  <text x="1382" y="409" font-size="12" font-weight="bold" fill="#174ea6" text-anchor="middle">optimized</text>
+  <line x1="1460" y1="404" x2="1483" y2="404" stroke="#5f6368" stroke-width="1.6" marker-end="url(#arr)"/>
+  <rect x="1488" y="386" width="150" height="36" rx="7" fill="#1a73e8" stroke="#1a73e8"/>
+  <text x="1563" y="409" font-size="12" font-weight="bold" fill="#ffffff" text-anchor="middle">completed</text>
+  <line x1="115" y1="446" x2="1563" y2="446" stroke="#188038" stroke-width="1.6"/>
+  <line x1="115" y1="422" x2="115" y2="446" stroke="#188038" stroke-width="1.6"/>
+  <circle cx="115" cy="446" r="4" fill="#188038"/>
+  <line x1="296" y1="422" x2="296" y2="446" stroke="#188038" stroke-width="1.6"/>
+  <circle cx="296" cy="446" r="4" fill="#188038"/>
+  <line x1="477" y1="422" x2="477" y2="446" stroke="#188038" stroke-width="1.6"/>
+  <circle cx="477" cy="446" r="4" fill="#188038"/>
+  <line x1="658" y1="422" x2="658" y2="446" stroke="#188038" stroke-width="1.6"/>
+  <circle cx="658" cy="446" r="4" fill="#188038"/>
+  <line x1="839" y1="422" x2="839" y2="446" stroke="#188038" stroke-width="1.6"/>
+  <circle cx="839" cy="446" r="4" fill="#188038"/>
+  <line x1="1020" y1="422" x2="1020" y2="446" stroke="#188038" stroke-width="1.6"/>
+  <circle cx="1020" cy="446" r="4" fill="#188038"/>
+  <line x1="1201" y1="422" x2="1201" y2="446" stroke="#188038" stroke-width="1.6"/>
+  <circle cx="1201" cy="446" r="4" fill="#188038"/>
+  <line x1="1382" y1="422" x2="1382" y2="446" stroke="#188038" stroke-width="1.6"/>
+  <circle cx="1382" cy="446" r="4" fill="#188038"/>
+  <line x1="1563" y1="422" x2="1563" y2="446" stroke="#188038" stroke-width="1.6"/>
+  <circle cx="1563" cy="446" r="4" fill="#188038"/>
+  <text x="40" y="472" font-size="11.5" fill="#0d652d">Firestore records the stage and its per-stage status at every transition, so a redelivery skips everything already marked <tspan font-style="italic">succeeded</tspan> and re-pays for none of it.</text>
+  <rect x="40" y="492" width="780" height="96" rx="10" fill="#fce8e6" stroke="#d93025"/>
+  <text x="58" y="516" font-size="13" font-weight="bold" fill="#a50e0e">failed — and how a job gets out of it</text>
+  <text x="58" y="537" font-size="11.5" fill="#a50e0e">Any stage that raises marks the job failed and answers 5xx. Only a <tspan font-style="italic">completed</tspan> checkpoint is</text>
+  <text x="58" y="555" font-size="11.5" fill="#a50e0e">answered &#8220;duplicate&#8221;; a checkpoint a dead instance left in any other stage is accepted for</text>
+  <text x="58" y="573" font-size="11.5" fill="#a50e0e">redelivery once it has been idle for 600 s — the gate that used to strand crashed jobs.</text>
+  <rect x="860" y="492" width="780" height="96" rx="10" fill="#f8f9fa" stroke="#dadce0"/>
+  <text x="878" y="516" font-size="13" font-weight="bold" fill="#202124">Resume, measured on one job delivered three times</text>
+  <text x="878" y="537" font-size="11.5" fill="#3c4043">41.0 s for the fresh run, then 2.3 s, then 8.0 s. The third delivery&#8217;s audit event holds only</text>
+  <text x="878" y="555" font-size="11.5" fill="#3c4043">Stage_sync, Stage_verify and Stage_optimize — nothing before them was computed twice.</text>
+  <text x="878" y="573" font-size="11.5" fill="#3c4043">Grading is the expensive stage; a resumed delivery never pays for it a second time.</text>
+
+  <text x="40" y="622" font-size="12.5" font-weight="bold" fill="#80868b" letter-spacing="1.4">FIVE WAYS IT BREAKS — EACH ONE RUN, NOT ARGUED</text>
+
+  <rect x="40" y="642" width="300" height="440" rx="10" fill="#ffffff" stroke="#dadce0"/>
+  <rect x="40" y="642" width="300" height="40" rx="10" fill="#d93025"/>
+  <rect x="40" y="672" width="300" height="10" fill="#d93025"/>
+  <text x="190" y="668" font-size="13.5" font-weight="bold" fill="#ffffff" text-anchor="middle">Duplicate delivery</text>
+  <text x="54" y="708" font-size="10.5" font-weight="bold" fill="#80868b" letter-spacing="1">WHAT BREAKS</text>
+  <text x="54" y="726" font-size="11" fill="#3c4043">Pub/Sub is at-least-once: the same message</text>
+  <text x="54" y="741" font-size="11" fill="#3c4043">arrives twice — and eight upload events for</text>
+  <text x="54" y="756" font-size="11" fill="#3c4043">one batch arrive at the same moment.</text>
+  <text x="54" y="780" font-size="10.5" font-weight="bold" fill="#80868b" letter-spacing="1">WHAT HOLDS</text>
+  <text x="54" y="798" font-size="11" fill="#3c4043">The webhook claims the job id in memory</text>
+  <text x="54" y="813" font-size="11" fill="#3c4043">before anything else, so simultaneous</text>
+  <text x="54" y="828" font-size="11" fill="#3c4043">deliveries collapse into one. It then reads</text>
+  <text x="54" y="843" font-size="11" fill="#3c4043">the checkpoint: a completed job is answered</text>
+  <text x="54" y="858" font-size="11" fill="#3c4043">&#8220;duplicate&#8221; before a task is ever created,</text>
+  <text x="54" y="873" font-size="11" fill="#3c4043">and the runner keeps a second guard of its</text>
+  <text x="54" y="888" font-size="11" fill="#3c4043">own inside the pipeline.</text>
+  <rect x="50" y="904" width="280" height="152" rx="8" fill="#f1f3f4" stroke="#dadce0"/>
+  <text x="64" y="924" font-size="10.5" font-weight="bold" fill="#80868b" letter-spacing="1">MEASURED</text>
+  <text x="64" y="942" font-size="11" fill="#202124">Deployed service, same body POSTed twice:</text>
+  <text x="64" y="957" font-size="11" fill="#202124">200 &#8220;duplicate&#8221; in 0.363 s and 0.274 s.</text>
+  <text x="64" y="972" font-size="11" fill="#202124">Checkpoint updated_at unchanged.</text>
+  <text x="64" y="987" font-size="11" fill="#202124">1 SIS record and 1 audit event — the same</text>
+  <text x="64" y="1002" font-size="11" fill="#202124">ones that were already there.</text>
+  <text x="64" y="1017" font-size="11" fill="#202124">Zero new writes. Zero recompute.</text>
+  <text x="64" y="1032" font-size="11" fill="#202124">Fan-in on the deployed run: 8 upload</text>
+  <text x="64" y="1047" font-size="11" fill="#202124">notifications produced exactly 1 job.</text>
+
+  <rect x="365" y="642" width="300" height="440" rx="10" fill="#ffffff" stroke="#dadce0"/>
+  <rect x="365" y="642" width="300" height="40" rx="10" fill="#d93025"/>
+  <rect x="365" y="672" width="300" height="10" fill="#d93025"/>
+  <text x="515" y="668" font-size="13.5" font-weight="bold" fill="#ffffff" text-anchor="middle">The instance dies mid-job</text>
+  <text x="379" y="708" font-size="10.5" font-weight="bold" fill="#80868b" letter-spacing="1">WHAT BREAKS</text>
+  <text x="379" y="726" font-size="11" fill="#3c4043">SIGKILL to the process 26 s into a batch,</text>
+  <text x="379" y="741" font-size="11" fill="#3c4043">with grading finished and the audit stage</text>
+  <text x="379" y="756" font-size="11" fill="#3c4043">just starting. Cloud Run may do this.</text>
+  <text x="379" y="780" font-size="10.5" font-weight="bold" fill="#80868b" letter-spacing="1">WHAT HOLDS</text>
+  <text x="379" y="798" font-size="11" fill="#3c4043">Completed stages are already in Firestore</text>
+  <text x="379" y="813" font-size="11" fill="#3c4043">and the session document holds every</text>
+  <text x="379" y="828" font-size="11" fill="#3c4043">grading result. The delivery was never</text>
+  <text x="379" y="843" font-size="11" fill="#3c4043">acknowledged, so Pub/Sub redelivers; the</text>
+  <text x="379" y="858" font-size="11" fill="#3c4043">run re-enters at the pending stage and</text>
+  <text x="379" y="873" font-size="11" fill="#3c4043">pays nothing for the work it has already</text>
+  <text x="379" y="888" font-size="11" fill="#3c4043">paid for.</text>
+  <rect x="375" y="904" width="280" height="152" rx="8" fill="#f1f3f4" stroke="#dadce0"/>
+  <text x="389" y="924" font-size="10.5" font-weight="bold" fill="#80868b" letter-spacing="1">MEASURED</text>
+  <text x="389" y="942" font-size="11" fill="#202124">Checkpoint survived at stage &#8220;graded&#8221;, all 3</text>
+  <text x="389" y="957" font-size="11" fill="#202124">grading results kept, 0 SIS writes, and curl</text>
+  <text x="389" y="972" font-size="11" fill="#202124">reported an empty reply — no ack.</text>
+  <text x="389" y="987" font-size="11" fill="#202124">Running the scenario found a real bug: the</text>
+  <text x="389" y="1002" font-size="11" fill="#202124">gate answered the redelivery &#8220;duplicate&#8221;</text>
+  <text x="389" y="1017" font-size="11" fill="#202124">and stranded the job. Fixed — only</text>
+  <text x="389" y="1032" font-size="11" fill="#202124">&#8220;completed&#8221; dedupes, idle &#62; 600 s resumes.</text>
+  <text x="389" y="1047" font-size="11" fill="#202124">A job stuck for a day then finished in 1.7 s.</text>
+
+  <rect x="690" y="642" width="300" height="440" rx="10" fill="#ffffff" stroke="#dadce0"/>
+  <rect x="690" y="642" width="300" height="40" rx="10" fill="#d93025"/>
+  <rect x="690" y="672" width="300" height="10" fill="#d93025"/>
+  <text x="840" y="668" font-size="13.5" font-weight="bold" fill="#ffffff" text-anchor="middle">The SIS is unreachable</text>
+  <text x="704" y="708" font-size="10.5" font-weight="bold" fill="#80868b" letter-spacing="1">WHAT BREAKS</text>
+  <text x="704" y="726" font-size="11" fill="#3c4043">The school system refuses the connection —</text>
+  <text x="704" y="741" font-size="11" fill="#3c4043">or answers, and rejects some records while</text>
+  <text x="704" y="756" font-size="11" fill="#3c4043">accepting others.</text>
+  <text x="704" y="780" font-size="10.5" font-weight="bold" fill="#80868b" letter-spacing="1">WHAT HOLDS</text>
+  <text x="704" y="798" font-size="11" fill="#3c4043">Every record the write was carrying is</text>
+  <text x="704" y="813" font-size="11" fill="#3c4043">parked in the dead-letter queue and the</text>
+  <text x="704" y="828" font-size="11" fill="#3c4043">stage fails with 5xx. On redelivery only the</text>
+  <text x="704" y="843" font-size="11" fill="#3c4043">orphans are re-sent; records the SIS already</text>
+  <text x="704" y="858" font-size="11" fill="#3c4043">accepted are resolved, never posted twice.</text>
+  <text x="704" y="873" font-size="11" fill="#3c4043">An outage does not spend the 3-attempt</text>
+  <text x="704" y="888" font-size="11" fill="#3c4043">budget — only a record-level refusal does.</text>
+  <rect x="700" y="904" width="280" height="152" rx="8" fill="#f1f3f4" stroke="#dadce0"/>
+  <text x="714" y="924" font-size="10.5" font-weight="bold" fill="#80868b" letter-spacing="1">MEASURED</text>
+  <text x="714" y="942" font-size="11" fill="#202124">One job, three deliveries of one event:</text>
+  <text x="714" y="957" font-size="11" fill="#202124">1 · dead port → 500, failed at sync, 41.0 s,</text>
+  <text x="714" y="972" font-size="11" fill="#202124">     zero writes, all 6 records parked.</text>
+  <text x="714" y="987" font-size="11" fill="#202124">2 · stub rejects 2 of 6 → 500, 2 dead-letter</text>
+  <text x="714" y="1002" font-size="11" fill="#202124">     entries, 2.3 s — nothing recomputed.</text>
+  <text x="714" y="1017" font-size="11" fill="#202124">3 · restored → 200, exactly the 2 orphan</text>
+  <text x="714" y="1032" font-size="11" fill="#202124">     documents written, both entries</text>
+  <text x="714" y="1047" font-size="11" fill="#202124">     resolved, 8.0 s.</text>
+
+  <rect x="1015" y="642" width="300" height="440" rx="10" fill="#ffffff" stroke="#dadce0"/>
+  <rect x="1015" y="642" width="300" height="40" rx="10" fill="#d93025"/>
+  <rect x="1015" y="672" width="300" height="10" fill="#d93025"/>
+  <text x="1165" y="668" font-size="13.5" font-weight="bold" fill="#ffffff" text-anchor="middle">One exam, not the batch</text>
+  <text x="1029" y="708" font-size="10.5" font-weight="bold" fill="#80868b" letter-spacing="1">WHAT BREAKS</text>
+  <text x="1029" y="726" font-size="11" fill="#3c4043">A page crashes the grader — a structure the</text>
+  <text x="1029" y="741" font-size="11" fill="#3c4043">repair budget cannot fix, or a model error</text>
+  <text x="1029" y="756" font-size="11" fill="#3c4043">on that one call.</text>
+  <text x="1029" y="780" font-size="10.5" font-weight="bold" fill="#80868b" letter-spacing="1">WHAT HOLDS</text>
+  <text x="1029" y="798" font-size="11" fill="#3c4043">The failure is scoped to the exam. The batch</text>
+  <text x="1029" y="813" font-size="11" fill="#3c4043">carries on, and the crashed student still</text>
+  <text x="1029" y="828" font-size="11" fill="#3c4043">gets a card: &#8220;this exam could not be graded</text>
+  <text x="1029" y="843" font-size="11" fill="#3c4043">— it needs marking by hand&#8221;. The breaker</text>
+  <text x="1029" y="858" font-size="11" fill="#3c4043">then measures two ratios against the</text>
+  <text x="1029" y="873" font-size="11" fill="#3c4043">manifest roster — quarantined and failed —</text>
+  <text x="1029" y="888" font-size="11" fill="#3c4043">and either over 15 % suspends auto-sync.</text>
+  <rect x="1025" y="904" width="280" height="152" rx="8" fill="#f1f3f4" stroke="#dadce0"/>
+  <text x="1039" y="924" font-size="10.5" font-weight="bold" fill="#80868b" letter-spacing="1">MEASURED</text>
+  <text x="1039" y="942" font-size="11" fill="#202124">15 crashes + 1 clean → breaker trips, 15</text>
+  <text x="1039" y="957" font-size="11" fill="#202124">failure cards, goal not met (pinned test).</text>
+  <text x="1039" y="972" font-size="11" fill="#202124">16 of 16 crashing → 16 cards, empty ledger,</text>
+  <text x="1039" y="987" font-size="11" fill="#202124">and the job ends FAILED on purpose: zero</text>
+  <text x="1039" y="1002" font-size="11" fill="#202124">successes is a systemic signal, not a</text>
+  <text x="1039" y="1017" font-size="11" fill="#202124">per-exam one, so it is never acknowledged.</text>
+  <text x="1039" y="1032" font-size="11" fill="#202124">In production 2 of 8 quarantined = 25 %,</text>
+  <text x="1039" y="1047" font-size="11" fill="#202124">over 15 %: the whole batch went to review.</text>
+
+  <rect x="1340" y="642" width="300" height="440" rx="10" fill="#ffffff" stroke="#dadce0"/>
+  <rect x="1340" y="642" width="300" height="40" rx="10" fill="#d93025"/>
+  <rect x="1340" y="672" width="300" height="10" fill="#d93025"/>
+  <text x="1490" y="668" font-size="13.5" font-weight="bold" fill="#ffffff" text-anchor="middle">The batch is truncated</text>
+  <text x="1354" y="708" font-size="10.5" font-weight="bold" fill="#80868b" letter-spacing="1">WHAT BREAKS</text>
+  <text x="1354" y="726" font-size="11" fill="#3c4043">A scan uploads after grading started, or an</text>
+  <text x="1354" y="741" font-size="11" fill="#3c4043">object never arrives — and the job would</text>
+  <text x="1354" y="756" font-size="11" fill="#3c4043">report success over a short roster.</text>
+  <text x="1354" y="780" font-size="10.5" font-weight="bold" fill="#80868b" letter-spacing="1">WHAT HOLDS</text>
+  <text x="1354" y="798" font-size="11" fill="#3c4043">The verify stage re-lists the bucket prefix</text>
+  <text x="1354" y="813" font-size="11" fill="#3c4043">once and diffs the gradable objects against</text>
+  <text x="1354" y="828" font-size="11" fill="#3c4043">the manifest. Missing files become a block</text>
+  <text x="1354" y="843" font-size="11" fill="#3c4043">on the verification report, one review card</text>
+  <text x="1354" y="858" font-size="11" fill="#3c4043">each (&#8220;this scan arrived after grading</text>
+  <text x="1354" y="873" font-size="11" fill="#3c4043">started&#8221;) and goal_met = false. A listing that</text>
+  <text x="1354" y="888" font-size="11" fill="#3c4043">fails degrades to checked:false, never fatal.</text>
+  <rect x="1350" y="904" width="280" height="152" rx="8" fill="#f1f3f4" stroke="#dadce0"/>
+  <text x="1364" y="924" font-size="10.5" font-weight="bold" fill="#80868b" letter-spacing="1">MEASURED</text>
+  <text x="1364" y="942" font-size="11" fill="#202124">Live GCP-mode run: 16 of 16 objects matched</text>
+  <text x="1364" y="957" font-size="11" fill="#202124">against real Cloud Storage.</text>
+  <text x="1364" y="972" font-size="11" fill="#202124">Upstream of it the settler waits for uploads</text>
+  <text x="1364" y="987" font-size="11" fill="#202124">to stop arriving — 5 s rounds, up to 6 —</text>
+  <text x="1364" y="1002" font-size="11" fill="#202124">before the manifest is fixed, so the ordinary</text>
+  <text x="1364" y="1017" font-size="11" fill="#202124">late scan never becomes a truncation at all.</text>
+  <text x="1364" y="1032" font-size="11" fill="#202124">Pinned by scenario test: a file missing from the</text>
+  <text x="1364" y="1047" font-size="11" fill="#202124">batch yields one card and goal_met = false.</text>
+
+    <text x="40" y="1108" font-size="11.5" font-weight="bold" fill="#202124">Every scenario above was executed, not designed.</text>
+  <text x="352" y="1108" font-size="11.5" fill="#5f6368">Sources: resilience-2026-08-20 (six scenarios, deployed service and local GCP mode) · sync-failure-modes (outage parity, the zero-grade batch) · implementation 012 · offline suite 653 passed / 10 skipped.</text>
+</svg>

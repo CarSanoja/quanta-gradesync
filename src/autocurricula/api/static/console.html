@@ -265,6 +265,22 @@
   </main>
 </div>
 
+<div class="gate diagram-gate" id="diagram-gate" hidden>
+  <div class="diagram-sheet" role="dialog" aria-modal="true" aria-labelledby="diagram-open-title">
+    <div class="diagram-head">
+      <div>
+        <h3 id="diagram-open-title"></h3>
+        <p id="diagram-open-shows"></p>
+      </div>
+      <div class="gate-actions">
+        <a class="ghost" id="diagram-open-raw" target="_blank" rel="noreferrer">Open the SVG</a>
+        <button type="button" class="ghost" id="diagram-close">Close</button>
+      </div>
+    </div>
+    <div class="diagram-canvas" id="diagram-canvas"></div>
+  </div>
+</div>
+
 <div class="gate" id="collision-gate" hidden>
   <div class="gate-card">
     <h3>Scan already exists</h3>
