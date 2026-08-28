@@ -4,7 +4,9 @@ from typing import Any
 from autocurricula.core.armor import InjectionDetector, screen_submission
 from autocurricula.core.fleet import (
     ARMOR_SCREENER_ID,
+    FALLBACK_EVALUATOR_ID,
     GRADING_AGENT_ID,
+    SCHEMA_REPAIR_ID,
     annotate_span,
     authorize_llm,
 )
@@ -104,6 +106,7 @@ class GradeGuard:
                     failure=build_failure(submission, detail or "grading returned nothing"),
                 )
             span.set(ATTR_SUBMISSION_OUTCOME, OUTCOME_GRADED)
+            self._sign_helpers(submission, span)
             if self.armor is not None:
                 await self._screen_armor(submission, span)
             if self.provider is not None:
@@ -115,6 +118,30 @@ class GradeGuard:
                 student_id=submission.student_id,
                 result=result,
             )
+
+    def _sign_helpers(self, submission, span: SpanHandle) -> None:
+        """Record which stand-in agents handled this exam, if any.
+
+        The failover and the repair loop are plain logic with no recorder of
+        their own, so their work reached the model without ever carrying an
+        identity — the fallback graded two exams on 2026-08-28 with its card
+        dark on the live board. They report what they did; this writes it down.
+        """
+        if getattr(self.evaluator, "last_used_fallback", False):
+            with self.recorder.span(
+                f"Fallback_{submission.submission_id}", parent=span, stage="GRADE"
+            ) as fallback:
+                annotate_span(fallback, FALLBACK_EVALUATOR_ID)
+                fallback.set("student_id", submission.student_id)
+                fallback.set("fallback.reason", "primary timed out or was exhausted")
+        attempts = getattr(self.repair_agent, "last_attempts", 0)
+        if attempts:
+            with self.recorder.span(
+                f"SchemaRepair_{submission.submission_id}", parent=span, stage="GRADE"
+            ) as repair:
+                annotate_span(repair, SCHEMA_REPAIR_ID)
+                repair.set("student_id", submission.student_id)
+                repair.set("repair.attempts", attempts)
 
     async def _screen_armor(self, submission, span: SpanHandle) -> None:
         with self.recorder.span(

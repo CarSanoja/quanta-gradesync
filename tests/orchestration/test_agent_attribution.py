@@ -37,6 +37,14 @@ WORKING_AGENTS = frozenset(
     {GRADING_AGENT_ID, ARMOR_SCREENER_ID, CURRICULUM_AUDITOR_ID, RISK_DETECTOR_ID}
 )
 
+# The stand-ins only run on an exam the normal path could not finish, so a clean
+# batch never wakes them. What must hold is that when they do run, they sign it.
+STANDIN_SIGNING = (
+    ("fallback evaluator", "FALLBACK_EVALUATOR_ID", "grade_guard.py"),
+    ("schema repair", "SCHEMA_REPAIR_ID", "grade_guard.py"),
+    ("second opinion", "SECOND_OPINION_ID", "rework_loop.py"),
+)
+
 
 def build_runner(
     settings: Settings, memory_manager: MemoryManager, live_sink: LocalLiveSink
@@ -144,3 +152,27 @@ async def test_the_live_feed_carries_the_new_agents_to_the_board(tmp_path: Path)
 
     assert CURRICULUM_AUDITOR_ID in agents
     assert RISK_DETECTOR_ID in agents
+
+
+def test_the_stand_in_agents_sign_their_work_too() -> None:
+    """Each of these graded or repaired an exam with its card dark on the board.
+
+    The fallback took two exams on 2026-08-28 — 472s and 299s, two model calls
+    each — and the live feed attributed none of it.
+    """
+    root = Path("src/autocurricula/core/orchestration")
+    for label, constant, filename in STANDIN_SIGNING:
+        body = (root / filename).read_text(encoding="utf-8")
+        assert constant in body, label
+        assert "annotate_span" in body or "agent_span(" in body, label
+
+
+def test_the_fallback_is_recorded_per_exam_not_per_batch() -> None:
+    body = (Path("src/autocurricula/core/orchestration") / "grade_guard.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert 'f"Fallback_{submission.submission_id}"' in body
+    assert 'f"SchemaRepair_{submission.submission_id}"' in body
+    assert 'last_used_fallback' in body
+    assert 'last_attempts' in body

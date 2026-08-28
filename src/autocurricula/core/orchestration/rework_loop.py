@@ -1,5 +1,7 @@
 from autocurricula.agents.evaluator import GradingEvaluator
+from autocurricula.core.fleet import SECOND_OPINION_ID
 from autocurricula.core.memory.manager import MemoryManager
+from autocurricula.core.orchestration.agent_span import agent_span
 from autocurricula.core.orchestration.context import JobContext
 from autocurricula.core.orchestration.goal_checks import (
     items_of_kind,
@@ -52,7 +54,14 @@ async def run_rework_loop(
         still: set[str] = set()
         for student_id in sorted(unresolved_students):
             submission = submissions_by_student[student_id][0]
-            result = await rework_evaluator.grade(submission, context.rubric, retrieved)
+            with agent_span(
+                context.recorder,
+                f"SecondOpinion_{submission.submission_id}",
+                SECOND_OPINION_ID,
+                stage="VERIFY",
+                attributes={"student_id": student_id, "rework.iteration": iteration},
+            ):
+                result = await rework_evaluator.grade(submission, context.rubric, retrieved)
             if gate.evaluate(result).quarantined:
                 still.add(student_id)
             else:
