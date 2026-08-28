@@ -17,7 +17,7 @@ import { renderFleet } from "./fleet.js";
 import { createIngestController } from "./ingest.js";
 import { createSisController } from "./sis.js";
 import { createJobsPoller } from "/console/assets/console-jobs-poll.js";
-import { jobsSignature } from "/console/assets/live-focus.js";
+import { isTerminal, jobsSignature } from "/console/assets/live-focus.js";
 import { createLiveController } from "./live.js";
 
 const dom = resolveDom();
@@ -43,17 +43,35 @@ function setView(view) {
     section.classList.toggle("is-active", section.id === `view-${view}`);
   });
   view === "jobs" ? jobsPoller.start() : jobsPoller.stop();
+  reviewPoller.start();
+  // The optimizer only changes when a batch finishes its optimize stage, so it
+  // does not need a poller — but it does need to be read when you open it,
+  // rather than staying at whatever the last full refresh happened to see.
+  if (view === "optimizer") {
+    loadOptimizer();
+  }
   view === "sis" ? sisController.start() : sisController.stop();
   view === "trace" ? liveController.start() : liveController.stop();
 }
 
+function stillRunning(jobId) {
+  const job = state.jobs.find((entry) => entry.job_id === jobId);
+  return Boolean(job) && !isTerminal(job.stage);
+}
+
 async function jobDetailFor(jobId) {
-  if (state.jobCache.has(jobId)) {
+  // Only a job that can no longer change is safe to cache. A running one is
+  // re-read every poll: its checkpoint is written once per stage, so a batch
+  // can grade and sync exam after exam without its `updated_at` moving, and a
+  // cached detail would show students as pending long after they synced.
+  if (!stillRunning(jobId) && state.jobCache.has(jobId)) {
     return state.jobCache.get(jobId);
   }
   const detail = await guard(() => getJson(endpoints.job(jobId)));
-  if (detail) {
+  if (detail && !stillRunning(jobId)) {
     state.jobCache.set(jobId, detail);
+  } else if (detail) {
+    state.jobCache.delete(jobId);
   }
   return detail;
 }
@@ -71,11 +89,16 @@ async function loadJobs() {
     return;
   }
   const signature = jobsSignature(payload.items);
-  if (signature === state.jobsSignature && state.activeJobId) {
-    return;
-  }
+  const listUnchanged = signature === state.jobsSignature && state.activeJobId;
   state.jobsSignature = signature;
   state.jobs = payload.items;
+  if (listUnchanged) {
+    // The list looks the same, but a running batch's contents do not.
+    if (stillRunning(state.activeJobId)) {
+      await selectJob(state.activeJobId);
+    }
+    return;
+  }
   state.jobCache.clear();
   dom.jobsCount.textContent = `${payload.count} batch${payload.count === 1 ? "" : "es"}`;
   if (!state.jobs.some((job) => job.job_id === state.activeJobId)) {
@@ -125,6 +148,7 @@ async function refreshAll() {
   dom.refresh.disabled = true;
   await loadMode();
   await Promise.all([loadJobs(), reviewController.load(), loadOptimizer(), loadFleet()]);
+  reviewPoller.start();
   if (state.view === "sis") {
     await sisController.load();
   }
@@ -142,6 +166,24 @@ const jobsPoller = createJobsPoller({
       dom.jobsPoll.classList.toggle("is-live", live);
     }
   },
+});
+
+// The quarantine queue only grows while a batch runs, so it follows the same
+// liveness rule as the jobs list — and it runs on every view, because the rail
+// badge is the "something needs you" surface no matter what you are looking at.
+const reviewPoller = createJobsPoller({
+  load: async () => {
+    // Liveness is read from state.jobs, and only the jobs view refreshes it —
+    // so on any other view the list would go stale and this poller would rest
+    // through a batch that had just started. Keep it current where nothing
+    // else does, and stay off the jobs view's own poller.
+    if (state.view !== "jobs") {
+      await loadJobs();
+    }
+    await reviewController.load();
+  },
+  jobsOf: () => state.jobs,
+  indicator: () => {},
 });
 
 const sisController = createSisController({ dom, guard, getJson, endpoints });
