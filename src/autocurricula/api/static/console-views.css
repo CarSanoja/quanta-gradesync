@@ -505,8 +505,12 @@ button.diagram-trigger:focus-visible {
    scroll. Past this breakpoint the split stops being two columns and the view
    itself becomes the scroll container, so every screen can always be read to the
    end. */
+/* The floor, at every size: if a view's content does not fit, the view scrolls.
+   When it does fit nothing changes and no scrollbar appears — but no surface can
+   ever again put content somewhere no scroll container reaches. */
+.view.is-active { overflow-y: auto; overflow-x: hidden; }
+
 @media (max-width: 1080px), (max-height: 620px) {
-  .view.is-active { overflow-y: auto; }
   .split { display: block; overflow: visible; }
   .split > .panel:first-child {
     width: auto;
@@ -523,6 +527,5 @@ button.diagram-trigger:focus-visible {
 
 /* Mission control keeps its own grid, but the same floor applies. */
 @media (max-height: 620px) {
-  #view-trace.is-active { overflow-y: auto; }
   .live-tab.is-active { overflow: visible; }
 }

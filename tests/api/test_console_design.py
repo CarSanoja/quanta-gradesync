@@ -156,18 +156,32 @@ async def test_the_console_is_never_served_from_a_stale_cache(app) -> None:
             assert asset.headers["cache-control"] == "no-cache, must-revalidate", name
 
 
-def test_every_view_can_be_scrolled_to_the_end_on_a_small_window() -> None:
+def test_every_view_can_always_be_scrolled_to_the_end() -> None:
     """A fixed-height shell reads well on a monitor and traps content elsewhere.
 
     Each panel scrolls inside itself, so with the shell at 100vh and overflow
-    hidden, a short or narrow window crushes the panels and whatever falls below
-    the fold cannot be reached at all. Past the breakpoint the split stacks and
-    the view becomes the scroll container.
+    hidden, anything a pane cannot fit is unreachable — which is what happened in
+    mission control at full size, not only on a small window. The floor is
+    unconditional: when content fits nothing changes and no scrollbar appears.
     """
     views = source("console-views.css")
+    live = source("live.css")
 
-    assert "@media (max-width: 1080px), (max-height: 620px) {" in views
-    assert ".view.is-active { overflow-y: auto; }" in views
-    assert ".split { display: block; overflow: visible; }" in views
+    assert ".view.is-active { overflow-y: auto; overflow-x: hidden; }" in views
     # Mission control has its own grid and needs the floor stated separately.
-    assert "#view-trace.is-active { overflow-y: auto; }" in views
+    assert "#view-trace.is-active { display: flex; flex-direction: column; overflow-y: auto;" in live
+    # Below the breakpoint the two columns also stop being columns.
+    assert "@media (max-width: 1080px), (max-height: 620px) {" in views
+    assert ".split { display: block; overflow: visible; }" in views
+
+
+def test_the_agent_board_cannot_starve_the_live_feed() -> None:
+    """Its grid row is auto, so twelve cards took 680px of a 1180px view.
+
+    That left the feed 238px — the thing you watch during a run — with every
+    ancestor overflow:hidden, so there was no way to scroll to the rest.
+    """
+    live = source("live.css")
+
+    assert "max-height: clamp(180px, 34vh, 380px);" in live
+    assert "#live-ticker { flex: 1; min-height: 168px;" in live

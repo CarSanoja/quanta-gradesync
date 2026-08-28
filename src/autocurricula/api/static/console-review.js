@@ -23,14 +23,31 @@ export function createReviewController(deps) {
   const { getObjectUrl, jobDetailFor, onDecided } = deps;
   const state = {
     items: [], activeId: null, context: { ...EMPTY_CONTEXT },
-    lastJobId: null, held: [], heldNote: "",
+    lastJobId: null, held: [], heldNote: "", signature: null,
   };
+
+// The queue polls while a batch runs, and a poll that repaints an unchanged
+// queue is not a refresh — it throws away the reader's scroll position, revokes
+// the blob of the scan they were looking at, and fetches it again. Nobody can
+// read an exam on a surface that resets under them every few seconds, so a tick
+// that changes nothing must touch nothing.
+function signatureOf(items) {
+  return items.map((item) => `${item.review_id}:${item.state || ""}`).join("|");
+}
 
   function releaseImage() {
     if (state.context.imageUrl) {
       URL.revokeObjectURL(state.context.imageUrl);
     }
     state.context.imageUrl = null;
+  }
+
+  // A queue that grows while you are reading it still repaints — but the reader
+  // should stay where they were, not be sent back to the top.
+  function paintList(activeId) {
+    const top = dom.reviewList.scrollTop;
+    renderReviewList(dom.reviewList, state.items, activeId, select);
+    dom.reviewList.scrollTop = top;
   }
 
   function paintDetail() {
@@ -57,7 +74,7 @@ export function createReviewController(deps) {
     releaseImage();
     state.activeId = reviewId;
     state.context = { item, criteria: [], imageUrl: null };
-    renderReviewList(dom.reviewList, state.items, state.activeId, select);
+    paintList(state.activeId);
     paintDetail();
     if (!item) {
       return;
@@ -107,16 +124,30 @@ export function createReviewController(deps) {
     paintReviewBadge(payload.count);
     dom.queueChip.textContent = `queue: ${payload.count} pending`;
     dom.queueChip.dataset.tone = payload.count ? "warn" : "ok";
-    await loadHeld();
+    const signature = signatureOf(payload.items);
+    const changed = signature !== state.signature;
+    state.signature = signature;
+    // Held items come off the same batch, so an unchanged queue cannot have
+    // changed them either — and this call is the 38 kB one.
+    if (changed) {
+      await loadHeld();
+    }
     const stillPending = state.items.some((item) => item.review_id === state.activeId);
     const nextId = stillPending
       ? state.activeId
       : state.items.length
         ? state.items[0].review_id
         : null;
-    renderReviewList(dom.reviewList, state.items, nextId, select);
+    if (!changed && nextId === state.activeId) {
+      return;
+    }
+    paintList(nextId);
     if (nextId) {
-      await select(nextId);
+      // Re-selecting the same item would re-fetch its scan and drop the detail
+      // scroll; the list repaint above already moved the highlight.
+      if (nextId !== state.activeId) {
+        await select(nextId);
+      }
       return;
     }
     releaseImage();

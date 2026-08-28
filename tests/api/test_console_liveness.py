@@ -92,3 +92,31 @@ def test_the_fleet_is_deliberately_static() -> None:
 
     assert "loadFleet()" in console
     assert "fleetPoller" not in console
+
+
+def test_an_unchanged_review_tick_repaints_nothing() -> None:
+    """The queue polls while a batch runs, and every tick rebuilt the surface.
+
+    load() called select() even when the selection had not changed, and select()
+    revokes the blob of the scan, blanks the detail, repaints the list and fetches
+    the image again — so anyone reading an exam was thrown back to the top every
+    few seconds. A tick that changes nothing must touch nothing.
+    """
+    review = source("console-review.js")
+
+    assert "function signatureOf(items)" in review
+    assert "const changed = signature !== state.signature;" in review
+    assert "if (!changed && nextId === state.activeId) {\n      return;\n    }" in review
+    assert "if (nextId !== state.activeId) {\n        await select(nextId);" in review
+    # the 38 kB call rode along on every tick too
+    assert "if (changed) {\n      await loadHeld();\n    }" in review
+
+
+def test_a_real_queue_change_keeps_the_reader_where_they_were() -> None:
+    review = source("console-review.js")
+
+    assert "function paintList(activeId) {" in review
+    assert "const top = dom.reviewList.scrollTop;" in review
+    assert "dom.reviewList.scrollTop = top;" in review
+    # only the helper may repaint, or a call site loses the position again
+    assert review.count("renderReviewList(dom.reviewList") == 1
