@@ -16,23 +16,29 @@ DEMO_COLLECTIONS = (
 )
 
 
-def wipe_document(reference: Any) -> int:
+def wipe_document(reference: Any, writer: Any) -> int:
     deleted = 0
     for sub in reference.collections():
-        deleted += wipe_documents_in(sub)
-    reference.delete()
+        deleted += wipe_documents_in(sub, writer)
+    writer.delete(reference)
     return deleted + 1
 
 
-def wipe_documents_in(collection: Any) -> int:
+def wipe_documents_in(collection: Any, writer: Any) -> int:
     # list_documents, not stream: a parent that exists only to hold a
     # subcollection is not returned by a query, and audit/{job}/live is exactly
     # that. Streaming left thousands of live events behind on every reset.
-    return sum(wipe_document(reference) for reference in collection.list_documents())
+    return sum(wipe_document(reference, writer) for reference in collection.list_documents())
 
 
 def wipe_collection(db: firestore.Client, name: str) -> int:
-    return wipe_documents_in(db.collection(name))
+    # A bulk writer batches and parallelises. One delete per round trip put a
+    # live feed's worth of events — 1,456 documents on 2026-08-28 — past ten
+    # minutes, which is the wrong thing to be waiting on before a recording.
+    writer = db.bulk_writer()
+    deleted = wipe_documents_in(db.collection(name), writer)
+    writer.close()
+    return deleted
 
 
 def main() -> None:
