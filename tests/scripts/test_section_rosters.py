@@ -93,3 +93,40 @@ def test_the_paper_count_is_the_one_the_script_says_out_loud() -> None:
         if profile.expected == "auto-sync"
     )
     assert synced == 96
+
+
+def test_the_three_sections_share_one_bucket_root() -> None:
+    """A bucket root holds many batch prefixes — that is what a bucket is.
+
+    Giving each section its own root buried the pages four directories down and
+    made three sibling lots look like three unrelated exports.
+    """
+    import generate_sample_batch as generator
+
+    roots = {generator.DEFAULT_TARGETS[name] for name in SECTION_ROSTERS}
+
+    assert roots == {generator.VIDEO_ROOT}
+    assert generator.DEFAULT_TARGETS["demo"] == generator.VIDEO_ROOT
+
+
+def test_a_shared_root_names_each_lots_artefacts_after_its_lot() -> None:
+    """Unsuffixed, the second section silently overwrote the first one's notes."""
+    import generate_sample_batch as generator
+
+    lot = SECTION_LOTS["section-10a"]
+    assert generator.artefact_name("demo-notes", ".md", lot, True) == "demo-notes-10A.md"
+    assert generator.artefact_name("push-event", ".json", lot, True) == "push-event-10A.json"
+    # A roster that owns its root keeps the plain name it always had.
+    assert generator.artefact_name("demo-notes", ".md", lot, False) == "demo-notes.md"
+
+
+def test_the_three_lots_never_write_over_each_other() -> None:
+    import generate_sample_batch as generator
+
+    written = [
+        generator.artefact_name(stem, suffix, SECTION_LOTS[name], True)
+        for name in SECTION_ROSTERS
+        for stem, suffix in (("demo-notes", ".md"), ("contact-sheet", ".png"), ("push-event", ".json"))
+    ]
+
+    assert len(written) == len(set(written)) == 9

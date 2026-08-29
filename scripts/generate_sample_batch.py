@@ -22,12 +22,15 @@ from sample_batch.rosters import (
     profiles_for,
 )
 
+VIDEO_ROOT = Path("docs/video/demo-batch")
+
 DEFAULT_TARGETS = {
     ROSTER_REFERENCE: Path(".local_data/sample_batch"),
-    ROSTER_DEMO: Path("docs/video/demo-batch"),
-    # The three sections land side by side under one root, in the order the
-    # teacher sends them.
-    **{name: Path("docs/video/sections") / name for name in SECTION_ROSTERS},
+    ROSTER_DEMO: VIDEO_ROOT,
+    # One bucket root holds many batch prefixes — that is what a bucket is — so
+    # the three sections are siblings under the same batches/ directory, ready to
+    # drag. Giving each its own root buried the pages four levels down.
+    **{name: VIDEO_ROOT for name in SECTION_ROSTERS},
 }
 DEFAULT_SEED = 20260819
 DEFAULT_QUALITY = 84
@@ -88,6 +91,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return arguments
 
 
+def artefact_name(stem: str, suffix: str, lot: LotSpec, shared_root: bool) -> str:
+    """Name a per-lot artefact after its lot when the root holds several.
+
+    catalog-defaults describes the bucket and is identical for every lot, so it
+    keeps its plain name. The notes, the contact sheet and the push event
+    describe one lot each; unsuffixed, the second section silently overwrote the
+    first one's.
+    """
+    return f"{stem}-{lot.class_id}{suffix}" if shared_root else f"{stem}{suffix}"
+
+
 def write_json(path: Path, payload: dict) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -128,7 +142,9 @@ def generate(roster: str, target: Path, seed: int, quality: int) -> dict[str, ob
     root = target.resolve()
     profiles = profiles_for(roster)
     lot = lot_for(roster)
+    shared_root = roster in SECTION_ROSTERS
     pages = render_pages(root / lot.batch_prefix, profiles, lot, seed, quality)
+    push_name = artefact_name("push-event", ".json", lot, shared_root)
     result: dict[str, object] = {
         "roster": roster,
         "lot": lot,
@@ -136,7 +152,7 @@ def generate(roster: str, target: Path, seed: int, quality: int) -> dict[str, ob
         "profiles": profiles,
         "pages": pages,
         "catalog": write_json(root / CATALOG_DEFAULTS_NAME, build_catalog_defaults()),
-        "push_event": write_json(root / PUSH_EVENT_NAME, build_push_body(root.name, lot)),
+        "push_event": write_json(root / push_name, build_push_body(root.name, lot)),
     }
     entries = ground_truth_for(roster)
     if entries:
@@ -146,10 +162,10 @@ def generate(roster: str, target: Path, seed: int, quality: int) -> dict[str, ob
     if roster == ROSTER_DEMO or roster in SECTION_ROSTERS:
         scores = legibility_table(pages)
         result["scores"] = scores
-        notes = root / DEMO_NOTES_NAME
+        notes = root / artefact_name("demo-notes", ".md", lot, shared_root)
         notes.write_text(build_demo_notes(profiles, lot, scores), encoding="utf-8")
         result["notes"] = notes
-        sheet = root / CONTACT_SHEET_NAME
+        sheet = root / artefact_name("contact-sheet", ".png", lot, shared_root)
         build_contact_sheet(pages).save(sheet, format="PNG", optimize=True)
         result["contact_sheet"] = sheet
     return result
@@ -180,7 +196,7 @@ def report(result: dict[str, object]) -> None:
     print(
         "  curl -sS -X POST http://localhost:8080/webhooks/pubsub "
         '-H "Authorization: Bearer $GRADESYNC_PUBSUB_PUSH_TOKEN" '
-        f'-H "Content-Type: application/json" --data @{result["root"] / PUSH_EVENT_NAME}'
+        f'-H "Content-Type: application/json" --data @{result["push_event"]}'
     )
 
 
