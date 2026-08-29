@@ -3,7 +3,7 @@ import os
 import subprocess
 from typing import Any
 
-from google.cloud import firestore
+from google.cloud import firestore, storage
 from google.oauth2.credentials import Credentials
 
 # This machine carries two gcloud profiles, and the application-default
@@ -12,6 +12,19 @@ from google.oauth2.credentials import Credentials
 # answers PERMISSION_DENIED with no hint about which of the two is wrong. The
 # CLI profile is the one the operator just chose, so borrow its token.
 ACCESS_TOKEN_ENV = "GOOGLE_ACCESS_TOKEN"
+
+DEFAULT_BUCKET = "quanta-gradesync-exams"
+
+# Wiping Firestore leaves the scans where they are, and the teacher page lists
+# batches from the bucket — so the console reported "36 exams · 0 in the
+# gradebook" after a reset that had reported success. Everything here is state
+# except two things the engine and the judges need to still be there.
+KEEP_IN_BUCKET = (
+    # the rubric binding manifest inference reads at the bucket root
+    "catalog-defaults.json",
+    # what the judges' "Load sample batch" button copies from
+    "demo-source/",
+)
 
 # The fallback, for a credential that may not enumerate the database root. It is
 # a floor, not the truth: assessment_facts and labels survived every reset for
@@ -95,6 +108,23 @@ def open_client(project: str, use_cli_auth: bool) -> firestore.Client:
     return firestore.Client(project=project, credentials=credentials)
 
 
+def wipe_bucket(bucket_name: str, credentials: Credentials | None) -> tuple[int, int]:
+    client = (
+        storage.Client(project=None, credentials=credentials)
+        if credentials
+        else storage.Client()
+    )
+    bucket = client.bucket(bucket_name)
+    deleted = kept = 0
+    for blob in client.list_blobs(bucket):
+        if any(blob.name.startswith(prefix) for prefix in KEEP_IN_BUCKET):
+            kept += 1
+            continue
+        blob.delete()
+        deleted += 1
+    return deleted, kept
+
+
 def collections_to_wipe(db: firestore.Client) -> tuple[tuple[str, ...], bool]:
     """Ask the database what it holds; fall back to the list only if refused.
 
@@ -117,6 +147,12 @@ def main() -> None:
     )
     parser.add_argument("--project", default="quanta-gradesync")
     parser.add_argument("--yes", action="store_true", help="required to actually delete")
+    parser.add_argument("--bucket", default=DEFAULT_BUCKET)
+    parser.add_argument(
+        "--keep-bucket",
+        action="store_true",
+        help="leave the staged scans in Cloud Storage (the console will still list them)",
+    )
     parser.add_argument(
         "--adc",
         action="store_true",
@@ -140,7 +176,12 @@ def main() -> None:
         count = wipe_collection(db, name)
         total += count
         print(f"{name}: {count} documents deleted")
-    print(f"total: {total}")
+    print(f"firestore total: {total}")
+    if args.keep_bucket:
+        print("bucket: skipped — the console will still list every staged batch")
+    else:
+        removed, kept = wipe_bucket(args.bucket, cli_credentials() if not args.adc else None)
+        print(f"bucket {args.bucket}: {removed} objects deleted, {kept} kept")
     print("re-seed with one fresh run: POST /ingest/sample-batch on the deployed service")
 
 

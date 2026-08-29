@@ -235,3 +235,48 @@ def test_a_credential_that_cannot_list_the_root_says_so() -> None:
 
     assert discovered is False
     assert names == reset_demo_state.KNOWN_COLLECTIONS
+
+
+def test_the_reset_reaches_the_bucket_the_console_actually_lists_from() -> None:
+    """Firestore was empty and the page still said "36 exams".
+
+    The teacher page lists batches from Cloud Storage, so wiping Firestore alone
+    left every staged scan visible under a gradebook that had nothing in it.
+    """
+    deleted, kept = [], []
+
+    class Blob:
+        def __init__(self, name):
+            self.name = name
+
+        def delete(self):
+            deleted.append(self.name)
+
+    class Client:
+        def bucket(self, name):
+            return name
+
+        def list_blobs(self, bucket):
+            return [
+                Blob("uploads/batches/2026_Matematicas_10A_M/ana.jpg"),
+                Blob("catalog-defaults.json"),
+                Blob("demo-source/v2/batches/2026_Matematicas_10A_Parcial1/ana.jpg"),
+                Blob("live/whatever.jpg"),
+            ]
+
+    original = reset_demo_state.storage.Client
+    reset_demo_state.storage.Client = lambda **kwargs: Client()
+    try:
+        removed, survived = reset_demo_state.wipe_bucket("b", None)
+    finally:
+        reset_demo_state.storage.Client = original
+
+    assert removed == 2 and survived == 2
+    assert "uploads/batches/2026_Matematicas_10A_M/ana.jpg" in deleted
+    assert "live/whatever.jpg" in deleted
+
+
+def test_the_two_things_the_bucket_must_keep() -> None:
+    """One the engine reads, one the judges' button copies from."""
+    assert "catalog-defaults.json" in reset_demo_state.KEEP_IN_BUCKET
+    assert "demo-source/" in reset_demo_state.KEEP_IN_BUCKET
