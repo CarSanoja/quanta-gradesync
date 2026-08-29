@@ -13,7 +13,11 @@ from google.oauth2.credentials import Credentials
 # CLI profile is the one the operator just chose, so borrow its token.
 ACCESS_TOKEN_ENV = "GOOGLE_ACCESS_TOKEN"
 
-DEMO_COLLECTIONS = (
+# The fallback, for a credential that may not enumerate the database root. It is
+# a floor, not the truth: assessment_facts and labels survived every reset for
+# weeks because they were simply missing from this list, and a hand-maintained
+# list of collections drifts the moment the code writes a new one.
+KNOWN_COLLECTIONS = (
     "checkpoints",
     "reviews",
     "sis_records",
@@ -23,6 +27,8 @@ DEMO_COLLECTIONS = (
     "dead_letter",
     "jobs",
     "prompts",
+    "assessment_facts",
+    "labels",
 )
 
 
@@ -89,6 +95,22 @@ def open_client(project: str, use_cli_auth: bool) -> firestore.Client:
     return firestore.Client(project=project, credentials=credentials)
 
 
+def collections_to_wipe(db: firestore.Client) -> tuple[tuple[str, ...], bool]:
+    """Ask the database what it holds; fall back to the list only if refused.
+
+    "Wipe the database" has to mean the database, not the nine names somebody
+    remembered to write down. Listing the root needs a permission the demo
+    credential may not carry, so the list stays as a floor — but when the listing
+    works it is authoritative, and anything new the engine starts writing is
+    covered without a code change.
+    """
+    try:
+        discovered = tuple(sorted(collection.id for collection in db.collections()))
+    except Exception:
+        return KNOWN_COLLECTIONS, False
+    return tuple(sorted(set(discovered) | set(KNOWN_COLLECTIONS))), True
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Wipe all demo state from Firestore so judges open a clean console"
@@ -107,8 +129,14 @@ def main() -> None:
         db = open_client(args.project, use_cli_auth=not args.adc)
     except ReauthRequired as error:
         raise SystemExit(f"reset aborted: {error}") from None
+    names, discovered = collections_to_wipe(db)
+    if not discovered:
+        print(
+            "warning: this credential cannot list the database root, so only the "
+            "known collections are wiped. Anything written outside them survives."
+        )
     total = 0
-    for name in DEMO_COLLECTIONS:
+    for name in names:
         count = wipe_collection(db, name)
         total += count
         print(f"{name}: {count} documents deleted")

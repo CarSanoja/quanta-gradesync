@@ -199,3 +199,39 @@ def test_a_machine_without_gcloud_still_falls_back_to_adc() -> None:
         subprocess.run = original
         if token is not None:
             os.environ["GOOGLE_ACCESS_TOKEN"] = token
+
+
+def test_it_asks_the_database_what_it_holds() -> None:
+    """assessment_facts and labels survived every reset for weeks.
+
+    They were not in the hand-written list, and a hand-written list of
+    collections drifts the moment the engine writes a new one. "Wipe the
+    database" has to mean the database.
+    """
+    class Db:
+        def collections(self):
+            return [type("C", (), {"id": name})() for name in ("audit", "brand_new_thing")]
+
+    names, discovered = reset_demo_state.collections_to_wipe(Db())
+
+    assert discovered is True
+    assert "brand_new_thing" in names
+    # the known list stays a floor, so an empty collection is still visited
+    assert set(reset_demo_state.KNOWN_COLLECTIONS) <= set(names)
+
+
+def test_the_two_that_were_missed_are_in_the_floor() -> None:
+    assert "assessment_facts" in reset_demo_state.KNOWN_COLLECTIONS
+    assert "labels" in reset_demo_state.KNOWN_COLLECTIONS
+
+
+def test_a_credential_that_cannot_list_the_root_says_so() -> None:
+    """Silently wiping nine of eleven collections reads as a clean database."""
+    class Refuses:
+        def collections(self):
+            raise PermissionError("Missing or insufficient permissions")
+
+    names, discovered = reset_demo_state.collections_to_wipe(Refuses())
+
+    assert discovered is False
+    assert names == reset_demo_state.KNOWN_COLLECTIONS
