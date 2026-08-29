@@ -4,6 +4,24 @@
 sections, 108 handwritten exams. 96 reach the school gradebook with nobody
 involved; the 12 the fleet refuses to decide are the only ones she sees.
 
+### Two defects found in Google's own libraries, reported with reproductions
+
+Building this hit two real bugs upstream. Both were filed with a minimal
+reproduction, and we stayed on them.
+
+| Issue | What it was | Where it stands |
+|---|---|---|
+| [`google/adk-python#6836`](https://github.com/google/adk-python/issues/6836) | `LlmAgent` rejects `temperature=` with `extra_forbidden`, and no discoverable path to `generate_content_config` | **Fixed and closed** by the ADK team, 28 Aug 2026 — we verified the fix against four edge cases |
+| [`googleapis/python-genai#2889`](https://github.com/googleapis/python-genai/issues/2889) | Vertex structured output silently returns **empty** dict-typed fields; the call succeeds, no error, no warning | Acknowledged by the maintainers, internal bug filed |
+
+Our own write-ups, with the reproductions and the workarounds we shipped:
+[ADK temperature](docs/upstream/adk-llmagent-temperature.md) ·
+[Vertex dict fields](docs/upstream/vertex-structured-output-dict-fields.md) ·
+[the design argument we made](docs/upstream/6836-design-review.md) ·
+[our re-test of their fix](docs/upstream/6836-retest.md)
+
+---
+
 [![Architecture](docs/media/architecture.svg)](docs/media/architecture.svg)
 
 Teachers in K-12 schools spend **4.6 hours a week** hand-grading exams — the
