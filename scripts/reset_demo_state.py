@@ -152,21 +152,28 @@ def wipe_bucket(bucket_name: str, credentials: Credentials | None) -> tuple[int,
     return len(doomed), kept
 
 
-def live_events(db: firestore.Client) -> int:
-    """How much the database holds right now, as a change detector.
+# The engine records the stage each job reached, and two of them are terminal.
+# That is the answer to "is anything running", and it is one read.
+SETTLED_STAGES = frozenset({"completed", "failed"})
 
-    Watching only the audit feed was not enough: telemetry stops before the job
-    does, and the memory bank and the ledger are written afterwards. A reset that
-    waited on audit alone still came back to assessment_facts sitting there.
+
+def unsettled_jobs(db: firestore.Client) -> list[str]:
+    """Which jobs have not reached a terminal stage.
+
+    Counting documents until the number stopped moving was guessing at something
+    the engine already writes down, and guessing cost thirty seconds of waiting
+    every time — even with nothing running at all.
     """
-    names, _ = collections_to_wipe(db)
-    total = 0
-    for name in names:
-        for document in db.collection(name).list_documents():
-            total += 1
-            for feed in document.collections():
-                total += sum(1 for _ in feed.list_documents())
-    return total
+    running = []
+    for reference in db.collection("jobs").list_documents():
+        snapshot = reference.get()
+        if not snapshot.exists:
+            continue
+        record = snapshot.to_dict() or {}
+        stage = str(record.get("stage") or record.get("state") or "").lower()
+        if stage not in SETTLED_STAGES:
+            running.append(f"{reference.id} ({stage or 'no stage'})")
+    return running
 
 
 def wait_for_quiet(db: firestore.Client) -> bool:
@@ -176,18 +183,18 @@ def wait_for_quiet(db: firestore.Client) -> bool:
     and the reset looks broken when it was simply racing. Purging the push
     subscription stops new deliveries but not a message already in a container,
     and the only thing that stops that is the batch ending.
+
+    Nothing running means nothing to wait for: this returns immediately, which is
+    the common case and used to cost thirty seconds anyway.
     """
-    last, quiet, rounds = live_events(db), 0, 0
-    while quiet < QUIET_ROUNDS and rounds < QUIET_LIMIT_ROUNDS:
+    for round_number in range(QUIET_LIMIT_ROUNDS):
+        running = unsettled_jobs(db)
+        if not running:
+            return True
+        print(f"  waiting for {len(running)} job(s): {', '.join(running)}")
         time.sleep(QUIET_EVERY_SECONDS)
-        now = live_events(db)
-        if now == last:
-            quiet += 1
-        else:
-            quiet = 0
-            print(f"  a batch is still writing ({now - last} new events); waiting")
-        last, rounds = now, rounds + 1
-    return quiet >= QUIET_ROUNDS
+        del round_number
+    return not unsettled_jobs(db)
 
 
 def bulk_delete(project: str, names: tuple[str, ...]) -> None:

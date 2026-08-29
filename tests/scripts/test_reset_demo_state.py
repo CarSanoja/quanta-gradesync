@@ -282,40 +282,86 @@ def test_the_two_things_the_bucket_must_keep() -> None:
     assert "demo-source/" in reset_demo_state.KEEP_IN_BUCKET
 
 
-def test_it_waits_for_a_running_batch_by_default() -> None:
-    """Deleting under a running batch cannot come out clean.
+def test_nothing_running_means_no_wait_at_all() -> None:
+    """Counting documents until the number stopped moving was guessing.
 
-    The job keeps writing after the wipe finishes, so the console fills back up
-    and the reset looks broken when it was only racing. This happened six times
-    in one afternoon before the wait moved into the script.
+    The engine writes down the stage each job reached, so an idle database is one
+    read away — and it used to cost thirty seconds of sampling to discover that
+    nothing was happening.
     """
-    counts = iter([10, 40, 40, 40, 40])
-    original = reset_demo_state.live_events
-    sleeps = []
-    reset_demo_state.live_events = lambda db: next(counts)
+    original = reset_demo_state.unsettled_jobs
+    slept = []
+    reset_demo_state.unsettled_jobs = lambda db: []
     original_sleep = reset_demo_state.time.sleep
-    reset_demo_state.time.sleep = sleeps.append
+    reset_demo_state.time.sleep = slept.append
     try:
         assert reset_demo_state.wait_for_quiet(object()) is True
     finally:
-        reset_demo_state.live_events = original
+        reset_demo_state.unsettled_jobs = original
         reset_demo_state.time.sleep = original_sleep
 
-    # it kept looking while the count moved, then needed three quiet rounds
-    assert len(sleeps) == 4
+    assert slept == []
+
+
+def test_a_job_short_of_a_terminal_stage_counts_as_running() -> None:
+    class Snapshot:
+        exists = True
+
+        def __init__(self, stage):
+            self._stage = stage
+
+        def to_dict(self):
+            return {"stage": self._stage}
+
+    class Ref:
+        def __init__(self, name, stage):
+            self.id = name
+            self._stage = stage
+
+        def get(self):
+            return Snapshot(self._stage)
+
+    class Db:
+        def collection(self, name):
+            assert name == "jobs"
+            return self
+
+        def list_documents(self):
+            return [Ref("a", "grade"), Ref("b", "completed"), Ref("c", "failed")]
+
+    running = reset_demo_state.unsettled_jobs(Db())
+
+    assert len(running) == 1
+    assert running[0].startswith("a ")
+
+
+def test_it_waits_while_a_job_is_still_short_of_terminal() -> None:
+    """Deleting under a running batch cannot come out clean."""
+    answers = iter([["a (grade)"], ["a (grade)"], []])
+    original = reset_demo_state.unsettled_jobs
+    slept = []
+    reset_demo_state.unsettled_jobs = lambda db: next(answers)
+    original_sleep = reset_demo_state.time.sleep
+    reset_demo_state.time.sleep = slept.append
+    try:
+        assert reset_demo_state.wait_for_quiet(object()) is True
+    finally:
+        reset_demo_state.unsettled_jobs = original
+        reset_demo_state.time.sleep = original_sleep
+
+    assert len(slept) == 2
 
 
 def test_a_batch_that_never_settles_stops_the_reset() -> None:
     """Better a refusal than a wipe that silently leaves half a job behind."""
-    original = reset_demo_state.live_events
-    counter = iter(range(10_000))
-    reset_demo_state.live_events = lambda db: next(counter)
+    original = reset_demo_state.unsettled_jobs
+    reset_demo_state.unsettled_jobs = lambda db: ["stuck (grade)"]
     original_sleep = reset_demo_state.time.sleep
     reset_demo_state.time.sleep = lambda seconds: None
     try:
         assert reset_demo_state.wait_for_quiet(object()) is False
     finally:
-        reset_demo_state.live_events = original
+        reset_demo_state.unsettled_jobs = original
         reset_demo_state.time.sleep = original_sleep
 
 
@@ -326,15 +372,15 @@ def test_now_skips_the_wait_for_someone_who_means_it() -> None:
     assert "if not args.now and not wait_for_quiet(db):" in source
 
 
-def test_the_quiet_check_watches_more_than_the_telemetry() -> None:
-    """Telemetry stops before the job does.
+def test_the_wait_asks_the_engine_instead_of_sampling() -> None:
+    """The engine records the stage each job reached; two of them are terminal.
 
-    A reset that waited on the audit feed alone still came back to
-    assessment_facts sitting there: the memory bank and the ledger are written
-    after the last span closes.
+    Counting documents until the number stopped moving was inferring something
+    already written down, and it cost thirty seconds of waiting even when the
+    database was completely idle.
     """
     source = SCRIPT.read_text(encoding="utf-8")
-    detector = source.split("def live_events")[1].split("def wait_for_quiet")[0]
 
-    assert "collections_to_wipe(db)" in detector
-    assert 'db.collection("audit")' not in detector
+    assert 'SETTLED_STAGES = frozenset({"completed", "failed"})' in source
+    assert "def unsettled_jobs(db: firestore.Client)" in source
+    assert "def live_events(" not in source
