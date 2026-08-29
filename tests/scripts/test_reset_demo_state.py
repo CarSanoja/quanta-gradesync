@@ -1,5 +1,7 @@
 import importlib.util
 import os
+
+import pytest
 from pathlib import Path
 
 SCRIPT = Path("scripts/reset_demo_state.py")
@@ -152,3 +154,48 @@ def test_adc_stays_reachable_for_a_service_account_context() -> None:
 
     assert captured["project"] == "quanta-gradesync"
     assert captured["credentials"] is None
+
+
+def test_an_expired_login_is_named_instead_of_becoming_an_iam_mystery() -> None:
+    """gcloud present and refusing is not the same as gcloud absent.
+
+    Falling back to ADC on a refusal asks a second, unrelated credential the same
+    question and reports its PERMISSION_DENIED, which sends you reading IAM
+    policy for what is really an expired login.
+    """
+    import subprocess
+
+    class Refused:
+        returncode = 1
+        stdout = ""
+        stderr = "ERROR: Reauthentication failed. cannot prompt\nPlease run\n"
+
+    original = subprocess.run
+    subprocess.run = lambda *a, **k: Refused()
+    token = os.environ.pop("GOOGLE_ACCESS_TOKEN", None)
+    try:
+        with pytest.raises(reset_demo_state.ReauthRequired, match="gcloud auth login"):
+            reset_demo_state.cli_credentials()
+    finally:
+        subprocess.run = original
+        if token is not None:
+            os.environ["GOOGLE_ACCESS_TOKEN"] = token
+
+
+def test_a_machine_without_gcloud_still_falls_back_to_adc() -> None:
+    """A CI runner has no profile to borrow and must not be told to log in."""
+    import subprocess
+
+    original = subprocess.run
+
+    def missing(*args, **kwargs):
+        raise FileNotFoundError("gcloud")
+
+    subprocess.run = missing
+    token = os.environ.pop("GOOGLE_ACCESS_TOKEN", None)
+    try:
+        assert reset_demo_state.cli_credentials() is None
+    finally:
+        subprocess.run = original
+        if token is not None:
+            os.environ["GOOGLE_ACCESS_TOKEN"] = token

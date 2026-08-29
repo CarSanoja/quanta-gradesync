@@ -51,19 +51,36 @@ def wipe_collection(db: firestore.Client, name: str) -> int:
     return deleted
 
 
+class ReauthRequired(RuntimeError):
+    """gcloud is installed and refused, which is not the same as absent."""
+
+
 def cli_credentials() -> Credentials | None:
     token = os.environ.get(ACCESS_TOKEN_ENV)
-    if not token:
-        try:
-            token = subprocess.run(
-                ("gcloud", "auth", "print-access-token"),
-                capture_output=True,
-                text=True,
-                timeout=30,
-                check=True,
-            ).stdout.strip()
-        except (OSError, subprocess.SubprocessError):
-            return None
+    if token:
+        return Credentials(token=token)
+    try:
+        finished = subprocess.run(
+            ("gcloud", "auth", "print-access-token"),
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    except (OSError, subprocess.SubprocessError):
+        # No gcloud on this machine: a runner, a container. Fall through to ADC.
+        return None
+    if finished.returncode != 0:
+        # gcloud is here and said no. Falling back to ADC would ask a second,
+        # unrelated credential the same question and report its refusal instead,
+        # which sends you looking at IAM for a problem that is an expired login.
+        complaint = finished.stderr.strip().splitlines()
+        raise ReauthRequired(
+            "the active gcloud profile could not mint a token:\n"
+            f"  {complaint[0] if complaint else 'unknown error'}\n"
+            "Run `gcloud auth login` and try again, or pass --adc to use the "
+            "application-default credentials instead."
+        )
+    token = finished.stdout.strip()
     return Credentials(token=token) if token else None
 
 
@@ -86,7 +103,10 @@ def main() -> None:
     args = parser.parse_args()
     if not args.yes:
         parser.error("refusing to delete without --yes")
-    db = open_client(args.project, use_cli_auth=not args.adc)
+    try:
+        db = open_client(args.project, use_cli_auth=not args.adc)
+    except ReauthRequired as error:
+        raise SystemExit(f"reset aborted: {error}") from None
     total = 0
     for name in DEMO_COLLECTIONS:
         count = wipe_collection(db, name)
