@@ -389,3 +389,68 @@
   .grade-open .grade-figure { align-items: flex-start; }
   .panel { padding: 1.375rem 1.25rem; }
 }
+
+/* — the dock: batches sent from this page, without leaving it — */
+/* Sending used to take over the whole page. A teacher with three sections had to
+   finish one, navigate back and begin again; now the progress sits beside the
+   drop zone and the next pile is a drag away. */
+.work { display: flex; align-items: flex-start; gap: 0; }
+.work > main { flex: 1; min-width: 0; }
+
+.dock {
+  flex: none;
+  width: 20rem;
+  position: sticky;
+  top: 0;
+  max-height: 100vh;
+  overflow-y: auto;
+  padding: 3.5rem 1.75rem 2rem 0;
+}
+.dock[hidden] { display: none; }
+
+.dock-eyebrow {
+  font-size: 0.72rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--paper-mute);
+}
+.dock-total { margin-top: 0.35rem; font-size: 1.05rem; color: var(--paper); }
+.dock-list { list-style: none; margin: 1.25rem 0 0; padding: 0; display: grid; gap: 0.7rem; }
+
+.dock-card {
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  padding: 0.85rem 0.95rem;
+  background: rgba(242, 236, 225, 0.02);
+}
+.dock-card.is-running { border-color: var(--amber-line); background: var(--amber-wash); }
+.dock-card.is-failed { border-color: var(--line-strong); }
+
+.dock-section { font-size: 1.05rem; color: var(--paper); }
+.dock-lot { margin-top: 0.15rem; font-size: 0.72rem; color: var(--paper-mute); word-break: break-all; }
+
+.dock-track {
+  margin-top: 0.6rem;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--line);
+  overflow: hidden;
+}
+.dock-fill { display: block; height: 100%; background: var(--amber); transition: width .3s ease; }
+
+.dock-status { margin-top: 0.5rem; font-size: 0.8rem; color: var(--paper-mute); }
+.dock-open { margin-top: 0.7rem; width: 100%; }
+.dock-note { margin-top: 1rem; font-size: 0.78rem; color: var(--paper-mute); line-height: 1.5; }
+
+/* Below this the dock is a band under the drop zone rather than a column, so it
+   never squeezes the thing she is actually aiming at. */
+@media (max-width: 60rem) {
+  .work { display: block; }
+  .dock {
+    width: auto;
+    position: static;
+    max-height: none;
+    padding: 0 var(--gutter) 2rem;
+  }
+  .dock-list { grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); }
+}

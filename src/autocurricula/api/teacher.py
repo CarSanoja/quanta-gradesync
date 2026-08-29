@@ -42,6 +42,7 @@ TEACHER_MODULES = (
     "teacher-upload.js",
     "teacher-value.js",
     "teacher-uploading.js",
+    "teacher-dock.js",
     "teacher-batch.js",
     "teacher-rail.js",
     "teacher-roster.js",

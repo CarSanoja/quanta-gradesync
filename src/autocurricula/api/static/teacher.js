@@ -6,6 +6,7 @@ import {
 import {
   askCollision, openGate, openZoom, setupDialogs, showAlert, toast, veilKeydown,
 } from "/teacher/assets/teacher-dialogs.js";
+import { paintDock } from "/teacher/assets/teacher-dock.js";
 import { slugify } from "/teacher/assets/teacher-filenames.js";
 import { paintRail, paintResume, setupRail } from "/teacher/assets/teacher-rail.js";
 import { readAddress, syncAddress } from "/teacher/assets/teacher-routing.js";
@@ -32,6 +33,7 @@ const IDLE_POLLS_BEFORE_PAUSE = 30;
 const builders = screenBuilders();
 const screenHost = document.getElementById("screen");
 const contextHost = document.getElementById("context-line");
+const dockHost = document.getElementById("upload-dock");
 
 let pollTimer = null;
 let fileInput = null;
@@ -331,6 +333,7 @@ function render() {
   syncAddress(false);
   if (screen === "review") {
     paintReview();
+    paintDock(dockHost, openBatch);
     restoreFocus(mark);
     return;
   }
@@ -361,6 +364,7 @@ function render() {
   }
   lastWaitingCount = waiting;
   builders[screen](screenHost, screenContext(screen));
+  paintDock(dockHost, openBatch);
   restoreFocus(mark);
 }
 
@@ -463,11 +467,24 @@ function wireFileInput() {
   });
 }
 
+// Sending used to take the whole page, so a teacher with three sections had to
+// finish one, navigate back and start over. The dock now carries the progress,
+// and the page only takes over when the queue genuinely cannot continue without
+// an answer from her — which is the same rule the rest of the product follows.
+function uploadNeedsHer() {
+  const counts = uploadState();
+  return Boolean(uploads.pair)
+    || counts.needsName.length > 0
+    || counts.held.length > 0
+    || counts.failed.length > 0
+    || counts.awaitingLot;
+}
+
 function onUploadChange() {
   if (maybeFinishUploading()) {
     return;
   }
-  if (uploadState().total && !state.uploadDismissed && state.screen !== "review") {
+  if (uploadNeedsHer() && !state.uploadDismissed && state.screen !== "review") {
     state.screen = "uploading";
   }
   render();

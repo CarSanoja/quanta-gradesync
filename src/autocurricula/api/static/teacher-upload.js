@@ -19,6 +19,11 @@ const NEEDS_NAME_DETAIL = /student id|student name|new_student_name/i;
 
 export const uploads = {
   rows: [],
+  // One entry per batch this teacher has sent in this sitting. rows is the queue
+  // for whichever batch is moving right now and gets cleared between them, so
+  // without this a finished section would vanish and she could not reach its
+  // grades without leaving the page — which is the whole point of not leaving.
+  batches: [],
   pair: null,
   lot: { subject: "", classId: "", assessment: "" },
   running: false,
@@ -27,9 +32,31 @@ export const uploads = {
   collisionForAll: null,
 };
 
+const UNRESOLVED = new Set(["failed", "needs-name", "held", "paused"]);
+
 let hooks = {};
 let renameTimer = null;
 let nextRowId = 0;
+
+function batchFor(lotCode) {
+  const existing = uploads.batches.find((batch) => batch.lotCode === lotCode);
+  if (existing) {
+    return Object.assign(existing, { running: true, done: false });
+  }
+  const batch = { lotCode, total: 0, received: 0, skipped: 0, failed: 0, running: true, done: false };
+  uploads.batches.push(batch);
+  return batch;
+}
+
+function syncBatch(batch) {
+  const counts = uploadState();
+  Object.assign(batch, {
+    total: counts.total,
+    received: counts.received,
+    skipped: counts.skipped,
+    failed: counts.failed.length,
+  });
+}
 
 export function lotCodeNow() {
   return lotCodeFor(uploads.lot);
@@ -211,6 +238,8 @@ export async function runQueue(announce) {
   uploads.awaitingLot = false;
   uploads.running = true;
   uploads.lotCode = lotCode;
+  const batch = batchFor(lotCode);
+  syncBatch(batch);
   changed();
   for (;;) {
     const row = uploads.rows.find((candidate) => candidate.state === "ready");
@@ -218,16 +247,32 @@ export async function runQueue(announce) {
       break;
     }
     finish(row, "sending", "sending…");
+    syncBatch(batch);
     changed();
     const carryOn = await uploadRow(row, lotCode);
+    syncBatch(batch);
     changed();
     if (!carryOn) {
       break;
     }
   }
   uploads.running = false;
+  const arrived = uploads.rows.some((row) => row.state === "received");
+  syncBatch(batch);
+  batch.running = false;
+  batch.done = true;
+  // Nothing left for her to answer means the queue has done its job, so it gets
+  // out of the way and the next section can be dropped straight onto a clean
+  // page. If something is unresolved the rows stay, because they are the only
+  // place she can fix them.
+  if (!uploads.rows.some((row) => UNRESOLVED.has(row.state))) {
+    uploads.rows.forEach(releaseThumb);
+    uploads.rows.length = 0;
+    uploads.pair = null;
+    uploads.collisionForAll = null;
+  }
   changed();
-  if (uploads.rows.some((row) => row.state === "received")) {
+  if (arrived) {
     hooks.onBatchSent(lotCode);
   }
 }
