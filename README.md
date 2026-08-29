@@ -8,8 +8,9 @@ involved; the 12 the fleet refuses to decide are the only ones she sees.
 
 Teachers in K-12 schools spend **4.6 hours a week** hand-grading exams — the
 OECD's own measurement, [TALIS 2024](https://www.oecd.org/en/publications/results-from-talis-2024_90df6235-en/full-report/the-demands-of-teaching_0e941e2f.html),
-of a 41-hour working week — students wait **~14 days** for feedback, and every
-grade is retyped into the SIS by hand.
+of a 41-hour working week. Feedback reaches students late — in the schools we
+work with, typically a week or two after the exam — and every grade is retyped
+into the SIS by hand.
 Across Latin America's public systems that adds up to millions of unpaid evening
 hours and feedback that arrives too late to matter. GradeSync deletes that work:
 scans go into a bucket; **audited, evidence-cited grades appear in the school
@@ -203,6 +204,10 @@ suite runs offline with no GCP credentials (in-memory stores, local-dir staging,
 jsonl append).
 
 ## Access control
+
+See [SECURITY.md](SECURITY.md) for the full policy, including what the deployed
+demo exposes and the limitations we know about.
+
 
 One gate sits in front of every router (`src/autocurricula/api/gate.py`). Public
 without a code: the teacher page, the operations console, their static assets,
