@@ -4,6 +4,12 @@
 sections, 108 handwritten exams. 96 reach the school gradebook with nobody
 involved; the 12 the fleet refuses to decide are the only ones she sees.
 
+Those are not design figures.
+**[Here is the run](docs/reports/three-sections-2026-08-29.md)** — three jobs on
+Cloud Run revision `00058-q52`, reconciled from the SIS ledger and the review
+queue independently, with the reason each of the twelve was held and the raw
+telemetry stream for all three sections.
+
 ### Two defects found in Google's own libraries, reported with reproductions
 
 Building this hit two real bugs upstream. Both were filed with a minimal
