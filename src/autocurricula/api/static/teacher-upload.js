@@ -41,20 +41,27 @@ let nextRowId = 0;
 function batchFor(lotCode) {
   const existing = uploads.batches.find((batch) => batch.lotCode === lotCode);
   if (existing) {
-    return Object.assign(existing, { running: true, done: false });
+    return existing;
   }
-  const batch = { lotCode, total: 0, received: 0, skipped: 0, failed: 0, running: true, done: false };
+  const batch = {
+    lotCode, total: 0, received: 0, skipped: 0, failed: 0, running: false, done: false,
+  };
   uploads.batches.push(batch);
   return batch;
 }
 
+function rowsOf(lotCode) {
+  return uploads.rows.filter((row) => row.lot === lotCode);
+}
+
 function syncBatch(batch) {
-  const counts = uploadState();
+  const rows = rowsOf(batch.lotCode);
+  const count = (state) => rows.filter((row) => row.state === state).length;
   Object.assign(batch, {
-    total: counts.total,
-    received: counts.received,
-    skipped: counts.skipped,
-    failed: counts.failed.length,
+    total: rows.length,
+    received: count("received"),
+    skipped: count("skipped"),
+    failed: count("failed"),
   });
 }
 
@@ -226,7 +233,8 @@ export async function runQueue(announce) {
   if (uploads.running || !uploads.rows.some((row) => row.state === "ready")) {
     return;
   }
-  const lotCode = lotCodeNow();
+  const pending = uploads.rows.find((row) => row.state === "ready");
+  const lotCode = (pending && pending.lot) || lotCodeNow();
   if (!lotCode) {
     uploads.awaitingLot = true;
     if (announce) {
@@ -238,11 +246,17 @@ export async function runQueue(announce) {
   uploads.awaitingLot = false;
   uploads.running = true;
   uploads.lotCode = lotCode;
+  // Rows staged before the three fields were filled adopt this run's lot.
+  uploads.rows.filter((row) => row.state === "ready" && !row.lot)
+    .forEach((row) => { row.lot = lotCode; });
   const batch = batchFor(lotCode);
+  Object.assign(batch, { running: true, done: false });
   syncBatch(batch);
   changed();
   for (;;) {
-    const row = uploads.rows.find((candidate) => candidate.state === "ready");
+    const row = uploads.rows.find(
+      (candidate) => candidate.state === "ready" && candidate.lot === lotCode
+    );
     if (!row) {
       break;
     }
@@ -257,23 +271,34 @@ export async function runQueue(announce) {
     }
   }
   uploads.running = false;
-  const arrived = uploads.rows.some((row) => row.state === "received");
+  const mine = rowsOf(lotCode);
+  const arrived = mine.some((row) => row.state === "received");
   syncBatch(batch);
   batch.running = false;
   batch.done = true;
-  // Nothing left for her to answer means the queue has done its job, so it gets
-  // out of the way and the next section can be dropped straight onto a clean
-  // page. If something is unresolved the rows stay, because they are the only
-  // place she can fix them.
-  if (!uploads.rows.some((row) => UNRESOLVED.has(row.state))) {
-    uploads.rows.forEach(releaseThumb);
-    uploads.rows.length = 0;
+  // Nothing left for her to answer means this batch is done, so its rows get out
+  // of the way and the next pile lands on a clean page. Only its own rows: the
+  // next section may already be staged, and clearing everything deleted the
+  // scans she had just dropped. If something is unresolved the rows stay,
+  // because they are the only place she can fix them.
+  if (!mine.some((row) => UNRESOLVED.has(row.state))) {
+    for (let index = uploads.rows.length - 1; index >= 0; index -= 1) {
+      if (uploads.rows[index].lot === lotCode) {
+        releaseThumb(uploads.rows[index]);
+        uploads.rows.splice(index, 1);
+      }
+    }
     uploads.pair = null;
     uploads.collisionForAll = null;
   }
   changed();
   if (arrived) {
     hooks.onBatchSent(lotCode);
+  }
+  // A pile dropped while this one was sending is still waiting: nothing else
+  // would ever start it.
+  if (uploads.rows.some((row) => row.state === "ready")) {
+    runQueue(false);
   }
 }
 
@@ -307,6 +332,10 @@ function stageFile(file, paused) {
     status: "waiting to send",
     note: "",
     thumbUrl: "",
+    // Which batch this scan belongs to. Without it, a pile dropped while the
+    // previous one was still sending got picked up by that run and filed under
+    // the wrong section.
+    lot: lotCodeNow(),
   };
   if (!ALLOWED_SUFFIXES.has(fileSuffix(file.name))) {
     Object.assign(row, { state: "failed", status: "not a photo or PDF", local: true });
@@ -338,6 +367,10 @@ export function stageFiles(fileList) {
   files.forEach((file) => stageFile(file, paused.has(file.name)));
   if (groups.length) {
     uploads.pair = { groups };
+  }
+  const lot = lotCodeNow();
+  if (lot) {
+    syncBatch(batchFor(lot));
   }
   changed();
   runQueue(true);

@@ -18,6 +18,9 @@ function statusLine(batch) {
   if (batch.running) {
     return `${batch.received} of ${batch.total} sent`;
   }
+  if (!batch.done) {
+    return `${batch.total} ${plural(batch.total, "file", "files")} waiting to send`;
+  }
   if (batch.failed) {
     return `${batch.failed} ${plural(batch.failed, "file", "files")} did not go through`;
   }
@@ -33,7 +36,13 @@ function sectionOf(lotCode) {
 }
 
 function card(batch, onOpen) {
-  const tone = batch.running ? " is-running" : batch.failed ? " is-failed" : " is-done";
+  const tone = batch.running
+    ? " is-running"
+    : !batch.done
+      ? " is-queued"
+      : batch.failed
+        ? " is-failed"
+        : " is-done";
   return el("li", { class: `dock-card${tone}` }, [
     el("p", { class: "dock-section", text: sectionOf(batch.lotCode) }),
     el("p", { class: "dock-lot", text: batch.lotCode }),
@@ -44,10 +53,14 @@ function card(batch, onOpen) {
     // This button used to sit at the bottom of a screen that took over the page
     // while the scans moved. It belongs to the batch, so it lives on the batch.
     el("button", {
-      class: `${batch.running ? "quiet" : "primary"} dock-open`,
+      class: `${batch.done ? "primary" : "quiet"} dock-open`,
       type: "button",
-      text: batch.running ? `Sending ${batch.received} of ${batch.total}…` : "Done — start grading",
-      disabled: batch.running,
+      text: batch.running
+        ? `Sending ${batch.received} of ${batch.total}…`
+        : batch.done
+          ? "Done — start grading"
+          : "Queued",
+      disabled: !batch.done,
       onclick: () => onOpen(batch.lotCode),
     }),
   ]);

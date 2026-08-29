@@ -69,8 +69,7 @@ def test_a_clean_queue_clears_itself_so_the_next_pile_can_land() -> None:
     upload = source("teacher-upload.js")
 
     assert 'const UNRESOLVED = new Set(["failed", "needs-name", "held", "paused"]);' in upload
-    assert "if (!uploads.rows.some((row) => UNRESOLVED.has(row.state))) {" in upload
-    assert "uploads.rows.length = 0;" in upload
+    assert "if (!mine.some((row) => UNRESOLVED.has(row.state))) {" in upload
 
 
 def test_the_grading_button_lives_on_the_batch_it_belongs_to() -> None:
@@ -82,7 +81,7 @@ def test_the_grading_button_lives_on_the_batch_it_belongs_to() -> None:
     dock = source("teacher-dock.js")
 
     assert '"Done — start grading"' in dock
-    assert "disabled: batch.running," in dock
+    assert "disabled: !batch.done," in dock
     assert "`Sending ${batch.received} of ${batch.total}…`" in dock
     assert "onclick: () => onOpen(batch.lotCode)," in dock
 
@@ -112,3 +111,54 @@ def test_the_dock_does_not_squeeze_the_dropzone_on_a_narrow_window() -> None:
     assert ".work { display: flex; align-items: flex-start; gap: 0; }" in styles
     assert "@media (max-width: 60rem) {" in styles
     assert "  .work { display: block; }" in styles
+
+
+def test_a_pile_dropped_mid_send_is_not_filed_under_the_running_batch() -> None:
+    """The loop took any ready row, so scans dropped while 10A was sending went
+    up under 10A's lot code — the wrong section, silently."""
+    upload = source("teacher-upload.js")
+
+    assert "lot: lotCodeNow()," in upload
+    assert 'candidate.state === "ready" && candidate.lot === lotCode' in upload
+    # a row that already knows its lot keeps it, even if the fields moved on
+    assert "const lotCode = (pending && pending.lot) || lotCodeNow();" in upload
+
+
+def test_finishing_a_batch_does_not_delete_the_next_one() -> None:
+    """The cleanup emptied every row, including a pile staged seconds earlier.
+
+    That is what made the second section disappear instead of queueing.
+    """
+    upload = source("teacher-upload.js")
+
+    assert "uploads.rows.length = 0;" not in upload.split("export function resetUploads")[0]
+    assert "if (uploads.rows[index].lot === lotCode) {" in upload
+    assert "uploads.rows.splice(index, 1);" in upload
+
+
+def test_the_queue_starts_the_next_batch_by_itself() -> None:
+    """runQueue returns early while one is running, so nothing else would."""
+    upload = source("teacher-upload.js")
+
+    tail = upload.split("hooks.onBatchSent(lotCode);")[1]
+    assert 'if (uploads.rows.some((row) => row.state === "ready")) {' in tail
+    assert "runQueue(false);" in tail
+
+
+def test_each_card_counts_only_its_own_scans() -> None:
+    upload = source("teacher-upload.js")
+
+    assert "function rowsOf(lotCode)" in upload
+    assert "const rows = rowsOf(batch.lotCode);" in upload
+
+
+def test_a_card_appears_the_moment_the_pile_lands() -> None:
+    """Dragging section after section should show the queue building."""
+    upload = source("teacher-upload.js")
+    dock = source("teacher-dock.js")
+
+    assert "const lot = lotCodeNow();" in upload
+    assert "syncBatch(batchFor(lot));" in upload
+    assert "waiting to send" in dock
+    assert '"Queued"' in dock
+    assert "disabled: !batch.done," in dock

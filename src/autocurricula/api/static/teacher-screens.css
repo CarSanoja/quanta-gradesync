@@ -454,3 +454,7 @@
   }
   .dock-list { grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); }
 }
+
+/* Dropped but not started: it is already on the list, which is the point of
+   being able to drag one section after another without waiting. */
+.dock-card.is-queued { border-style: dashed; }
