@@ -67,3 +67,18 @@ def test_the_runbook_covers_what_a_deploy_rewrites() -> None:
     assert "removes every existing environment variable first" in runbook
     assert "Roll back" in runbook
     assert "gcloud auth login" in runbook
+
+
+def test_the_deploy_carries_the_memory_the_service_needs() -> None:
+    """A deploy patches, so shipping 1Gi again would undo the fix silently.
+
+    Three sections arriving together took the container past 1Gi and Cloud Run
+    killed it four times in eighty seconds; Pub/Sub redelivered and each batch
+    restarted from its checkpoint. That is what "everything got slower" was.
+    """
+    text = config()
+
+    assert '_MEMORY: "2Gi"' in text
+    assert "--memory=${_MEMORY}" in text
+    assert "--memory=1Gi" not in text
+    assert '_MAX_INSTANCES: "4"' in text

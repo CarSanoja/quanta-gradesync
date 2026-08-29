@@ -32,8 +32,11 @@ function entryFor(byExam, key) {
   return created;
 }
 
-export function progressFromEvents(events) {
-  const byExam = new Map();
+// Folding rather than rebuilding: every event only ever sets a flag true, so a
+// tick can carry the previous map forward and read just the new events. Asking
+// for the whole feed each time meant re-reading up to five hundred spans from
+// Firestore every two and a half seconds, per open tab.
+export function foldEvents(byExam, events) {
   (events || []).forEach((event) => {
     if (event.kind !== "span_end") {
       return;
@@ -55,6 +58,10 @@ export function progressFromEvents(events) {
     }
   });
   return byExam;
+}
+
+export function progressFromEvents(events) {
+  return foldEvents(new Map(), events);
 }
 
 // The row keys on submission_id; the feed names some spans by student. Both are

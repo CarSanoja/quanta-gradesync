@@ -44,7 +44,26 @@ def test_the_feed_is_only_read_while_the_batch_is_running() -> None:
     assert "async function liveProgressFor(jobId)" in console
     assert "if (!stillRunning(jobId)) {" in console
     assert "return null;" in console
-    assert "progressFromEvents(" in console
+    assert "foldEvents(tracked.byExam, events);" in console
+    # and the memory it accumulated goes with it
+    assert "liveProgress.delete(jobId);" in console
+
+
+def test_the_feed_is_read_from_a_cursor_not_from_the_beginning() -> None:
+    """This asked for the whole feed on every tick.
+
+    Up to five hundred spans re-read out of Firestore every two and a half
+    seconds, from every open tab, which is what took the container past its
+    memory limit on 2026-08-29 and made three concurrent batches crawl.
+    """
+    console = source("console.js")
+    progress = source("console-job-progress.js")
+
+    assert "endpoints.live(jobId, tracked.after)" in console
+    assert "endpoints.live(jobId, 0)" not in console
+    assert "tracked.after = Number.isFinite(payload.next_after)" in console
+    # folding, not rebuilding: every event only ever sets a flag true
+    assert "export function foldEvents(byExam, events)" in progress
 
 
 def test_both_identifiers_are_tried_so_the_rows_line_up() -> None:

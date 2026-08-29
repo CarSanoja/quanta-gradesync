@@ -17,7 +17,13 @@ substitutions:
   _TELEMETRY_CAPTURE_CONTENT: "true"
   _MODEL_CONCURRENCY: "16"
   _MIN_INSTANCES: "1"
-  _MAX_INSTANCES: "2"
+  # Three sections arriving together put 1Gi over the limit and Cloud Run killed
+  # the container mid-batch four times in eighty seconds; Pub/Sub then redelivered
+  # and the work restarted from its checkpoint, which is what "everything got
+  # slower" actually was. 4Gi x 6 instances is refused by the region quota
+  # (CpuAllocPerProjectRegion 20000), so this is what fits.
+  _MAX_INSTANCES: "4"
+  _MEMORY: "2Gi"
 
 serviceAccount: projects/quanta-gradesync/serviceAccounts/gradesync-builder@quanta-gradesync.iam.gserviceaccount.com
 
@@ -46,7 +52,7 @@ steps:
       - --min-instances=${_MIN_INSTANCES}
       - --max-instances=${_MAX_INSTANCES}
       - --timeout=900
-      - --memory=1Gi
+      - --memory=${_MEMORY}
       - --no-cpu-throttling
       - --service-account=${_SERVICE_ACCOUNT}
       - --allow-unauthenticated

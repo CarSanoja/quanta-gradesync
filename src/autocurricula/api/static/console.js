@@ -11,7 +11,7 @@ import {
 } from "./api.js";
 import { createChrome, resolveDom } from "./console-dom.js";
 import { diagramUrl, renderTriggers } from "/console/assets/console-diagrams.js";
-import { progressFromEvents } from "/console/assets/console-job-progress.js";
+import { foldEvents } from "/console/assets/console-job-progress.js";
 import { paintSection } from "/console/assets/console-sections.js";
 import { renderJobDetail, renderJobsList, renderOptimizer } from "./views.js";
 import { createReviewController } from "./console-review.js";
@@ -79,17 +79,40 @@ async function jobDetailFor(jobId) {
   return detail;
 }
 
+// Per job: how far into the feed we have read, and what we learned. Without the
+// cursor this asked for the feed from zero on every tick — up to five hundred
+// spans re-read out of Firestore every two and a half seconds, from every open
+// tab, which is what put the container over its memory limit on 2026-08-29.
+const liveProgress = new Map();
+
+function progressStateFor(jobId) {
+  const existing = liveProgress.get(jobId);
+  if (existing) {
+    return existing;
+  }
+  const created = { after: 0, byExam: new Map() };
+  liveProgress.set(jobId, created);
+  return created;
+}
+
 async function liveProgressFor(jobId) {
   // Only while the batch runs. Once it settles the checkpoint is authoritative
   // and there is nothing the feed could add.
   if (!stillRunning(jobId)) {
+    liveProgress.delete(jobId);
     return null;
   }
-  const payload = await guard(() => getJson(endpoints.live(jobId, 0)));
+  const tracked = progressStateFor(jobId);
+  const payload = await guard(() => getJson(endpoints.live(jobId, tracked.after)));
   if (!payload) {
-    return null;
+    return tracked.byExam.size ? tracked.byExam : null;
   }
-  return progressFromEvents(payload.events || payload.items || []);
+  const events = payload.events || payload.items || [];
+  foldEvents(tracked.byExam, events);
+  tracked.after = Number.isFinite(payload.next_after)
+    ? payload.next_after
+    : events.reduce((highest, event) => Math.max(highest, event.seq || 0), tracked.after);
+  return tracked.byExam;
 }
 
 async function selectJob(jobId) {
