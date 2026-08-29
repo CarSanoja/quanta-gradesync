@@ -324,3 +324,17 @@ def test_now_skips_the_wait_for_someone_who_means_it() -> None:
 
     assert '"--now",' in source
     assert "if not args.now and not wait_for_quiet(db):" in source
+
+
+def test_the_quiet_check_watches_more_than_the_telemetry() -> None:
+    """Telemetry stops before the job does.
+
+    A reset that waited on the audit feed alone still came back to
+    assessment_facts sitting there: the memory bank and the ledger are written
+    after the last span closes.
+    """
+    source = SCRIPT.read_text(encoding="utf-8")
+    detector = source.split("def live_events")[1].split("def wait_for_quiet")[0]
+
+    assert "collections_to_wipe(db)" in detector
+    assert 'db.collection("audit")' not in detector

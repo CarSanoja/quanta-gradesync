@@ -146,13 +146,20 @@ def wipe_bucket(bucket_name: str, credentials: Credentials | None) -> tuple[int,
 
 
 def live_events(db: firestore.Client) -> int:
-    """How many telemetry events exist right now, across every running job."""
-    return sum(
-        1
-        for job in db.collection("audit").list_documents()
-        for feed in job.collections()
-        for _ in feed.list_documents()
-    )
+    """How much the database holds right now, as a change detector.
+
+    Watching only the audit feed was not enough: telemetry stops before the job
+    does, and the memory bank and the ledger are written afterwards. A reset that
+    waited on audit alone still came back to assessment_facts sitting there.
+    """
+    names, _ = collections_to_wipe(db)
+    total = 0
+    for name in names:
+        for document in db.collection(name).list_documents():
+            total += 1
+            for feed in document.collections():
+                total += sum(1 for _ in feed.list_documents())
+    return total
 
 
 def wait_for_quiet(db: firestore.Client) -> bool:
