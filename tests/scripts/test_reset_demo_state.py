@@ -280,3 +280,47 @@ def test_the_two_things_the_bucket_must_keep() -> None:
     """One the engine reads, one the judges' button copies from."""
     assert "catalog-defaults.json" in reset_demo_state.KEEP_IN_BUCKET
     assert "demo-source/" in reset_demo_state.KEEP_IN_BUCKET
+
+
+def test_it_waits_for_a_running_batch_by_default() -> None:
+    """Deleting under a running batch cannot come out clean.
+
+    The job keeps writing after the wipe finishes, so the console fills back up
+    and the reset looks broken when it was only racing. This happened six times
+    in one afternoon before the wait moved into the script.
+    """
+    counts = iter([10, 40, 40, 40, 40])
+    original = reset_demo_state.live_events
+    sleeps = []
+    reset_demo_state.live_events = lambda db: next(counts)
+    original_sleep = reset_demo_state.time.sleep
+    reset_demo_state.time.sleep = sleeps.append
+    try:
+        assert reset_demo_state.wait_for_quiet(object()) is True
+    finally:
+        reset_demo_state.live_events = original
+        reset_demo_state.time.sleep = original_sleep
+
+    # it kept looking while the count moved, then needed three quiet rounds
+    assert len(sleeps) == 4
+
+
+def test_a_batch_that_never_settles_stops_the_reset() -> None:
+    """Better a refusal than a wipe that silently leaves half a job behind."""
+    original = reset_demo_state.live_events
+    counter = iter(range(10_000))
+    reset_demo_state.live_events = lambda db: next(counter)
+    original_sleep = reset_demo_state.time.sleep
+    reset_demo_state.time.sleep = lambda seconds: None
+    try:
+        assert reset_demo_state.wait_for_quiet(object()) is False
+    finally:
+        reset_demo_state.live_events = original
+        reset_demo_state.time.sleep = original_sleep
+
+
+def test_now_skips_the_wait_for_someone_who_means_it() -> None:
+    source = SCRIPT.read_text(encoding="utf-8")
+
+    assert '"--now",' in source
+    assert "if not args.now and not wait_for_quiet(db):" in source

@@ -1,6 +1,7 @@
 import argparse
 import os
 import subprocess
+import time
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
@@ -17,6 +18,9 @@ ACCESS_TOKEN_ENV = "GOOGLE_ACCESS_TOKEN"
 DEFAULT_BUCKET = "quanta-gradesync-exams"
 BUCKET_DELETE_WORKERS = 32
 PROBE_WORKERS = 32
+QUIET_ROUNDS = 3
+QUIET_EVERY_SECONDS = 10
+QUIET_LIMIT_ROUNDS = 90
 
 # Wiping Firestore leaves the scans where they are, and the teacher page lists
 # batches from the bucket — so the console reported "36 exams · 0 in the
@@ -141,6 +145,37 @@ def wipe_bucket(bucket_name: str, credentials: Credentials | None) -> tuple[int,
     return len(doomed), kept
 
 
+def live_events(db: firestore.Client) -> int:
+    """How many telemetry events exist right now, across every running job."""
+    return sum(
+        1
+        for job in db.collection("audit").list_documents()
+        for feed in job.collections()
+        for _ in feed.list_documents()
+    )
+
+
+def wait_for_quiet(db: firestore.Client) -> bool:
+    """Deleting under a running batch cannot come out clean.
+
+    The job keeps writing after the wipe finishes, so the console fills back up
+    and the reset looks broken when it was simply racing. Purging the push
+    subscription stops new deliveries but not a message already in a container,
+    and the only thing that stops that is the batch ending.
+    """
+    last, quiet, rounds = live_events(db), 0, 0
+    while quiet < QUIET_ROUNDS and rounds < QUIET_LIMIT_ROUNDS:
+        time.sleep(QUIET_EVERY_SECONDS)
+        now = live_events(db)
+        if now == last:
+            quiet += 1
+        else:
+            quiet = 0
+            print(f"  a batch is still writing ({now - last} new events); waiting")
+        last, rounds = now, rounds + 1
+    return quiet >= QUIET_ROUNDS
+
+
 def collections_to_wipe(db: firestore.Client) -> tuple[tuple[str, ...], bool]:
     """Ask the database what it holds; fall back to the list only if refused.
 
@@ -165,6 +200,11 @@ def main() -> None:
     parser.add_argument("--yes", action="store_true", help="required to actually delete")
     parser.add_argument("--bucket", default=DEFAULT_BUCKET)
     parser.add_argument(
+        "--now",
+        action="store_true",
+        help="delete immediately instead of waiting for any running batch to finish",
+    )
+    parser.add_argument(
         "--keep-bucket",
         action="store_true",
         help="leave the staged scans in Cloud Storage (the console will still list them)",
@@ -181,6 +221,11 @@ def main() -> None:
         db = open_client(args.project, use_cli_auth=not args.adc)
     except ReauthRequired as error:
         raise SystemExit(f"reset aborted: {error}") from None
+    if not args.now and not wait_for_quiet(db):
+        raise SystemExit(
+            "reset aborted: a batch is still writing after 15 minutes. Let it finish, "
+            "or pass --now to delete anyway and expect the job to write more afterwards."
+        )
     names, discovered = collections_to_wipe(db)
     if not discovered:
         print(
