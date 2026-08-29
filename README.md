@@ -1,5 +1,11 @@
 # AutoCurricula & GradeSync Engine
 
+**[▶ Watch the 4-minute demo](https://youtu.be/m3yK7J8G5Ko)** — one teacher, three
+sections, 108 handwritten exams. 96 reach the school gradebook with nobody
+involved; the 12 the fleet refuses to decide are the only ones she sees.
+
+[![Architecture](docs/media/architecture.svg)](docs/media/architecture.svg)
+
 Teachers in K-12 schools spend **4.6 hours a week** hand-grading exams — the
 OECD's own measurement, [TALIS 2024](https://www.oecd.org/en/publications/results-from-talis-2024_90df6235-en/full-report/the-demands-of-teaching_0e941e2f.html),
 of a 41-hour working week — students wait **~14 days** for feedback, and every
@@ -13,6 +19,9 @@ triggered by Cloud Storage uploads, and escalates to a human only when it should
 not decide alone.
 
 ## The fleet
+
+[![The agent fleet](docs/media/fleet.svg)](docs/media/fleet.svg)
+
 
 Twelve components behind a single governing harness — eight model-backed agents
 and four deterministic ones (risk scoring, schema repair, and the two
@@ -132,6 +141,9 @@ to under 10 minutes after the scan lands in the bucket.
 
 ## Architecture
 
+[![One job, seven stages](docs/media/pipeline.svg)](docs/media/pipeline.svg)
+
+
 A rendered diagram lives at [`docs/media/architecture.svg`](docs/media/architecture.svg).
 
 ```text
@@ -190,6 +202,23 @@ local implementation selected when `GRADESYNC_LOCAL_MODE=true`, so the entire te
 suite runs offline with no GCP credentials (in-memory stores, local-dir staging,
 jsonl append).
 
+## Access control
+
+One gate sits in front of every router (`src/autocurricula/api/gate.py`). Public
+without a code: the teacher page, the operations console, their static assets,
+the architecture diagrams, and `/readyz` — the shells a person needs before they
+can type the code. Everything that carries data answers `401` without it and
+`403` with a wrong one, and that includes `/openapi.json`.
+
+The code is the value of `GRADESYNC_PUBSUB_PUSH_TOKEN`. Both pages store it in
+`localStorage` for that browser only and send it as a bearer token; Pub/Sub push
+sends the same value as a `?token=` query parameter, because its OIDC token
+already occupies the `Authorization` header.
+
+The check used to live in each handler. That worked — a valid body without a code
+still got `401` — but a new route only had to forget, and an unauthenticated
+caller could reach body validation and read a schema back out of the `422`.
+
 ## Reproducible testing
 
 The whole suite runs on a laptop with no cloud account, no credentials and no
@@ -204,7 +233,7 @@ pytest
 Expected, on any machine:
 
 ```
-799 passed, 10 skipped
+844 passed, 10 skipped
 ```
 
 The 10 skips are the live contract tests under `tests/live/`, which call real
@@ -216,13 +245,13 @@ offline suite exercises the production code paths rather than test doubles.
 
 | What you want to verify | Command | Tests | Credentials |
 |---|---|---|---|
-| The engine's logic, gates and failure handling | `pytest` | 799 | none |
+| The engine's logic, gates and failure handling | `pytest` | 844 | none |
 | Throughput and concurrency behaviour | `pytest -m benchmark` | 2 | none |
 | Calibration maths and the promotion gate, against fixed ground truth | `pytest -m calibration` | 59 | none |
 | Contracts against the real models | `pytest -m live` | 8 | Gemini + GCP |
 | A batch graded end to end, on your machine | see [Local demo run](#local-demo-run) | | Gemini |
 
-The benchmark and calibration markers select subsets of the same 799; only the
+The benchmark and calibration markers select subsets of the same 844; only the
 live tests sit outside it.
 
 Run `pytest` before creating a `.env`: the settings loader reads `.env` from the
