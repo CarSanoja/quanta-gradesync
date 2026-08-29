@@ -124,6 +124,7 @@ def build_descriptor(
         "stages": list(declaration.stages),
         "runtime_binding": binding,
         "lifecycle": declaration.lifecycle.value,
+        "runs_when": declaration.runs_when,
         "principal": principal.model_dump(mode="json"),
         "prompt": prompt.model_dump(mode="json") if prompt is not None else None,
     }

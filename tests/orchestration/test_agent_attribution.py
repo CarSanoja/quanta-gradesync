@@ -176,3 +176,31 @@ def test_the_fallback_is_recorded_per_exam_not_per_batch() -> None:
     assert 'f"SchemaRepair_{submission.submission_id}"' in body
     assert 'last_used_fallback' in body
     assert 'last_attempts' in body
+
+
+def test_every_agent_declares_when_it_fires() -> None:
+    """The board reads this to explain a quiet card, so none may be blank."""
+    from autocurricula.core.fleet.roster import AGENT_DECLARATIONS
+
+    for declaration in AGENT_DECLARATIONS:
+        assert declaration.runs_when.strip(), declaration.agent_id
+
+
+def test_the_fleet_splits_five_three_four() -> None:
+    """The claim the board prints, checked against the declarations.
+
+    Five run on every exam, three stand by for a model failure, four belong to
+    the improvement loop. If someone rewires an agent, this fails before the
+    board starts telling a judge something untrue.
+    """
+    from autocurricula.core.fleet.roster import AGENT_DECLARATIONS
+
+    always = [a for a in AGENT_DECLARATIONS if a.runs_when.startswith("on every")]
+    standby = [a for a in AGENT_DECLARATIONS if a.runs_when.startswith("only when")
+               or a.runs_when.startswith("only for")]
+    optimizer = [a for a in AGENT_DECLARATIONS if "optimize" in a.stages]
+
+    assert len(AGENT_DECLARATIONS) == 12
+    assert len(always) == 5, [a.agent_id for a in always]
+    assert len(standby) == 3, [a.agent_id for a in standby]
+    assert len(optimizer) == 4, [a.agent_id for a in optimizer]

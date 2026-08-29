@@ -26,6 +26,7 @@ EVIDENCE_TRANSCRIBER_ID = "evidence-transcriber"
 AGENT_DECLARATIONS: tuple[AgentDeclaration, ...] = (
     AgentDeclaration(
         agent_id=GRADING_AGENT_ID,
+        runs_when="on every exam",
         fleet_index=1,
         display_name="Grading agent",
         role=(
@@ -40,6 +41,7 @@ AGENT_DECLARATIONS: tuple[AgentDeclaration, ...] = (
     ),
     AgentDeclaration(
         agent_id=CURRICULUM_AUDITOR_ID,
+        runs_when="on every exam",
         fleet_index=2,
         display_name="Curriculum auditor",
         role="Cross-references every grade against the ministry standard",
@@ -51,6 +53,7 @@ AGENT_DECLARATIONS: tuple[AgentDeclaration, ...] = (
     ),
     AgentDeclaration(
         agent_id=RISK_DETECTOR_ID,
+        runs_when="on every exam, after the grade exists",
         fleet_index=3,
         display_name="Risk detector",
         role=(
@@ -63,6 +66,7 @@ AGENT_DECLARATIONS: tuple[AgentDeclaration, ...] = (
     ),
     AgentDeclaration(
         agent_id=ARMOR_SCREENER_ID,
+        runs_when="on every page, before a grade exists",
         fleet_index=4,
         display_name="Armor screener",
         role=(
@@ -75,6 +79,7 @@ AGENT_DECLARATIONS: tuple[AgentDeclaration, ...] = (
     ),
     AgentDeclaration(
         agent_id=SECOND_OPINION_ID,
+        runs_when="only for a grade the review queue held back",
         fleet_index=5,
         display_name="Second-opinion evaluator",
         role=(
@@ -89,6 +94,7 @@ AGENT_DECLARATIONS: tuple[AgentDeclaration, ...] = (
     ),
     AgentDeclaration(
         agent_id=FALLBACK_EVALUATOR_ID,
+        runs_when="only when the primary model times out or is exhausted",
         fleet_index=6,
         display_name="Fallback evaluator",
         role="Model failover on timeout or resource exhaustion, confidence discounted",
@@ -100,6 +106,7 @@ AGENT_DECLARATIONS: tuple[AgentDeclaration, ...] = (
     ),
     AgentDeclaration(
         agent_id=SCHEMA_REPAIR_ID,
+        runs_when="only when a model reply will not parse",
         fleet_index=7,
         display_name="Schema repair agent",
         role=(
@@ -112,6 +119,7 @@ AGENT_DECLARATIONS: tuple[AgentDeclaration, ...] = (
     ),
     AgentDeclaration(
         agent_id=PROMPT_PROPOSER_ID,
+        runs_when="only in the optimizer, never in a grading batch",
         fleet_index=8,
         display_name="Prompt proposer",
         role="Mutates grading and audit prompts for the tournament",
@@ -122,6 +130,7 @@ AGENT_DECLARATIONS: tuple[AgentDeclaration, ...] = (
     ),
     AgentDeclaration(
         agent_id=CALIBRATION_EVALUATOR_ID,
+        runs_when="only in the optimizer, never in a grading batch",
         fleet_index=9,
         display_name="Calibration evaluator",
         role="Re-grades human-scored samples to score each candidate prompt",
@@ -131,6 +140,7 @@ AGENT_DECLARATIONS: tuple[AgentDeclaration, ...] = (
     ),
     AgentDeclaration(
         agent_id=META_OPTIMIZER_GRADING_ID,
+        runs_when="only in the optimizer, never in a grading batch",
         fleet_index=10,
         display_name="Meta-optimizer (grading)",
         role=(
@@ -143,6 +153,7 @@ AGENT_DECLARATIONS: tuple[AgentDeclaration, ...] = (
     ),
     AgentDeclaration(
         agent_id=META_OPTIMIZER_AUDIT_ID,
+        runs_when="only in the optimizer, never in a grading batch",
         fleet_index=11,
         display_name="Meta-optimizer (audit)",
         role=(
@@ -155,6 +166,7 @@ AGENT_DECLARATIONS: tuple[AgentDeclaration, ...] = (
     ),
     AgentDeclaration(
         agent_id=EVIDENCE_TRANSCRIBER_ID,
+        runs_when="on every page",
         fleet_index=12,
         display_name="Evidence transcriber",
         role=(

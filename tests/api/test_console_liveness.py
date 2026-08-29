@@ -120,3 +120,26 @@ def test_a_real_queue_change_keeps_the_reader_where_they_were() -> None:
     assert "dom.reviewList.scrollTop = top;" in review
     # only the helper may repaint, or a call site loses the position again
     assert review.count("renderReviewList(dom.reviewList") == 1
+
+
+def test_a_quiet_agent_says_why_it_is_quiet() -> None:
+    """Seven of the twelve do not run in an ordinary grading batch.
+
+    Four belong to the improvement loop and three stand by for a model failure.
+    A card that only reads "no events attributed" invites a reader to conclude
+    they are decoration — which is the opposite of what a declared fleet means.
+    """
+    board = source("live-board.js")
+
+    assert 'pill(inOptimizer(agent) ? "improvement loop" : "standing by", "info")' in board
+    assert "function idleReason(agent, entry)" in board
+    assert "text: `Runs ${agent.runs_when}.`" in board
+    assert "idleReason(agent, entry)," in board
+
+
+def test_the_board_states_the_shape_of_the_fleet_once() -> None:
+    board = source("live-board.js")
+
+    assert "Twelve declared components." in board
+    assert "four belong to the improvement loop" in board
+    assert "text: FLEET_NOTE" in board

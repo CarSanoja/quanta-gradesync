@@ -58,6 +58,7 @@ class AgentDescriptor(FrozenStrictModel):
     principal: AgentPrincipal
     prompt: PromptBinding | None = None
     lifecycle: AgentLifecycle
+    runs_when: str = Field(min_length=1)
     wired: bool
     definition_sha: SHA256Hex
     field_sources: dict[str, FieldSource] = Field(default_factory=dict)

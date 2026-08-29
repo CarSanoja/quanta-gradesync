@@ -3,6 +3,11 @@ import { clear, el, emptyState, pill } from "./render.js";
 const IDLE = { calls: 0, tokens: 0, errors: 0, lastSeq: 0, active: false, done: false };
 const ACTIVE_WINDOW_MS = 5000;
 const STAGE_NOTE = "Stage-level spans are not attributed to an agent yet.";
+// Said once, plainly, so a quiet card is read as the design and not as a gap.
+const FLEET_NOTE =
+  "Twelve declared components. Five run on every exam; three stand by for a "
+  + "model failure; four belong to the improvement loop and never run inside a "
+  + "grading batch. Each card says which.";
 
 function statusPill(agent, entry) {
   if (entry.active) {
@@ -17,7 +22,25 @@ function statusPill(agent, entry) {
   if (agent.wired === false) {
     return pill("not wired in this runtime", "info");
   }
-  return pill("no events attributed", "info");
+  // Seven of the twelve do not run in an ordinary batch: four belong to the
+  // improvement loop, three stand by for a failure. A card that only says "no
+  // events" invites the reader to conclude they are decoration — so it says
+  // which of the two it is, and the reason sits underneath.
+  if (!agent.runs_when) {
+    return pill("no events attributed", "info");
+  }
+  return pill(inOptimizer(agent) ? "improvement loop" : "standing by", "info");
+}
+
+function inOptimizer(agent) {
+  return Array.isArray(agent.stages) && agent.stages.includes("optimize");
+}
+
+function idleReason(agent, entry) {
+  if (entry.active || entry.done || entry.errors || !agent.runs_when) {
+    return null;
+  }
+  return el("div", { class: "list-sub agent-when", text: `Runs ${agent.runs_when}.` });
 }
 
 function stageChips(stages) {
@@ -77,6 +100,7 @@ function agentCard(agent, entry, isFiltered, onPick) {
         el("span", { text: `${entry.calls} call${entry.calls === 1 ? "" : "s"}` }),
         el("span", { text: `${entry.tokens.toLocaleString()} tok` }),
       ]),
+      idleReason(agent, entry),
     ]
   );
 }
@@ -177,6 +201,7 @@ export function renderBoard(target, fleetAgents, activity, options) {
       )
     )
   );
+  target.append(el("div", { class: "list-sub board-note", text: FLEET_NOTE }));
   target.append(el("div", { class: "list-sub board-note", text: STAGE_NOTE }));
   const missing = unattributedNote(entries, settings.totals);
   if (missing) {

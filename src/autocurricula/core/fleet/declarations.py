@@ -28,6 +28,11 @@ class AgentDeclaration:
     stages: tuple[str, ...]
     capabilities: tuple[Capability, ...]
     lifecycle: AgentLifecycle = AgentLifecycle.ACTIVE
+    # When this agent fires, in the operator's words. Seven of the twelve do not
+    # run in an ordinary grading batch — four belong to the improvement loop and
+    # three stand by for a failure — so a board that only says "no events
+    # attributed" invites the reader to conclude they are decoration.
+    runs_when: str = "on every exam"
     model_setting: str | None = None
     container_attr: str | None = None
     prompt_variant_id: str | None = None
