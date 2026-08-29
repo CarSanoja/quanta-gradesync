@@ -144,7 +144,7 @@ query string carries the same token.
 ```bash
 gcloud secrets versions add gradesync-push-token --data-file=-
 gcloud pubsub subscriptions update exam-batch-ingest-push \
-  --push-endpoint="$SERVICE/webhooks/gcs?token=<new-token>" \
+  --push-endpoint="$SERVICE/webhooks/pubsub?token=<new-token>" \
   --push-auth-service-account=<oidc-sa> \
   --push-auth-token-audience="$SERVICE"
 ```

@@ -56,3 +56,9 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# FastAPI's dependency injection is `Depends(...)` in a default argument. B008
+# exists for mutable defaults; this is the framework's documented idiom and
+# rewriting it would make the routes worse.
+"src/autocurricula/api/*.py" = ["B008"]

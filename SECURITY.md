@@ -12,9 +12,10 @@ One gate sits in front of every router (`src/autocurricula/api/gate.py`).
 
 Public without a code — the shells a person needs before they can type one:
 
+- `/` — redirects to `/teacher`, so the bare service URL is not a 401 body
 - `/teacher` and `/console`
 - `/teacher/assets/*`, `/console/assets/*`, `/console/diagrams/*`
-- `/readyz`
+- `/readyz` and `/healthz` — the health checks Cloud Run polls
 
 Everything else answers `401` without a code and `403` with a wrong one,
 including `/openapi.json`. That covers every route carrying data: jobs, the
@@ -28,8 +29,8 @@ admits nobody.
 The two pages keep it in `localStorage`, for that browser only, and send it as a
 bearer token. Pub/Sub push sends the same value as a `?token=` query parameter,
 because its OIDC token already occupies the `Authorization` header — that
-collision is [documented upstream](docs/submission/blog-medium.md) and cost us
-an afternoon of silent 403s.
+collision cost us an afternoon of silent 403s: Pub/Sub overwrites any bearer
+token you set, so the verification token has to travel somewhere else.
 
 ## Known limitations
 

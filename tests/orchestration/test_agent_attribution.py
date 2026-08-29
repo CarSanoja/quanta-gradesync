@@ -204,3 +204,19 @@ def test_the_fleet_splits_five_three_four() -> None:
     assert len(always) == 5, [a.agent_id for a in always]
     assert len(standby) == 3, [a.agent_id for a in standby]
     assert len(optimizer) == 4, [a.agent_id for a in optimizer]
+
+
+def test_a_skipped_optimizer_says_so_instead_of_looking_like_work() -> None:
+    """The tournament needs a calibration set on disk; a container has none.
+
+    The span opened before the try, so a run that raised on its first statement
+    still rendered in Mission control and the post-run trace carrying an agent id
+    and a prompt variant. That was the only place the telemetry misled.
+    """
+    source = Path("src/autocurricula/core/orchestration/stages_outcome.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert 'span.set("optimize.skipped", True)' in source
+    assert 'span.set("optimize.skipped_reason", type(error).__name__)' in source
+    assert "except (FileNotFoundError, OSError, ValueError) as error:" in source

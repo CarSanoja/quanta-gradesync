@@ -54,19 +54,21 @@ thinking enabled) and Gemini 3.5 Flash-Lite (high-speed structured extraction):
 | 1 | Grading agent | Flash | Multimodal rubric grading of handwritten pages, parallel fan-out per exam, evidence spans cited verbatim |
 | 2 | Curriculum auditor | Flash-Lite | Cross-references every grade against the ministry standard |
 | 3 | Risk detector | deterministic | Dropout early warning from z-scores and longitudinal slopes — math, not opinion |
-| 4 | Armor screener | Flash-Lite | Model Armor: detects handwritten prompt injection and forces quarantine |
+| 4 | Armor screener | Flash-Lite | Injection screen: detects handwritten prompt injection and forces quarantine |
 | 5 | Second-opinion evaluator | Flash-Lite | Bounded rework loop over quarantined exams (human-in-the-loop stays in charge) |
 | 6 | Fallback evaluator | Flash-Lite | Model failover on timeout or resource exhaustion, confidence discounted |
 | 7 | Schema repair component | deterministic | Bounded self-repair loop: re-invokes the caller's own evaluator with a corrective instruction, then dead-letters. Holds no model and no capability of its own |
 | 8 | Prompt proposer | Flash-Lite | Mutates grading prompts for the tournament |
 | 9 | Calibration evaluator | Flash | Re-grades human-scored samples to score each candidate prompt |
-| 10–11 | Meta-optimizers (grading, audit) | — | Tournament selection with adversarial anti-gaming validation and a composite objective gate (QWK ≥ 0.85 ∧ MAE ≤ 0.4 ∧ \|bias\| < 0.1) |
+| 10–11 | Meta-optimizers (grading, audit) | — | Tournament selection with adversarial anti-gaming validation and a composite objective gate (QWK ≥ 0.85 ∧ MAE ≤ 0.4 ∧ \|bias\| < 0.1) — a **promotion threshold, not a measured result**: see below |
 | 12 | Evidence transcriber | Flash-Lite | Second independent reading of every scanned page, so the quotes the grader cited are checked against a reading that never saw the grade |
 
-This table is not a hand-maintained claim: `GET /fleet/registry` derives the
-live catalog from the running configuration — model ids, stage bindings,
-capability scope, identity principal, bound prompt variant and a content hash
-per agent — so documentation drift is detectable rather than assumed. The
+`GET /fleet/registry` builds this catalog at boot and says, per field, whether
+it read the value from the running configuration or from the declaration.
+Derived: model ids, runtime binding, the bound prompt variant and its content
+hash — so a model swapped in the environment shows up here without anyone
+editing a table. Declared: stage bindings, capability scope and the identity
+principal. The endpoint reports `field_sources` for exactly this reason; the
 operations console renders it as a Fleet panel.
 
 The harness around them is deterministic and cannot be argued with: permission
@@ -83,7 +85,7 @@ interface: they drop files in a bucket and get their evenings back. Pure backoff
 infrastructure.
 
 **Design targets** (measure against your own baseline in the first term):
-teacher time from ~12 weekly hours of manual grading to zero transcription and
+teacher time from the 4.6 weekly hours of manual grading measured above to zero transcription and
 ~10 minutes of exception review; time-to-feedback from a 14-day grading cycle
 to under 10 minutes after the scan lands in the bucket.
 
@@ -112,7 +114,7 @@ to under 10 minutes after the scan lands in the bucket.
 5. **Anti-gaming self-improvement** — the prompt optimizer only promotes variants
    that improve human agreement (QWK/MAE), actively blocking variance collapse or
    artificial average-to-middle scores.
-6. **Model Armor** — every graded page is screened for handwritten prompt
+6. **Injection screen** — every graded page is screened for handwritten prompt
    injection (instructions addressed to the grader rather than student work);
    a detection forces the record into quarantine with the quoted attempt as
    the first review reason, regardless of confidence.
@@ -158,6 +160,15 @@ to under 10 minutes after the scan lands in the bucket.
    `GRADESYNC_OPTIMIZER_CONVERGENCE_MIN_IMPROVEMENT` or the cycle budget
    (`GRADESYNC_OPTIMIZER_MAX_CYCLES`) is exhausted.
 
+   **This is the cold loop, and it does not run in the deployed demo.** A
+   tournament needs the human-labelled calibration set on disk, and the container
+   ships without one, so the stage records itself as skipped and the job
+   continues. The measured run is
+   [`docs/reports/calibration-2026-08-20.md`](docs/reports/calibration-2026-08-20.md);
+   reproduce it with `python scripts/run_calibration.py`. We would rather say
+   this than let a judge open the Optimizer panel and find zero cycles behind a
+   paragraph promising tournaments.
+
 ## Architecture
 
 [![One job, seven stages](docs/media/pipeline.svg)](docs/media/pipeline.svg)
@@ -174,7 +185,7 @@ A rendered diagram lives at [`docs/media/architecture.svg`](docs/media/architect
                                                                          |
                                                                          v
                          +-----------------------------------------------+-----------------+
-                         | Cloud Run Service  (scale 0-2, timeout=900, ack-on-success)      |
+                         | Cloud Run Service  (scale 1-4, timeout=900, ack-on-success)      |
                          | FastAPI + uvicorn + uvloop + httptools, Pydantic v2 everywhere    |
                          |                                                               |
                          |   api/main.py       health + readiness endpoints               |
@@ -221,6 +232,52 @@ local implementation selected when `GRADESYNC_LOCAL_MODE=true`, so the entire te
 suite runs offline with no GCP credentials (in-memory stores, local-dir staging,
 jsonl append).
 
+## What the numbers do and do not say
+
+The objective gate above is the bar a candidate prompt must clear to **replace**
+the one in production. It is not a score we have achieved.
+
+- Our best measured run is **QWK 0.845, MAE 0.208, bias −0.042** over 12
+  criterion scores from 4 exams —
+  [`docs/reports/calibration-2026-08-20.md`](docs/reports/calibration-2026-08-20.md),
+  which states plainly that it **fails the gate by 0.005**. Nothing has been
+  promoted, and the report says why.
+- The 95% confidence interval on that QWK is
+  [0.53, 0.96]
+  ([`docs/architecture/limits-adversarial-review.md`](docs/architecture/limits-adversarial-review.md)).
+  Four exams is a small sample and we treat it as one.
+- [`tests/harness/golden_baseline.json`](tests/harness/golden_baseline.json) is
+  **not** that measurement. It pins a deterministic lexical proxy so a refactor
+  cannot silently move scoring; its own QWK is negative by construction, and its
+  `note` field says so. It guards against regression, it is not evidence of
+  agreement.
+
+## We attacked it ourselves
+
+A category called *Fortified* deserves evidence, not a claim. `scripts/red_team/`
+is an adversarial harness: thirteen attack classes, a generator, scoring, and a
+report. Two campaigns are committed, and the first one failed.
+
+| | [20 Aug](docs/reports/red-team-2026-08-20.md) | [21 Aug](docs/reports/red-team-2026-08-21.md) |
+|---|---|---|
+| Hostile pages caught | **83.3%** (20 / 24) | **100%** (24 / 24) |
+| Clean twins wrongly flagged | 0% | 0% |
+| Screener errors (fail-open) | 0 | 0 |
+
+Every hostile page ships with a clean twin, so a screener that quarantines
+everything scores zero, not perfect. What the first run missed drove the fix
+between the two.
+
+Read this honestly: the payloads are our own scripted set, not an independent
+corpus, and grading was not run in the second campaign, so the grade-move rate is
+`n/a` rather than zero. It is a measurement of our own screen against our own
+attacks — which is more than an assertion, and less than a third-party audit.
+
+A related finding of ours is written up in
+[`docs/reports/armor-metadata-channel-2026-08-21.md`](docs/reports/armor-metadata-channel-2026-08-21.md):
+a hostile **file name** reached the model completely unscreened. We found it, and
+fixed it, by attacking a channel we had not thought of.
+
 ## Access control
 
 See [SECURITY.md](SECURITY.md) for the full policy, including what the deployed
@@ -256,7 +313,7 @@ pytest
 Expected, on any machine:
 
 ```
-846 passed, 10 skipped
+849 passed, 10 skipped
 ```
 
 The 10 skips are the live contract tests under `tests/live/`, which call real
@@ -268,18 +325,19 @@ offline suite exercises the production code paths rather than test doubles.
 
 | What you want to verify | Command | Tests | Credentials |
 |---|---|---|---|
-| The engine's logic, gates and failure handling | `pytest` | 846 | none |
+| The engine's logic, gates and failure handling | `pytest` | 849 | none |
 | Throughput and concurrency behaviour | `pytest -m benchmark` | 2 | none |
 | Calibration maths and the promotion gate, against fixed ground truth | `pytest -m calibration` | 59 | none |
-| Contracts against the real models | `pytest -m live` | 8 | Gemini + GCP |
+| Contracts against the real models | `pytest -m live` | 10 | `GRADESYNC_LIVE_TESTS=1` + Gemini + GCP |
 | A batch graded end to end, on your machine | see [Local demo run](#local-demo-run) | | Gemini |
 
-The benchmark and calibration markers select subsets of the same 846; only the
+The benchmark and calibration markers select subsets of the same 849; only the
 live tests sit outside it.
 
-Run `pytest` before creating a `.env`: the settings loader reads `.env` from the
-working directory, and the placeholder SIS URL and settle interval in
-`.env.example` override local-mode defaults that two tests assert.
+The suite ignores any `.env` in the working directory, so it gives the same
+result before and after you create one. `.env.example` ships with values that are
+safe locally; the ten live tests additionally need `GRADESYNC_LIVE_TESTS=1`, and
+skip without it even when credentials are present.
 
 Deployment, Pub/Sub wiring and the production runbooks are further down; the
 sections immediately below take a batch of generated exams from a folder to a
@@ -443,7 +501,7 @@ back, and how to rotate the push token.
 
 Cloud Build runs as the dedicated `gradesync-builder` service account, builds the
 container, pushes it to Artifact Registry (`$_REPOSITORY`), and deploys to Cloud
-Run with scale-to-zero (`--min-instances=0 --max-instances=2`), `--timeout=900`,
+Run with `--min-instances=1 --max-instances=4`, `--timeout=900`,
 CPU allocated outside the request (`--no-cpu-throttling`, required because the
 webhook acks the push and grades in the background), and the runtime service
 account from `$_SERVICE_ACCOUNT`. The push token is

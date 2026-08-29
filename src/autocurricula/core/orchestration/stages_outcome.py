@@ -91,10 +91,18 @@ def build_optimize_step(
                 OPTIMIZER_AGENTS.get(variant, META_OPTIMIZER_GRADING_ID),
                 stage="OPTIMIZE",
                 attributes={"prompt.variant_id": variant},
-            ):
+            ) as span:
                 try:
                     winners = await optimizer.run_until_convergence()
-                except (FileNotFoundError, OSError, ValueError):
+                except (FileNotFoundError, OSError, ValueError) as error:
+                    # The tournament needs a calibration set on disk, and a
+                    # deployed container has none. Swallowing it silently left a
+                    # span carrying an agent id and a prompt variant for work
+                    # that raised on its first statement — the one place the
+                    # telemetry said something untrue. A skip is now a skip.
+                    if span is not None:
+                        span.set("optimize.skipped", True)
+                        span.set("optimize.skipped_reason", type(error).__name__)
                     continue
                 reports.extend(winners)
         context.complete(STAGE_OPTIMIZE, OptimizeOutputs(reports=reports))

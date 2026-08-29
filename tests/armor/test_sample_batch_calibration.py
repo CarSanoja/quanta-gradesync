@@ -1,16 +1,35 @@
+import sys
+import tempfile
 from pathlib import Path
-
-import pytest
 
 from autocurricula.core.armor import confidence_factor, legibility_score
 
-SAMPLE_BATCH = (
-    Path(__file__).resolve().parents[2]
-    / ".local_data"
-    / "sample_batch"
-    / "batches"
-    / "2026_Matematicas_10A_Parcial1"
-)
+REPO = Path(__file__).resolve().parents[2]
+LOT = "2026_Matematicas_10A_Parcial1"
+COMMITTED = REPO / ".local_data" / "sample_batch" / "batches" / LOT
+
+
+def _generated_batch() -> Path:
+    """Render the reference batch instead of skipping when it is not on disk.
+
+    .local_data is gitignored, so on a clean clone these were the only tests that
+    skipped — and the README promised a count that a clone could not produce. The
+    generator is deterministic and this roster uses no system fonts, so the pages
+    are the same everywhere.
+    """
+    if COMMITTED.is_dir():
+        return COMMITTED
+    scripts = REPO / "scripts"
+    if str(scripts) not in sys.path:
+        sys.path.insert(0, str(scripts))
+    import generate_sample_batch as generator
+
+    target = Path(tempfile.mkdtemp(prefix="gradesync-reference-")) / "sample_batch"
+    generator.generate("reference", target, 20260819, 84)
+    return target.resolve() / "batches" / LOT
+
+
+SAMPLE_BATCH = _generated_batch()
 DEGRADED_STUDENT = "camila-rios"
 SOLID_STUDENTS = (
     "ana-torres",
@@ -30,15 +49,6 @@ SOLID_STUDENTS = (
 GRADED_NOT_SOLID = ("tomas-vega", "julian-pardo")
 OBSERVED_MIN_MODEL_CONFIDENCE = 0.95
 CONFIDENCE_THRESHOLD = 0.85
-
-pytestmark = pytest.mark.skipif(
-    not SAMPLE_BATCH.is_dir(),
-    reason=(
-        "sample batch missing; regenerate with scripts/generate_sample_batch.py "
-        "--target .local_data/sample_batch --seed 20260819"
-    ),
-)
-
 
 def score_of(student: str) -> float:
     value = legibility_score(SAMPLE_BATCH / f"{student}.jpg")

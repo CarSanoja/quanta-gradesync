@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from typing import Literal
 
 from fastapi import APIRouter, Depends, FastAPI
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 
 from autocurricula import __version__
 from autocurricula.api.console import console_router
@@ -85,6 +85,13 @@ async def readyz(
     except (BackendUnavailable, TimeoutError) as error:
         return unready(mode, str(error))
     return ReadinessResponse(status="ready", mode=resolved_mode)
+
+
+@health_router.get("/", include_in_schema=False)
+async def root() -> RedirectResponse:
+    """Judges paste the bare service URL. Answering it with a 401 body reads as
+    broken before anyone has seen anything."""
+    return RedirectResponse("/teacher")
 
 
 def create_app() -> FastAPI:

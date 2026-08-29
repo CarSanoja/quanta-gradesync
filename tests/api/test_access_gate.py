@@ -53,3 +53,24 @@ async def test_the_code_works_as_a_header_or_a_query_parameter(
     """Pub/Sub push occupies the Authorization header with its OIDC token."""
     assert (await client.get("/jobs", headers=auth_headers)).status_code == 200
     assert (await client.get(f"/jobs?token={push_token}")).status_code == 200
+
+
+async def test_the_bare_service_url_is_not_an_error_body(client: httpx.AsyncClient) -> None:
+    """Judges paste the root URL from the submission. A 401 JSON body reads as
+    broken before anyone has seen the product."""
+    response = await client.get("/", follow_redirects=False)
+
+    assert response.status_code in (307, 308)
+    assert response.headers["location"] == "/teacher"
+
+
+def test_security_md_lists_exactly_what_the_gate_lets_through() -> None:
+    """A policy that omits a public route is a policy nobody can rely on."""
+    from pathlib import Path
+
+    from autocurricula.api.gate import PUBLIC_EXACT
+
+    policy = Path("SECURITY.md").read_text(encoding="utf-8")
+
+    for path in PUBLIC_EXACT:
+        assert f"`{path}`" in policy, path

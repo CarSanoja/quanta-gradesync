@@ -4,6 +4,7 @@ from autocurricula.core.evolution.calibration_store import (
     compute_calibration_metrics,
 )
 from autocurricula.core.evolution.engine_support import (
+    CandidateKey,
     PromptProposer,
     VariantEvaluator,
     call_proposer,

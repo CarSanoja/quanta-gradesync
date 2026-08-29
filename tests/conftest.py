@@ -16,6 +16,23 @@ from autocurricula.schemas.grading import CriterionScore, GradingResult
 FIXTURES_DIR = Path(__file__).parent / "calibration" / "fixtures"
 
 
+@pytest.fixture(autouse=True, scope="session")
+def _ignore_the_developers_env_file():
+    """The suite must not depend on whether a .env happens to be lying around.
+
+    Settings reads .env by default, so `cp .env.example .env` — which the README
+    tells you to do — silently changed the result of six tests that assert what
+    the defaults are. A judge following the instructions in order would have seen
+    a suite that passed and then did not.
+    """
+    original = Settings.model_config.get("env_file")
+    Settings.model_config["env_file"] = None
+    try:
+        yield
+    finally:
+        Settings.model_config["env_file"] = original
+
+
 @pytest.fixture
 def settings(tmp_path: Path) -> Settings:
     return Settings(

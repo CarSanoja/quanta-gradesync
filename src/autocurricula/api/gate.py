@@ -20,7 +20,7 @@ from autocurricula.api.push_auth import resolve_push_token
 
 # Static pages carry no data: they render, then ask for the code. Serving them
 # unauthenticated is what makes the code enterable at all.
-PUBLIC_EXACT = frozenset({"/teacher", "/console", "/readyz", "/healthz"})
+PUBLIC_EXACT = frozenset({"/", "/teacher", "/console", "/readyz", "/healthz"})
 PUBLIC_PREFIXES = ("/teacher/assets/", "/console/assets/", "/console/diagrams/")
 
 UNAUTHORIZED = "missing access code: send it as a bearer token or a token query parameter"
