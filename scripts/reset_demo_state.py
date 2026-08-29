@@ -16,6 +16,13 @@ from google.oauth2.credentials import Credentials
 ACCESS_TOKEN_ENV = "GOOGLE_ACCESS_TOKEN"
 
 DEFAULT_BUCKET = "quanta-gradesync-exams"
+# Firestore has no DROP. Deleting a collection means deleting every document,
+# and from a client that is one round trip per document. `gcloud firestore
+# bulk-delete` is the exception: it runs the deletion inside Google, returns as
+# soon as the operation is accepted, and takes seconds to issue instead of
+# minutes to walk. It is eventually consistent, so anything written after its
+# snapshot survives — which is why --fast still sweeps afterwards.
+BULK_DELETE_TIMEOUT = 120
 BUCKET_DELETE_WORKERS = 32
 PROBE_WORKERS = 32
 QUIET_ROUNDS = 3
@@ -183,6 +190,26 @@ def wait_for_quiet(db: firestore.Client) -> bool:
     return quiet >= QUIET_ROUNDS
 
 
+def bulk_delete(project: str, names: tuple[str, ...]) -> None:
+    """Hand the walk to Google instead of doing it a document at a time."""
+    finished = subprocess.run(
+        (
+            "gcloud", "firestore", "bulk-delete",
+            f"--project={project}",
+            "--collection-ids=" + ",".join((*names, "live")),
+            "--quiet",
+        ),
+        capture_output=True,
+        text=True,
+        timeout=BULK_DELETE_TIMEOUT,
+    )
+    if finished.returncode != 0:
+        complaint = finished.stderr.strip().splitlines()
+        print(f"  bulk delete unavailable, walking instead: {complaint[0] if complaint else '?'}")
+        return
+    print("  accepted; sweeping whatever it could not see")
+
+
 def collections_to_wipe(db: firestore.Client) -> tuple[tuple[str, ...], bool]:
     """Ask the database what it holds; fall back to the list only if refused.
 
@@ -206,6 +233,11 @@ def main() -> None:
     parser.add_argument("--project", default="quanta-gradesync")
     parser.add_argument("--yes", action="store_true", help="required to actually delete")
     parser.add_argument("--bucket", default=DEFAULT_BUCKET)
+    parser.add_argument(
+        "--fast",
+        action="store_true",
+        help="ask Google to bulk-delete the collections first, then sweep the remainder",
+    )
     parser.add_argument(
         "--now",
         action="store_true",
@@ -234,6 +266,9 @@ def main() -> None:
             "or pass --now to delete anyway and expect the job to write more afterwards."
         )
     names, discovered = collections_to_wipe(db)
+    if args.fast:
+        print(f"asking Google to bulk-delete {len(names)} collections...")
+        bulk_delete(args.project, names)
     if not discovered:
         print(
             "warning: this credential cannot list the database root, so only the "
