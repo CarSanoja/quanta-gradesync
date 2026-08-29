@@ -41,10 +41,12 @@ function card(batch, onOpen) {
       el("span", { class: "dock-fill", style: `width:${percent(batch)}%` }),
     ]),
     el("p", { class: "dock-status", text: statusLine(batch) }),
+    // This button used to sit at the bottom of a screen that took over the page
+    // while the scans moved. It belongs to the batch, so it lives on the batch.
     el("button", {
-      class: "quiet dock-open",
+      class: `${batch.running ? "quiet" : "primary"} dock-open`,
       type: "button",
-      text: batch.running ? "Sending…" : "Grades",
+      text: batch.running ? `Sending ${batch.received} of ${batch.total}…` : "Done — start grading",
       disabled: batch.running,
       onclick: () => onOpen(batch.lotCode),
     }),

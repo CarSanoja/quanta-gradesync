@@ -473,11 +473,14 @@ function wireFileInput() {
 // an answer from her — which is the same rule the rest of the product follows.
 function uploadNeedsHer() {
   const counts = uploadState();
+  // awaitingLot is deliberately not here: the drop zone already carries the
+  // three fields, so a pile dropped before they are filled is answered where she
+  // is standing. Progress is never a reason to move her either — only a question
+  // the queue cannot answer itself is.
   return Boolean(uploads.pair)
     || counts.needsName.length > 0
     || counts.held.length > 0
-    || counts.failed.length > 0
-    || counts.awaitingLot;
+    || counts.failed.length > 0;
 }
 
 function onUploadChange() {

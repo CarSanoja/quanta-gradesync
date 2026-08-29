@@ -73,12 +73,30 @@ def test_a_clean_queue_clears_itself_so_the_next_pile_can_land() -> None:
     assert "uploads.rows.length = 0;" in upload
 
 
-def test_a_running_batch_cannot_be_opened_for_grades_yet() -> None:
+def test_the_grading_button_lives_on_the_batch_it_belongs_to() -> None:
+    """It used to sit at the bottom of a screen that took over the page.
+
+    Per batch, it also survives three sections at once — the old handler only
+    knew about whichever queue was moving.
+    """
     dock = source("teacher-dock.js")
 
+    assert '"Done — start grading"' in dock
     assert "disabled: batch.running," in dock
-    assert 'text: batch.running ? "Sending…" : "Grades",' in dock
+    assert "`Sending ${batch.received} of ${batch.total}…`" in dock
     assert "onclick: () => onOpen(batch.lotCode)," in dock
+
+
+def test_progress_never_moves_her_off_the_drop_zone() -> None:
+    """Dropping a pile before filling the three fields took the page over.
+
+    The drop zone already carries those fields, so there is nothing to take her
+    to — and a loading animation is not a question.
+    """
+    teacher = source("teacher.js")
+
+    assert "|| counts.awaitingLot;" not in teacher
+    assert "counts.failed.length > 0;" in teacher
 
 
 def test_the_dock_tells_her_she_can_keep_going() -> None:
