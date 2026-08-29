@@ -1,6 +1,7 @@
 import argparse
 import os
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from google.cloud import firestore, storage
@@ -14,6 +15,8 @@ from google.oauth2.credentials import Credentials
 ACCESS_TOKEN_ENV = "GOOGLE_ACCESS_TOKEN"
 
 DEFAULT_BUCKET = "quanta-gradesync-exams"
+BUCKET_DELETE_WORKERS = 32
+PROBE_WORKERS = 32
 
 # Wiping Firestore leaves the scans where they are, and the teacher page lists
 # batches from the bucket — so the console reported "36 exams · 0 in the
@@ -45,19 +48,26 @@ KNOWN_COLLECTIONS = (
 )
 
 
-def wipe_document(reference: Any, writer: Any) -> int:
-    deleted = 0
-    for sub in reference.collections():
-        deleted += wipe_documents_in(sub, writer)
-    writer.delete(reference)
-    return deleted + 1
-
-
 def wipe_documents_in(collection: Any, writer: Any) -> int:
     # list_documents, not stream: a parent that exists only to hold a
     # subcollection is not returned by a query, and audit/{job}/live is exactly
     # that. Streaming left thousands of live events behind on every reset.
-    return sum(wipe_document(reference, writer) for reference in collection.list_documents())
+    references = list(collection.list_documents())
+    if not references:
+        return 0
+    # Asking each document for its subcollections is a round trip, and at a
+    # quarter of a second each it was the entire cost of a reset: 525 live events
+    # listed in two seconds and took over two minutes to probe, all of them
+    # leaves. The reads are independent, so they overlap.
+    with ThreadPoolExecutor(max_workers=PROBE_WORKERS) as pool:
+        nested = list(pool.map(lambda reference: list(reference.collections()), references))
+    deleted = 0
+    for reference, subcollections in zip(references, nested, strict=True):
+        for sub in subcollections:
+            deleted += wipe_documents_in(sub, writer)
+        writer.delete(reference)
+        deleted += 1
+    return deleted
 
 
 def wipe_collection(db: firestore.Client, name: str) -> int:
@@ -115,14 +125,20 @@ def wipe_bucket(bucket_name: str, credentials: Credentials | None) -> tuple[int,
         else storage.Client()
     )
     bucket = client.bucket(bucket_name)
-    deleted = kept = 0
+    doomed, kept = [], 0
     for blob in client.list_blobs(bucket):
         if any(blob.name.startswith(prefix) for prefix in KEEP_IN_BUCKET):
             kept += 1
             continue
-        blob.delete()
-        deleted += 1
-    return deleted, kept
+        doomed.append(blob)
+    if not doomed:
+        return 0, kept
+    # One delete per round trip put three hundred scans past a minute, which is
+    # the wrong thing to be waiting on before a recording. The calls are
+    # independent and network-bound, so they overlap.
+    with ThreadPoolExecutor(max_workers=BUCKET_DELETE_WORKERS) as pool:
+        list(pool.map(lambda blob: blob.delete(), doomed))
+    return len(doomed), kept
 
 
 def collections_to_wipe(db: firestore.Client) -> tuple[tuple[str, ...], bool]:
