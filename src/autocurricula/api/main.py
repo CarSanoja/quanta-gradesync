@@ -14,6 +14,7 @@ from autocurricula.api.dependencies import (
     set_container,
 )
 from autocurricula.api.fleet import fleet_router
+from autocurricula.api.gate import build_gate
 from autocurricula.api.ingest import ingest_router
 from autocurricula.api.jobs import jobs_router
 from autocurricula.api.labels import labels_router
@@ -88,6 +89,10 @@ async def readyz(
 
 def create_app() -> FastAPI:
     application = FastAPI(title=APP_TITLE, version=__version__, lifespan=lifespan)
+    # Before any router: one gate, so a new route is protected by default and an
+    # unauthenticated caller cannot reach body validation and read a schema back
+    # out of the 422. /openapi.json is behind it too.
+    application.middleware("http")(build_gate())
     application.include_router(health_router)
     application.include_router(pubsub_router)
     application.include_router(review_router)
