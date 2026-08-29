@@ -740,6 +740,17 @@ scripts/ holds the deterministic demo-batch generator (`scripts/README.md`
 documents its case matrix) and the calibration runner; `docs/runbooks/` and
 `docs/reports/` hold reproducible procedures and measured evidence.
 
+## Contributing
+
+[CONTRIBUTING.md](CONTRIBUTING.md) has the setup and what we look for in a
+change. [SECURITY.md](SECURITY.md) covers what the deployed demo exposes and the
+limitations we know about. [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) is the
+Contributor Covenant 2.1.
+
+If a number in this README does not point at an artifact you can check, that is a
+bug and there is [an issue template for
+it](.github/ISSUE_TEMPLATE/claim_challenge.md).
+
 ## License
 
 Apache License 2.0 — see [LICENSE](LICENSE).
