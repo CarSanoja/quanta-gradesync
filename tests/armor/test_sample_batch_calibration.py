@@ -13,9 +13,12 @@ def _generated_batch() -> Path:
     """Render the reference batch instead of skipping when it is not on disk.
 
     .local_data is gitignored, so on a clean clone these were the only tests that
-    skipped — and the README promised a count that a clone could not produce. The
-    generator is deterministic and this roster uses no system fonts, so the pages
-    are the same everywhere.
+    skipped — and the README promised a count that a clone could not produce.
+
+    The thresholds hold across both rendering paths: macOS renders these pages
+    with real TrueType handwriting fonts and Linux CI with Pillow's bundled
+    default, and the same absolute cutoffs pass on both. The margin is why —
+    degraded scores below 0.30, everything else above 0.90.
     """
     if COMMITTED.is_dir():
         return COMMITTED

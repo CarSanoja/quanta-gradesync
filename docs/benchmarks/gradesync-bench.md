@@ -521,6 +521,9 @@ the weighted sum, and the report must name the gate:
 
 ```text
 GradeSync-Bench v1 — <build> — <date>
+ILLUSTRATIVE SHAPE, NOT A MEASURED RESULT — every number below is a
+placeholder showing the report layout. Our measured agreement is
+QWK 0.845 / MAE 0.208 (docs/reports/calibration-2026-08-20.md).
 Composite: 61 / 100   [gates: none]     corpus: C-SYN 480, C-REAL 124, C-ADV 168
 
 A Accuracy      58   QWK 0.86 [0.79, 0.91]   MAE 0.24 [0.18, 0.31]   flips 8.1%

@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 from autocurricula.agents.risk_detector import RiskDetector
 from autocurricula.config.settings import Settings
@@ -206,17 +207,34 @@ def test_the_fleet_splits_five_three_four() -> None:
     assert len(optimizer) == 4, [a.agent_id for a in optimizer]
 
 
-def test_a_skipped_optimizer_says_so_instead_of_looking_like_work() -> None:
+async def test_a_skipped_optimizer_says_so_instead_of_looking_like_work() -> None:
     """The tournament needs a calibration set on disk; a container has none.
 
     The span opened before the try, so a run that raised on its first statement
     still rendered in Mission control and the post-run trace carrying an agent id
     and a prompt variant. That was the only place the telemetry misled.
-    """
-    source = Path("src/autocurricula/core/orchestration/stages_outcome.py").read_text(
-        encoding="utf-8"
-    )
 
-    assert 'span.set("optimize.skipped", True)' in source
-    assert 'span.set("optimize.skipped_reason", type(error).__name__)' in source
-    assert "except (FileNotFoundError, OSError, ValueError) as error:" in source
+    Driven through the real step and a real recorder: asserting the source text
+    would pass on a reformat and fail on none of the ways this could regress.
+    """
+    from autocurricula.core.orchestration.stages_outcome import build_optimize_step
+    from autocurricula.core.telemetry.tracer import Recorder
+
+    class Starved:
+        variant_id = "grading-v1"
+
+        async def run_until_convergence(self):
+            raise FileNotFoundError("/tmp/autocurricula/data/calibration")
+
+    recorder = Recorder("0123456789abcdef")
+    context = SimpleNamespace(recorder=recorder, completed=[])
+    context.complete = lambda stage, outputs: context.completed.append((stage, outputs))
+
+    await build_optimize_step([Starved()])(context)
+
+    span = next(s for s in recorder.spans if s.name.startswith("Optimize_"))
+    assert span.attributes["optimize.skipped"] is True
+    assert span.attributes["optimize.skipped_reason"] == "FileNotFoundError"
+    # and the job still finishes, with nothing promoted
+    stage, outputs = context.completed[-1]
+    assert outputs.reports == []

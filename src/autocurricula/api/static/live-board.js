@@ -1,6 +1,9 @@
 import { clear, el, emptyState, pill } from "./render.js";
 
-const IDLE = { calls: 0, tokens: 0, errors: 0, lastSeq: 0, active: false, done: false };
+const IDLE = {
+  calls: 0, tokens: 0, errors: 0, lastSeq: 0,
+  active: false, done: false, skipped: false, skippedReason: "",
+};
 const ACTIVE_WINDOW_MS = 5000;
 const STAGE_NOTE = "Stage-level spans are not attributed to an agent yet.";
 // Said once, plainly, so a quiet card is read as the design and not as a gap.
@@ -10,6 +13,9 @@ const FLEET_NOTE =
   + "grading batch. Each card says which.";
 
 function statusPill(agent, entry) {
+  if (entry.skipped) {
+    return pill("did not run", "info");
+  }
   if (entry.active) {
     return pill("working", "running");
   }
@@ -37,6 +43,12 @@ function inOptimizer(agent) {
 }
 
 function idleReason(agent, entry) {
+  if (entry.skipped) {
+    const why = entry.skippedReason === "FileNotFoundError"
+      ? "No calibration set is deployed, so the tournament could not start."
+      : `The stage refused to run (${entry.skippedReason || "unknown"}).`;
+    return el("div", { class: "list-sub agent-when", text: why });
+  }
   if (entry.active || entry.done || entry.errors || !agent.runs_when) {
     return null;
   }
@@ -63,7 +75,7 @@ function cardClass(entry) {
   if (entry.errors) {
     classes.push("is-error");
   }
-  if (entry.done && !entry.active) {
+  if (entry.done && !entry.active && !entry.skipped) {
     classes.push("is-done");
   }
   return classes.join(" ");
@@ -118,6 +130,13 @@ export function boardActivity(events, settled, newest) {
     }
     if (event.status === "error") {
       entry.errors += 1;
+    }
+    // A stage that opened a span and then refused to run says so on the span.
+    // Without reading it the card lights up for work that never happened.
+    const skipped = (event.attributes || {})["optimize.skipped"];
+    if (skipped === true) {
+      entry.skipped = true;
+      entry.skippedReason = (event.attributes || {})["optimize.skipped_reason"] || "";
     }
     entry.lastSeq = Math.max(entry.lastSeq, event.seq || 0);
     const at = Date.parse(event.recorded_at);

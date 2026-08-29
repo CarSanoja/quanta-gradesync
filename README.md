@@ -72,7 +72,7 @@ principal. The endpoint reports `field_sources` for exactly this reason; the
 operations console renders it as a Fleet panel.
 
 The harness around them is deterministic and cannot be argued with: permission
-gate (DENY > QUARANTINE > ALLOW), per-exam call budgets, circuit breakers,
+gate (DENY > QUARANTINE > ALLOW), circuit breakers,
 checkpoint resume, provenance ledger, typed telemetry. Every LLM call and every
 inter-component message is a strict Pydantic v2 structured output — zero loose
 strings.
@@ -273,6 +273,13 @@ corpus, and grading was not run in the second campaign, so the grade-move rate i
 `n/a` rather than zero. It is a measurement of our own screen against our own
 attacks — which is more than an assertion, and less than a third-party audit.
 
+**A note on the name.** The demo video calls this "Model Armor". That was our
+name for it before we understood how it would read: **Model Armor is a Google
+Cloud product, and we do not use it.** This screen is ours — a multimodal prompt
+plus a deterministic prescreen, measured above against our own attacks. The
+video is submitted and we are not going to quietly re-record it; the correction
+belongs here instead.
+
 A related finding of ours is written up in
 [`docs/reports/armor-metadata-channel-2026-08-21.md`](docs/reports/armor-metadata-channel-2026-08-21.md):
 a hostile **file name** reached the model completely unscreened. We found it, and
@@ -313,7 +320,7 @@ pytest
 Expected, on any machine:
 
 ```
-849 passed, 10 skipped
+850 passed, 10 skipped
 ```
 
 The 10 skips are the live contract tests under `tests/live/`, which call real
@@ -325,13 +332,13 @@ offline suite exercises the production code paths rather than test doubles.
 
 | What you want to verify | Command | Tests | Credentials |
 |---|---|---|---|
-| The engine's logic, gates and failure handling | `pytest` | 849 | none |
+| The engine's logic, gates and failure handling | `pytest` | 850 | none |
 | Throughput and concurrency behaviour | `pytest -m benchmark` | 2 | none |
 | Calibration maths and the promotion gate, against fixed ground truth | `pytest -m calibration` | 59 | none |
 | Contracts against the real models | `pytest -m live` | 10 | `GRADESYNC_LIVE_TESTS=1` + Gemini + GCP |
 | A batch graded end to end, on your machine | see [Local demo run](#local-demo-run) | | Gemini |
 
-The benchmark and calibration markers select subsets of the same 849; only the
+The benchmark and calibration markers select subsets of the same 850; only the
 live tests sit outside it.
 
 The suite ignores any `.env` in the working directory, so it gives the same
@@ -450,7 +457,7 @@ All variables use the `GRADESYNC_` prefix and are read from the environment or a
 | `GRADESYNC_OPTIMIZER_MAX_CYCLES` | `3` | Convergence budget: optimizer cycles per trigger |
 | `GRADESYNC_OPTIMIZER_CONVERGENCE_MIN_IMPROVEMENT` | `0.01` | Marginal MAE improvement below which the optimizer stops cycling |
 | `GRADESYNC_VERIFY_MAX_ITERATIONS` | `2` | Bounded rework iterations in the verify stage |
-| `GRADESYNC_HARNESS_MAX_CALLS_PER_ITEM` | `4` | Max agent invocations per exam before isolating it (blast-radius containment) |
+| `GRADESYNC_HARNESS_MAX_CALLS_PER_ITEM` | `4` | Per-exam call budget. **Implemented in `core/harness` and exercised by tests, but not wired into the production pipeline** — the deployed run does not enforce it |
 | `GRADESYNC_MODEL_CONCURRENCY` | `8` | Maximum exams transcribed, graded or audited at once; caps burst load on Vertex |
 | `GRADESYNC_SCHEMA_REPAIR_ATTEMPTS` | `2` | Bounded JSON-contract self-repair attempts before quarantine |
 | `GRADESYNC_BATCH_ANOMALY_THRESHOLD` | `0.15` | Quarantine ratio above which the whole batch's auto-sync is suspended |
@@ -503,7 +510,7 @@ Cloud Build runs as the dedicated `gradesync-builder` service account, builds th
 container, pushes it to Artifact Registry (`$_REPOSITORY`), and deploys to Cloud
 Run with `--min-instances=1 --max-instances=4`, `--timeout=900`,
 CPU allocated outside the request (`--no-cpu-throttling`, required because the
-webhook acks the push and grades in the background), and the runtime service
+webhook grades inside a long-lived request), and the runtime service
 account from `$_SERVICE_ACCOUNT`. The push token is
 mounted from Secret Manager (`_PUSH_TOKEN_SECRET`, default `gradesync-push-token`)
 — no secret ever appears in the build config or the command line.
@@ -567,7 +574,7 @@ separates governance from the model, in three layers:
 
 - **Execution harness (runtime)** — every external action passes a deterministic
   permission pipeline `DENY > QUARANTINE > ALLOW` (writes to students outside the
-  batch manifest are blocked in memory, before any network call); per-exam budgets
+  batch manifest are blocked in memory, before any network call); schema-repair
   (`GRADESYNC_HARNESS_MAX_CALLS_PER_ITEM`, schema-repair attempts) contain runaway
   reasoning; a failing exam is isolated (blast radius) instead of failing the job;
   and a faithfulness verifier checks every cited `EvidenceSpan` quote against the

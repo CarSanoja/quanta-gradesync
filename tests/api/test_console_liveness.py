@@ -143,3 +143,20 @@ def test_the_board_states_the_shape_of_the_fleet_once() -> None:
     assert "Twelve declared components." in board
     assert "four belong to the improvement loop" in board
     assert "text: FLEET_NOTE" in board
+
+
+def test_a_stage_that_refused_to_run_does_not_light_up_its_agent() -> None:
+    """The optimize span records optimize.skipped; the board has to read it.
+
+    Recording the truth on a span nobody renders leaves the visible surface
+    unchanged: the meta-optimizer cards still lit up for work that raised on its
+    first statement, and only the payload drawer disagreed.
+    """
+    board = source("live-board.js")
+
+    assert 'const skipped = (event.attributes || {})["optimize.skipped"];' in board
+    assert 'entry.skippedReason = (event.attributes || {})["optimize.skipped_reason"]' in board
+    assert 'return pill("did not run", "info");' in board
+    assert "No calibration set is deployed, so the tournament could not start." in board
+    # and it must not also read as finished work
+    assert "if (entry.done && !entry.active && !entry.skipped) {" in board

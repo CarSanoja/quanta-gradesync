@@ -65,7 +65,7 @@
     <text x="1322" y="300">prompt tournaments,</text>
     <text x="1322" y="314">anti-gaming + QWK gate</text>
     <text x="902" y="366">Gemini 3.5 Flash multimodal + rubric</text>
-    <text x="902" y="380" fill="#d93025" font-weight="bold">Model Armor screen &#183; legibility metric</text>
+    <text x="902" y="380" fill="#d93025" font-weight="bold">Injection screen &#183; legibility metric</text>
     <text x="1070" y="366">deterministic z-scores,</text>
     <text x="1070" y="380">dropout early warning</text>
     <text x="1238" y="366">goal checks + bounded</text>
